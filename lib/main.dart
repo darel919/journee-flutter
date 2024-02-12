@@ -3,18 +3,18 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 Future<void> main() async {
   await dotenv.load(fileName: 'lib/.env');
   WidgetsFlutterBinding.ensureInitialized();
-
   var sbaseUrl = dotenv.env['supabaseUrl']!;
   var sbaseAnonKey = dotenv.env['supabaseAnonKey']!;
 
-    await Supabase.initialize(
-      url: sbaseUrl,
-      anonKey: sbaseAnonKey,
-    );
+  await Supabase.initialize(
+    url: sbaseUrl,
+    anonKey: sbaseAnonKey,
+  );
 
   runApp(MyApp());
 }
@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Journee',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 58, 60, 183)),
+        colorScheme: ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 0, 2, 123)),
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Home'),
@@ -39,16 +39,6 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
@@ -69,8 +59,6 @@ class _MyHomePageState extends State<MyHomePage> {
         // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
         // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -79,17 +67,25 @@ class _MyHomePageState extends State<MyHomePage> {
           if(!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-           final posts = snapshot.data!;
-          //  final users = snapshot.data!.;
+            final posts = snapshot.data!;
+            
             return ListView.builder(
             itemCount: posts.length,
             itemBuilder: ((context, index) {
               final post = posts[index];
               final user = post['users'];
-
+              DateTime myDateTime = DateTime.parse(post['created_at']);
               return ListTile(
-                title: Text(user['name']),
-                subtitle: Text(post['details']),
+                contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
+                isThreeLine: true,
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(48.0),
+                  child: Image.network(user['avatar_url']
+                  )
+                ),
+                title: Text(user['name'], style: TextStyle(fontSize: 16)),
+                trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
+                subtitle: Text(post['details'], maxLines: 1, style: TextStyle(fontSize: 12.5)),
               );
             }),
             );
