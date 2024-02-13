@@ -19,7 +19,6 @@ Future<void> main() async {
   runApp(MyApp());
 }
 
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -52,6 +51,7 @@ class Puid {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+
     final _future = Supabase.instance.client
       .from('posts')
       .select('''*, users(*), threads ( * ), categories ( * )''')
@@ -103,12 +103,12 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
 class ViewPostRoute extends StatelessWidget {
   final Puid puid;
   late final Future<List<Map<String, dynamic>>> _future;
 
   ViewPostRoute({Key? key, required this.puid}) : super(key: key) {
-        // Initialize _future here
     _initializeFuture();
   }
 
@@ -124,11 +124,92 @@ class ViewPostRoute extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text("Post"),
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if(!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+            final post = snapshot.data![0];
+            final user = post['users'];
+            final threads = post['threads'];
+            DateTime myDateTime = DateTime.parse(post['created_at']);
+            
+            return ListView(
+              shrinkWrap: true,
+              children: <Widget>[
+                ListTile(
+                  onTap:() {
+                    Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']))));
+                  },
+                  contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(48.0),
+                    child: Image.network(user['avatar_url']
+                    )
+                  ),
+                  title: Text(user['name']),
+                  trailing: Text(timeago.format(myDateTime, locale: 'en'))
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+                        child: Text(post['details']),
+                      ),
+                      if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
+                        padding: const EdgeInsets.fromLTRB(0,0,0,20),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(post['mediaUrl'], width: 400),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ],
+            );
+        },
+      )
+    );
+  }
+}
+
+class Uuid {
+  final String uuid;
+
+  Uuid(this.uuid);
+}
+
+class UserPageRoute extends StatelessWidget {
+  final Uuid uuid;
+  late final Future<List<Map<String, dynamic>>> _future;
+
+  UserPageRoute({Key? key, required this.uuid}) : super(key: key) {
+    _initializeFuture();
+  }
+
+   void _initializeFuture() {
+    _future = Supabase.instance.client
+      .from('posts')
+      .select('''*, users(*), threads ( * ), categories ( * )''')
+      .eq('uuid', uuid.uuid)
+      .order('created_at',  ascending: false);
+   }
+
+   @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text("User"),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _future,
@@ -145,6 +226,9 @@ class ViewPostRoute extends StatelessWidget {
               final user = post['users'];
               DateTime myDateTime = DateTime.parse(post['created_at']);
               return ListTile(
+                onTap: () {
+                    Navigator.push(context, new MaterialPageRoute(builder: (context) => new ViewPostRoute(puid: new Puid(post['puid']))));
+                },
                 contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
                 isThreeLine: true,
                 leading: ClipRRect(
@@ -154,12 +238,7 @@ class ViewPostRoute extends StatelessWidget {
                 ),
                 title: Text(user['name'], style: TextStyle(fontSize: 16)),
                 trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
-                subtitle: Row(
-                  children: [
-                    Text(post['details'], style: TextStyle(fontSize: 12.5)),
-                    // post['mediaUrl'].isNotEmpty ? Image.network(post['mediaUrl']) : Text("No image")
-                  ],
-                ),
+                subtitle: Text(post['details'], maxLines: 1, style: TextStyle(fontSize: 12.5)),
               );
             }),
             );
