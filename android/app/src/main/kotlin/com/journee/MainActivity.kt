@@ -1,4 +1,4 @@
-package com.example.journee
+package com.journee
 
 import io.flutter.embedding.android.FlutterActivity
 

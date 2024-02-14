@@ -1,5 +1,5 @@
 name: journee
-description: A new Flutter project.
+description: Journee Android Client.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -38,8 +38,13 @@ dependencies:
   supabase_flutter: ^2.0.0
   flutter_dotenv: ^5.1.0
   timeago: ^3.6.1
+  google_sign_in: ^6.2.1
+  google_sign_in_all_platforms: ^0.0.4
+  
+  
 
 dev_dependencies:
+
   flutter_test:
     sdk: flutter
 
@@ -49,6 +54,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
+  # change_app_package_name: ^1.1.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
