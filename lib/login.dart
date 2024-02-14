@@ -2,9 +2,9 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
-// import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in_all_platforms/google_sign_in_all_platforms.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 
 class LoginPage extends StatefulWidget {
@@ -27,10 +27,12 @@ class _LoginPageState extends State<LoginPage> {
         _isLoading = true;
       });
 
-      const clientId = '66265382086-pomjkmlg3q56fea438it2k0da9td4e29.apps.googleusercontent.com';
-      const webClientId = '66265382086-3i1563662hg6df436gbudqghpbhrl5de.apps.googleusercontent.com';
-      const desktopClientId = '66265382086-60koubnbe1pct41k86h5buonf1ao76f1.apps.googleusercontent.com';
-      const desktopClientSecret = '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';
+      await dotenv.load(fileName: 'lib/.env');
+
+      var clientId =  dotenv.env['androidClientId']!;
+      var webClientId =  dotenv.env['webClientId']!;
+      var desktopClientId =  dotenv.env['windowsClientId']!;
+      var desktopClientSecret =  dotenv.env['windowsSecretId']!;
       
       String? accessToken;
       String? idToken;
