@@ -17,8 +17,8 @@ class ViewPostRoute extends StatelessWidget {
 
   ViewPostRoute({Key? key, required this.puid}) : super(key: key) {
     _initializeFuture();
+    
   }
-
    void _initializeFuture() {
     _future = Supabase.instance.client
       .from('posts')
@@ -34,13 +34,14 @@ class ViewPostRoute extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text("Post"),
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if(!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
+      body: RefreshIndicator(
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _future,
+          builder: (context, snapshot) {
+            if(!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+        
             final post = snapshot.data![0];
             final user = post['users'];
             final threads = post['threads'];
@@ -48,6 +49,7 @@ class ViewPostRoute extends StatelessWidget {
             
             return ListView(
               shrinkWrap: true,
+              physics: const AlwaysScrollableScrollPhysics(),
               children: <Widget>[
                 ListTile(
                   onTap:() {
@@ -83,6 +85,13 @@ class ViewPostRoute extends StatelessWidget {
                 ),
               ],
             );
+          },
+        ),
+        onRefresh: () {
+          return Future.delayed(
+            Duration(seconds: 1),
+            () => _future,
+          );
         },
       )
     );

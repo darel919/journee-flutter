@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:journee/account.dart';
+import 'package:journee/create.dart';
 import 'package:journee/post.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -30,6 +31,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     const List<Widget> _pages = <Widget>[
       HomePostView(),
+      CreateDiaryPage(),
       AccountPage()
     ];
 
@@ -46,6 +48,10 @@ class _MyHomePageState extends State<MyHomePage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.create),
+            label: 'Create',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.account_circle),
