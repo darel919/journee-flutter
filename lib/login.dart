@@ -89,7 +89,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (session != null) {
         _redirecting = true;
-        Navigator.of(context).pushReplacementNamed('/account');
+        Navigator.of(context).pushReplacementNamed('/');
       } else {
         _handleGoogleSignIn();
       }
@@ -109,7 +109,7 @@ class _LoginPageState extends State<LoginPage> {
       appBar: AppBar(
         title: Text('Login to Journee'),
       ),
-      body: _isLoading ? Center(child: CircularProgressIndicator()) : Text("Welcome"),
+      body: _isLoading ? Center(child: CircularProgressIndicator()) : Center(child: ElevatedButton(onPressed: _handleGoogleSignIn, child: Text("Login with Google"))),
     );
   }
 }
