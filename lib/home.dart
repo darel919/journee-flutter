@@ -79,6 +79,17 @@ class _HomePostViewState extends State<HomePostView> {
     .select('''*, users(*), threads ( * ), categories ( * )''')
     .order('created_at',  ascending: false);
   
+    Future<void> _refresh() async {
+    try {
+      await Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/home',
+        (_) => false
+      );
+    } catch (e) {
+      print('$e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +98,7 @@ class _HomePostViewState extends State<HomePostView> {
         title: Text("Home")
       ),
       body: RefreshIndicator(
-        onRefresh: () => _future,
+        onRefresh: () => _refresh(),
         child: FutureBuilder<List<Map<String, dynamic>>>(
           future: _future,
           builder: (context, snapshot) {
