@@ -102,6 +102,8 @@ class _HomePostViewState extends State<HomePostView> {
               itemBuilder: ((context, index) {
                 final post = posts[index];
                 final user = post['users'];
+                final thread = post['threads'];
+                int threadLength = post['threads'].length;
                 DateTime myDateTime = DateTime.parse(post['created_at']);
                 return ListTile(
                   onTap: () {
@@ -117,7 +119,26 @@ class _HomePostViewState extends State<HomePostView> {
                   ),
                   title: Text(user['name'], style: TextStyle(fontSize: 16)),
                   trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
-                  subtitle: Text(post['details'], maxLines: 1, style: TextStyle(fontSize: 12.5)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(post['details'], maxLines: 1, style: TextStyle(fontSize: 12.5)),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Icon(Icons.chat_bubble_outline, size: 20),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                              child: Text('$threadLength'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                    ],
+                  ),
                 );
               }),
               );

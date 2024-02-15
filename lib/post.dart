@@ -162,7 +162,8 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
               ),
               actions: <Widget>[
                 TextButton(
-                  child: Text('Delete'),
+                  style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red)),
+                  child: Text('Delete', style: TextStyle(color: Colors.white),),
                   onPressed: () {
                     print('Confirmed');
                     _deletePost();

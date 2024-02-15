@@ -40,7 +40,7 @@ dependencies:
   timeago: ^3.6.1
   google_sign_in: ^6.2.1
   google_sign_in_all_platforms: ^0.0.4
-  
+  file_picker: ^6.1.1
   
 
 dev_dependencies:
