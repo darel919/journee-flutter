@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors, unused_local_variable, unnecessary_new, unused_element, prefer_const_literals_to_create_immutables, avoid_print, unused_import, use_build_context_synchronously, no_logic_in_create_state
+// ignore_for_file: prefer_const_constructors, unused_local_variable, unnecessary_new, unused_element, prefer_const_literals_to_create_immutables, avoid_print, unused_import, use_build_context_synchronously, no_logic_in_create_state, unnecessary_null_comparison
 
 import 'package:flutter/material.dart';
 import 'package:journee/home.dart';
@@ -30,6 +30,11 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
     .select('''*, users(*), threads ( * ), categories ( * )''')
     .eq('puid', puid.puid)
     .order('created_at',  ascending: false);
+
+  late final _futureThread = supabase
+    .from('threads')
+    .select('''*, users(*), threads ( * )''')
+    .eq('puid', puid.puid);
 
   void handleClick(int item) {
     switch (item) {
@@ -94,47 +99,113 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
       
           final post = snapshot.data![0];
           final user = post['users'];
+
           final threads = post['threads'];
           postuuid = post['uuid'];
           DateTime myDateTime = DateTime.parse(post['created_at']);
           
-          return ListView(
-            shrinkWrap: true,
-            children: <Widget>[
-              ListTile(
-                onTap:() {
-                  Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']))));
-                },
-                contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(48.0),
-                  child: Image.network(user['avatar_url']
-                  )
-                ),
-                title: Row(
-                  children: [
-                    Text(user['name']),
-                  ],
-                ),
-                trailing: Text(timeago.format(myDateTime, locale: 'en'))
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
-                      child: Text(post['details']),
-                    ),
-                    if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
-                      padding: const EdgeInsets.fromLTRB(0,0,0,20),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(post['mediaUrl'], width: 400),
+          return Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ListView(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        children: <Widget>[
+                          ListTile(
+                            onTap:() {
+                              Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']))));
+                            },
+                            contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
+                            leading: ClipRRect(
+                              borderRadius: BorderRadius.circular(48.0),
+                              child: Image.network(user['avatar_url']
+                              )
+                            ),
+                            title: Row(
+                              children: [
+                                Text(user['name']),
+                              ],
+                            ),
+                            trailing: Text(timeago.format(myDateTime, locale: 'en'))
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+                                  child: Text(post['details']),
+                                ),
+                                if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
+                                  padding: const EdgeInsets.fromLTRB(0,0,0,20),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(post['mediaUrl'], width: 400),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    )
-                  ],
+                      if (threads.length > 0) Text("Threads"),
+                      FutureBuilder<List<Map<String, dynamic>>>(
+                        future: _futureThread, 
+                        builder: (context, snapshot) {
+                          if(!snapshot.hasData) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                      
+                          final threadContent = snapshot.data!;
+
+                          return ListView.builder(
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            itemCount: threads.length,
+                            itemBuilder: ((context, index) {
+                              final threadDetails = threadContent[index];
+                              final threadAuthor = threadDetails['users'];
+                              DateTime threadDateTime = DateTime.parse(threadDetails['created_at']);
+                              
+                              return ListTile(
+                                onTap: () {
+                                  Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(threadAuthor['uuid']))));
+                                },
+                                contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
+                                isThreeLine: true,
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(48.0),
+                                  child: Image.network(threadAuthor['avatar_url']
+                                  )
+                                ),
+                                title: Text(threadAuthor['name'], style: TextStyle(fontSize: 16)),
+                                trailing: Text(timeago.format(threadDateTime, locale: 'en_short')),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(threadDetails['details']),
+                                    if (threadDetails['mediaUrl']!= null && threadDetails['mediaUrl'].isNotEmpty) Padding(
+                                      padding: const EdgeInsets.fromLTRB(0,15,0,15),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(threadDetails['mediaUrl'], width: 400),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              );
+                            }),
+                          );
+                        }
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -143,6 +214,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
       )
     );
   }
+
   Future<void> _showMyDialog(BuildContext context) async {
     return showDialog<void>(
       context: context,
