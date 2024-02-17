@@ -29,6 +29,8 @@ class MyApp extends StatelessWidget {
 
   static const appcastURL = 'https://raw.githubusercontent.com/darel919/journee-flutter/main/android/app/appcast/appcast.xml';
   final upgrader = Upgrader(
+    debugDisplayAlways: true,
+    debugLogging: true,
       appcastConfig:
           AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
   );
@@ -43,7 +45,11 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       // initialRoute: '/',
-      home: UpgradeAlert(upgrader: upgrader, showIgnore: false, showLater: false, child: SplashPage()),
+      home: UpgradeAlert(
+        upgrader: upgrader, 
+        showIgnore: false, 
+        showLater: false, 
+        child: SplashPage()),
       routes: <String, WidgetBuilder> {
         // '/' : (BuildContext context) => SplashPage(),
         '/home':(BuildContext context) => MyHomePage(title: 'Home'),

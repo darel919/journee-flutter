@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
     <channel>
-        <title>Help Code TJCODE- Appcast</title>
+        <title>Journee - Appcast</title>
         <item>
             <title>Version 1.0.3</title>
-            <description>New Journee Version</description>
-            <pubDate>Sat, 17 Feb 2024 21:13:47 +0000</pubDate>
+            <description>New Journee Version contains updates and improvements.</description>
+            <pubDate>Sat, 17 Feb 2024 21:17:32 +0000</pubDate>
             <enclosure url="https://github.com/darel919/journee-flutter/releases" sparkle:version="1.0.3" sparkle:os="android" />
         </item>
     </channel>
