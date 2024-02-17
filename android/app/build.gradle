@@ -61,18 +61,18 @@ android {
 
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            def appcastFile = file('src/main/assets/appcast.xml')
+            def template = file('src/main/assets/appcast.xml')
+            copy {
+                from template
+                into 'appcast'
+            }
+            def appcastFile = file('appcast/appcast.xml')
             def outputDir = output.outputFile.parent
             def flutterVersion = flutterVersionName
             def buildDate = new Date().format("EEE, dd MMM yyyy HH:mm:ss Z", TimeZone.getTimeZone("GMT"))
             def appcastContent = appcastFile.text.replace('${flutterVersion}', flutterVersion)
                                                  .replace('${buildDate}', buildDate)
             appcastFile.text = appcastContent
-
-            copy {
-                from appcastFile
-                into 'appcast' // Change this to your desired directory
-            }
         }
     }
 
