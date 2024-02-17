@@ -45,6 +45,12 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             'type': 'Diary'
           })
           .match({ 'puid': earlyPuid });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Post uploaded!'),
+              elevation: 20.0,
+            ),
+          );
           Navigator.of(context).pushReplacementNamed('/home');
         } else {
           await supabase
@@ -56,6 +62,12 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             'allowReply': 'true', 
             'type': 'Diary'
           });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Post uploaded!'),
+              elevation: 20.0,
+            ),
+          );
           Navigator.of(context).pushReplacementNamed('/home');
         }
       }
@@ -128,7 +140,12 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
          .match({ 'puid': earlyPuid });
       
       mediaUploadMode = true;
-
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Media upload success'),
+            elevation: 20.0,
+          ),
+        );
       }
     }
   }
@@ -146,7 +163,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
           child: Column(
             children: <Widget>[
               TextField(
-                autofocus: true,
+                autofocus: false,
                 canRequestFocus: true,
                 controller: myController,
                 decoration: const InputDecoration(

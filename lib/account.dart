@@ -44,6 +44,12 @@ class _AccountPageState extends State<AccountPage> {
 
   Future<void> _handleLogOut() async {
     await supabase.auth.signOut();
+    ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Successfully logged out!'),
+              elevation: 20.0,
+            ),
+          );
     Navigator.of(context).pushReplacementNamed('/login');
   }
   
@@ -51,7 +57,7 @@ class _AccountPageState extends State<AccountPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Account')
+        title: Text('Profile')
       ),
       body: Center(child: Column(
         children: [

@@ -175,7 +175,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                               
                               return ListTile(
                                 onTap: () {
-                                  Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(threadAuthor['uuid']))));
+                                  // Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(threadAuthor['uuid']))));
                                 },
                                 contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
                                 isThreeLine: true,

@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, unused_local_variable, prefer_const_constructors, unused_element, prefer_typing_uninitialized_variables
+// ignore_for_file: avoid_print, unused_local_variable, prefer_const_constructors, unused_element, prefer_typing_uninitialized_variables, use_build_context_synchronously, camel_case_types
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -14,6 +14,7 @@ class LoginPage extends StatefulWidget {
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
+
 
 class _LoginPageState extends State<LoginPage> {
   final supabase = Supabase.instance.client;
@@ -72,8 +73,16 @@ class _LoginPageState extends State<LoginPage> {
           nonce: 'NONCE',
         );
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Login success!'),
+              elevation: 20.0,
+            ),
+          );
     } catch (e) {
+      displaySnackBar(e);
       print('Error during GSI Login: $e');
+      // displaySnackBar(e);
     } finally {
       if (mounted) {
         setState(() {
@@ -82,6 +91,19 @@ class _LoginPageState extends State<LoginPage> {
       }
    }
   }
+
+void displaySnackBar(e) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('Please restart app. Error while signing in: $e'),
+      elevation: 20.0,
+    ),
+  );
+}
+
+void _restart() {
+   Navigator.pushNamedAndRemoveUntil(context,'/',(_) => false);
+}
 
   @override
   void initState() {
@@ -111,7 +133,7 @@ class _LoginPageState extends State<LoginPage> {
       appBar: AppBar(
         title: Text('Login to Journee'),
       ),
-      body: _isLoading ? Center(child: CircularProgressIndicator()) : Center(child: ElevatedButton(onPressed: _handleGoogleSignIn, child: Text("Login with Google"))),
+      body: _isLoading ? Center(child: CircularProgressIndicator()) : Center(child: ElevatedButton(onPressed: _restart, child: Text("Login with Google"))),
     );
   }
 }
