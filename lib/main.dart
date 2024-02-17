@@ -7,6 +7,7 @@ import 'package:journee/login.dart';
 import 'package:journee/splash.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:upgrader/upgrader.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: 'lib/.env');
@@ -24,7 +25,13 @@ Future<void> main() async {
 
 class MyApp extends StatelessWidget {
 
-  const MyApp({super.key});
+  MyApp({super.key});
+
+  static const appcastURL = 'https://raw.githubusercontent.com/darel919/journee-flutter/main/android/app/appcast/appcast.xml';
+  final upgrader = Upgrader(
+      appcastConfig:
+          AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
+  );
 
   // This widget is the root of your application.
   @override
@@ -35,9 +42,10 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 0, 4, 255)),
         useMaterial3: true,
       ),
-      initialRoute: '/',
+      // initialRoute: '/',
+      home: UpgradeAlert(upgrader: upgrader, showIgnore: false, showLater: false, child: SplashPage()),
       routes: <String, WidgetBuilder> {
-        '/' : (BuildContext context) => SplashPage(),
+        // '/' : (BuildContext context) => SplashPage(),
         '/home':(BuildContext context) => MyHomePage(title: 'Home'),
         '/account':(BuildContext context) => AccountPage(),
         '/login': (BuildContext context) => const LoginPage(),
