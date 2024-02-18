@@ -85,7 +85,7 @@ class _UpdatePageState extends State<UpdatePage> {
   Widget build(BuildContext context) {
     
     return Scaffold(
-        appBar: AppBar(title: newestVersion == version ? Text('Journee v$version') : Text("New update available!")),
+        appBar: AppBar(title: Text('Journee v$version')),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
