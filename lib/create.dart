@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -39,7 +40,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     .select();
     setState(() {
         categories = _data;
-        selectedCategory = _data[0]['cuid'];
+        selectedCategory = _data[1]['cuid'];
     });
   }
 
@@ -52,8 +53,10 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
   Future<void> upload() async {  
     try {
-      uploading = true;
       if(myController.text.isNotEmpty) {
+        setState(() {
+          uploading = true;
+        });
         if(mediaUploadMode) {
           await supabase
           .from('posts')
@@ -71,7 +74,9 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             ),
             
           );
-          uploading = false;
+          setState(() {
+            uploading = false;
+          });
           Navigator.of(context).pushReplacementNamed('/home');
         } else {
           await supabase
@@ -89,11 +94,14 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               elevation: 20.0,
             ),
           );
-           uploading = false;
+           setState(() {
+              uploading = false;
+            });
           Navigator.of(context).pushReplacementNamed('/home');
         }
       }
     } catch (e) {
+      uploading = false;
       print(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -105,7 +113,9 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   }
 
   Future<void> uploadPicture() async {
-     uploading = true;
+    setState(() {
+        uploading = true;
+      });
     await dotenv.load(fileName: 'lib/.env');
     
     FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -154,7 +164,9 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
          .match({ 'puid': earlyPuid });
       
       mediaUploadMode = true;
-      uploading = false;
+      setState(() {
+        uploading = false;
+      });
 
       } else {
         final String path = await supabase.storage.from('post_media').upload(
@@ -170,7 +182,9 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
          .match({ 'puid': earlyPuid });
       
       mediaUploadMode = true;
-      uploading = false;
+      setState(() {
+        uploading = false;
+      });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Media upload success'),
@@ -186,7 +200,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     // print(categories);
     return Scaffold(
       appBar: AppBar(
-        title: Text("Create"),
+        // centerTitle: true,
+        title: Text("Create New"),
       ),
       body: Form(
         key: _formKey,
@@ -194,22 +209,38 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
           padding: const EdgeInsets.all(15.0),
           child: Column(
             children: <Widget>[
-             DropdownButton<String>(
-                hint: Text('Select your category'),
-                value: selectedCategory,
-                onChanged: (newValue) {
-                  setState(() {
-                    selectedCategory = newValue; 
-                  });
-                },
-                items: categories.map((index) {
-                  // print(index['cuid']);
-                  return DropdownMenuItem<String>(
-                    value: index['cuid'] as String,
-                    child: Text(index['name']),
-                  );
-                }).toList(),
-            ),
+             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+               children: [
+                 DropdownButton<String>(
+                    hint: Text('Select your category'),
+                    value: selectedCategory,
+                    onChanged: (newValue) {
+                      setState(() {
+                        selectedCategory = newValue; 
+                      });
+                    },
+                    items: categories.map((index) {
+                      // print(index['cuid']);
+                      return DropdownMenuItem<String>(
+                        value: index['cuid'] as String,
+                        child: Text(index['name']),
+                      );
+                    }).toList(),
+                  ),
+                  if (!uploading) ElevatedButton(
+                    onPressed: () {
+                      // Validate will return true if the form is valid, or false if
+                      // the form is invalid.
+                      if (_formKey.currentState!.validate()) {
+                        // Process data.
+                          upload();
+                      }
+                    },
+                    child: const Text('Upload'),
+                  ),
+               ],
+             ),
               TextField(
                 autofocus: false,
                 canRequestFocus: true,
@@ -219,7 +250,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   hintText: 'Whats on your mind today?',
                 ),
               ),
-              if (uploading == false) Padding(
+              if (!uploading) Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -235,21 +266,10 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       },
                       child:  Icon(Icons.photo_size_select_actual_rounded),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Validate will return true if the form is valid, or false if
-                        // the form is invalid.
-                        if (_formKey.currentState!.validate()) {
-                          // Process data.
-                           upload();
-                        }
-                      },
-                      child: const Text('Upload'),
-                    ),
                   ],
                 ),
               ),
-              if(uploading) Text("Uploading..."),
+              if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontWeight: FontWeight.bold))),
             ],
           ),
         )),

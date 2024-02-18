@@ -125,8 +125,6 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
           if(!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-
-
       
           final post = snapshot.data![0];
           fetchedData = post;
@@ -181,12 +179,14 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                     child: Image.network(post['mediaUrl'], width: 400),
                                   ),
                                 ),
+                                if(post['mediaUrl'] == null && post['mediaUrlOnDb'] != null) Text("This image can only be viewed on Journee Web.", style: TextStyle(fontWeight: FontWeight.bold),)
                               ],
                             ),
                           ),
                         ],
                       ),
-                      if (threads.length > 0) Text("Threads"),
+                      if (threads.length > 0) Divider(),
+                      // if (threads.length > 0) Center(child: Text("Threads")),
                       FutureBuilder<List<Map<String, dynamic>>>(
                         future: _futureThread, 
                         builder: (context, snapshot) {
