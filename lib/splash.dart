@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors
+// ignore_for_file: prefer_const_constructors, unused_local_variable, use_build_context_synchronously, avoid_print
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -25,7 +25,17 @@ class _SplashPageState extends State<SplashPage> {
     }
 
     final session = supabase.auth.currentSession;
+    final userMetadata = session?.user.userMetadata;
     if (session != null) {
+        await supabase
+          .from('users')
+          .upsert({
+            'uuid': userMetadata!['provider_id'],
+            'name': userMetadata['name'],
+            'email': userMetadata['email'], 
+            'avatar_url': userMetadata['avatar_url'],
+          });
+          print('user update ok!');
       await Navigator.pushNamedAndRemoveUntil(
         context,
         '/home',

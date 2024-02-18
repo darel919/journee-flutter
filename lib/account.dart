@@ -1,7 +1,9 @@
-// ignore_for_file: prefer_const_constructors, unused_field, use_build_context_synchronously
+// ignore_for_file: prefer_const_constructors, unused_field, use_build_context_synchronously, must_be_immutable, use_function_type_syntax_for_parameters, non_constant_identifier_names, prefer_typing_uninitialized_variables, unused_local_variable, avoid_print
 
 import 'package:flutter/material.dart';
+import 'package:journee/updater.dart';
 import 'package:journee/user_posts.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AccountPage extends StatefulWidget {
@@ -17,6 +19,13 @@ class _AccountPageState extends State<AccountPage> {
   late final Future<List<Map<String, dynamic>>> _data;
   late final User? user = supabase.auth.currentUser;
   late final userData = user?.userMetadata!;
+  // String? currentVersion;
+
+  // Future<void> getVersion() async {
+  //   print('run');
+  //   PackageInfo packageInfo = await PackageInfo.fromPlatform();
+  //   currentVersion = packageInfo.version;
+  // }
 
   Future<void> _getProfile() async {
     setState(() {
@@ -77,6 +86,14 @@ class _AccountPageState extends State<AccountPage> {
               ],
             ),
             trailing: ElevatedButton(onPressed: () async => _handleLogOut(), child: Text("Log Out")),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: () => Navigator.pushNamed(context, '/update'),
+                child: Text('Check for updates'))
+            ],
           ),
           // UserPageRoute(uuid: Uuid(userData!['provider_id']))
         ],
