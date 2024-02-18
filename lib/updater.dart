@@ -20,17 +20,26 @@ class _UpdatePageState extends State<UpdatePage> {
   static const _urlAndroid = 'https://github.com/darel919/journee-flutter/releases/download/app/app-release.apk';
   static const _url = 'https://github.com/darel919/journee-flutter/releases/';
   String? version;
+  String? newestVersion;
   bool willUpgrade = false;
+  // Future<List<AppcastItem>?> items = Appcast().parseAppcastItemsFromUri(appcastURL);
+  // late final bestItem = appcast.bestItem();
 
-  late final upgrader = Upgrader(
-    durationUntilAlertAgain: Duration(days: 1),
+  late Upgrader upgrader = Upgrader(
+    durationUntilAlertAgain: Duration(seconds: 0),
     debugDisplayAlways: false,
     willDisplayUpgrade: ({appStoreVersion, required display, installedVersion, minAppVersion}) {
-      willUpgrade = display;
+      if(appStoreVersion == version) {
+        willUpgrade = false;
+      } else {
+        willUpgrade = display;}
+        newestVersion = appStoreVersion;
+        print(display);
     },
     debugLogging: true,
-      appcastConfig:
-          AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
+    minAppVersion: newestVersion,
+    appcastConfig:
+        AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
   );
 
   bool launchUpdateURL() {
@@ -59,7 +68,8 @@ class _UpdatePageState extends State<UpdatePage> {
   }
 
   Future<void> getVersion() async {
-    print('run');
+      // print(items);
+    // print('run');
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     setState(() {
       version = packageInfo.version;
@@ -75,12 +85,12 @@ class _UpdatePageState extends State<UpdatePage> {
   Widget build(BuildContext context) {
     
     return Scaffold(
-        appBar: AppBar(title: Text('Journee v$version')),
+        appBar: AppBar(title: newestVersion == version ? Text('Journee v$version') : Text("New update available!")),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if(!willUpgrade) Text("You are running the latest version of Journee!"),
+              if(newestVersion == version) Text("You are running the latest version of Journee!"),
               UpgradeCard(
                 upgrader: upgrader,
                 showIgnore: false,

@@ -1,7 +1,5 @@
 // ignore_for_file: prefer_const_literals_to_create_immutables, prefer_const_constructors, avoid_print, unused_local_variable, unnecessary_const, no_leading_underscores_for_local_identifiers, unused_element, unnecessary_new, unused_field
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:journee/account.dart';
 import 'package:journee/home.dart';
@@ -10,8 +8,6 @@ import 'package:journee/splash.dart';
 import 'package:journee/updater.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:upgrader/upgrader.dart';
-import 'package:url_launcher/url_launcher.dart';
 Future<void> main() async {
   await dotenv.load(fileName: 'lib/.env');
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,32 +26,7 @@ Future<void> main() async {
 
 
 class MyApp extends StatelessWidget {
-
-  MyApp({super.key});
-
-  static const appcastURL = 'https://raw.githubusercontent.com/darel919/journee-flutter/main/android/app/appcast/appcast.xml';
-  static const _urlAndroid = 'https://github.com/darel919/journee-flutter/releases/download/app/app-release.apk';
-  static const _url = 'https://github.com/darel919/journee-flutter/releases/';
-  late final appcast = Appcast();
-  late final items = appcast.parseAppcastItemsFromUri(appcastURL);
-  late final bestItem = print(appcast.bestItem());
-  
-  final upgrader = Upgrader(
-    debugDisplayAlways: false,
-    debugLogging: true,
-      appcastConfig:
-          AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
-  );
-
- bool launchUpdateURL() {
-    // print('update launch url');
-    if(Platform.isAndroid) {
-      launchUrl(Uri.parse(_urlAndroid));
-    } if(Platform.isWindows) {
-      launchUrl(Uri.parse(_url));
-    }
-    return true;
-  }
+  const MyApp({super.key});
 
   // This widget is the root of your application.
   @override
@@ -66,15 +37,10 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 0, 4, 255)),
         useMaterial3: true,
       ),
-      // initialRoute: '/',
-      home: UpgradeAlert(
-        upgrader: upgrader, 
-        showIgnore: false, 
-        showLater: false,
-        onUpdate: () => launchUpdateURL(), 
-        child: SplashPage()),
+      initialRoute: '/',
+      // home: SplashPage(),
       routes: <String, WidgetBuilder> {
-        // '/' : (BuildContext context) => SplashPage(),
+        '/' : (BuildContext context) => SplashPage(),
         '/home':(BuildContext context) => MyHomePage(title: 'Home'),
         '/account':(BuildContext context) => AccountPage(),
         '/login': (BuildContext context) => const LoginPage(),
