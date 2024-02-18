@@ -8,6 +8,7 @@ import 'package:journee/splash.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:upgrader/upgrader.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: 'lib/.env');
@@ -20,20 +21,34 @@ Future<void> main() async {
     anonKey: sbaseAnonKey,
   );
 
+  
+
   runApp(MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
 
   MyApp({super.key});
 
   static const appcastURL = 'https://raw.githubusercontent.com/darel919/journee-flutter/main/android/app/appcast/appcast.xml';
+  final Uri _url = Uri.parse('https://github.com/darel919/journee-flutter/releases');
+  late final appcast = Appcast();
+  late final items = appcast.parseAppcastItemsFromUri(appcastURL);
+  late final bestItem = print(appcast.bestItem());
+  
   final upgrader = Upgrader(
-    debugDisplayAlways: true,
+    // debugDisplayAlways: true,
     debugLogging: true,
       appcastConfig:
           AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
   );
+
+ bool launchUpdateURL() {
+    print('update launch url');
+    launchUrl(Uri.parse(_url as String));
+    return true;
+  }
 
   // This widget is the root of your application.
   @override
@@ -48,7 +63,8 @@ class MyApp extends StatelessWidget {
       home: UpgradeAlert(
         upgrader: upgrader, 
         showIgnore: false, 
-        showLater: false, 
+        showLater: false,
+        onUpdate: () => launchUpdateURL(), 
         child: SplashPage()),
       routes: <String, WidgetBuilder> {
         // '/' : (BuildContext context) => SplashPage(),

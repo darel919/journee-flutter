@@ -26,7 +26,11 @@ class _SplashPageState extends State<SplashPage> {
 
     final session = supabase.auth.currentSession;
     if (session != null) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      await Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/home',
+        (_) => false
+      );
     } else {
       Navigator.of(context).pushReplacementNamed('/login');
     }
