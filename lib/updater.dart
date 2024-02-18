@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors, unused_field, avoid_print, unused_local_variable
+// ignore_for_file: prefer_const_constructors, unused_field, avoid_print, unused_local_variable, unnecessary_null_comparison
 
 import 'dart:io';
 
@@ -19,16 +19,21 @@ class _UpdatePageState extends State<UpdatePage> {
   static const appcastURL = 'https://raw.githubusercontent.com/darel919/journee-flutter/main/android/app/appcast/appcast.xml';
   static const _urlAndroid = 'https://github.com/darel919/journee-flutter/releases/download/app/app-release.apk';
   static const _url = 'https://github.com/darel919/journee-flutter/releases/';
+  String? version;
+  bool willUpgrade = false;
 
-  final upgrader = Upgrader(
+  late final upgrader = Upgrader(
     durationUntilAlertAgain: Duration(days: 1),
     debugDisplayAlways: false,
+    willDisplayUpgrade: ({appStoreVersion, required display, installedVersion, minAppVersion}) {
+      willUpgrade = display;
+    },
     debugLogging: true,
       appcastConfig:
           AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
   );
 
-   bool launchUpdateURL() {
+  bool launchUpdateURL() {
     print('update launch url');
     if(Platform.isAndroid) {
       launchUrl(Uri.parse(_urlAndroid));
@@ -53,12 +58,12 @@ class _UpdatePageState extends State<UpdatePage> {
       );
   }
 
-  String? version;
-
   Future<void> getVersion() async {
     print('run');
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    version = packageInfo.version;
+    setState(() {
+      version = packageInfo.version;
+    });
   }
 
   @override 
@@ -68,12 +73,14 @@ class _UpdatePageState extends State<UpdatePage> {
   }
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
-        appBar: AppBar(title: Text('Journee Updater')),
+        appBar: AppBar(title: Text('Journee v$version')),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              if(!willUpgrade) Text("You are running the latest version of Journee!"),
               UpgradeCard(
                 upgrader: upgrader,
                 showIgnore: false,

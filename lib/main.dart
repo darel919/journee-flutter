@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
   );
 
  bool launchUpdateURL() {
-    print('update launch url');
+    // print('update launch url');
     if(Platform.isAndroid) {
       launchUrl(Uri.parse(_urlAndroid));
     } if(Platform.isWindows) {

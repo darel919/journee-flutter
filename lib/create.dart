@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors, use_build_context_synchronously, avoid_print, unused_local_variable, prefer_interpolation_to_compose_strings
+// ignore_for_file: prefer_const_constructors, use_build_context_synchronously, avoid_print, unused_local_variable, prefer_interpolation_to_compose_strings, prefer_typing_uninitialized_variables, no_leading_underscores_for_local_identifiers, non_constant_identifier_names, unnecessary_new
 
 import 'dart:io';
 
@@ -21,8 +21,27 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   final supabase = Supabase.instance.client;
   late final User? user = supabase.auth.currentUser;
   late final userData = user?.userMetadata!;
+  late List<Map<String, dynamic>> categories = [];
+  String? selectedCategory;
   bool mediaUploadMode = false;
+  bool uploading = false;
   String? earlyPuid; 
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCategory();
+  }
+
+  Future<void> fetchCategory() async {
+    var _data = await supabase
+    .from('categories')
+    .select();
+    setState(() {
+        categories = _data;
+        selectedCategory = _data[0]['cuid'];
+    });
+  }
 
   @override
   void dispose() {
@@ -33,12 +52,13 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
   Future<void> upload() async {  
     try {
+      uploading = true;
       if(myController.text.isNotEmpty) {
         if(mediaUploadMode) {
           await supabase
           .from('posts')
           .update({
-            'cuid': '55be6834-4ad8-4af3-a35a-b0fe3d5907a5',
+            'cuid': selectedCategory,
             'details': myController.text, 
             'allowReply': 'true', 
             'type': 'Diary'
@@ -49,14 +69,16 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               content: Text('Post uploaded!'),
               elevation: 20.0,
             ),
+            
           );
+          uploading = false;
           Navigator.of(context).pushReplacementNamed('/home');
         } else {
           await supabase
           .from('posts')
           .insert({
             'uuid': userData!['provider_id'], 
-            'cuid': '55be6834-4ad8-4af3-a35a-b0fe3d5907a5',
+            'cuid': selectedCategory,
             'details': myController.text, 
             'allowReply': 'true', 
             'type': 'Diary'
@@ -67,15 +89,23 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               elevation: 20.0,
             ),
           );
+           uploading = false;
           Navigator.of(context).pushReplacementNamed('/home');
         }
       }
     } catch (e) {
       print(e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error uploading post. Error: $e'),
+          elevation: 20.0,
+        ),
+      );
     }
   }
 
   Future<void> uploadPicture() async {
+     uploading = true;
     await dotenv.load(fileName: 'lib/.env');
     
     FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -86,11 +116,11 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       File file = File(result.files.single.path!);
       PlatformFile file2 = result.files.first;
 
-      print(file2.name);
-      print(file2.bytes);
-      print(file2.size);
-      print(file2.extension);
-      print(file2.path);
+      // print(file2.name);
+      // print(file2.bytes);
+      // print(file2.size);
+      // print(file2.extension);
+      // print(file2.path);
 
       Uint8List? postMedia = result.files.first.bytes;
       File postMediaAndroid = file;
@@ -98,7 +128,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       final List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
         .insert({
           'uuid': userData!['provider_id'], 
-          'cuid': '55be6834-4ad8-4af3-a35a-b0fe3d5907a5',
+          'cuid': selectedCategory,
           'details': '', 
           'allowReply': 'true', 
           'type': 'Diary'
@@ -124,6 +154,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
          .match({ 'puid': earlyPuid });
       
       mediaUploadMode = true;
+      uploading = false;
 
       } else {
         final String path = await supabase.storage.from('post_media').upload(
@@ -139,6 +170,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
          .match({ 'puid': earlyPuid });
       
       mediaUploadMode = true;
+      uploading = false;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Media upload success'),
@@ -151,6 +183,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
   @override
   Widget build(BuildContext context) {
+    // print(categories);
     return Scaffold(
       appBar: AppBar(
         title: Text("Create"),
@@ -161,6 +194,22 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
           padding: const EdgeInsets.all(15.0),
           child: Column(
             children: <Widget>[
+             DropdownButton<String>(
+                hint: Text('Select your category'),
+                value: selectedCategory,
+                onChanged: (newValue) {
+                  setState(() {
+                    selectedCategory = newValue; 
+                  });
+                },
+                items: categories.map((index) {
+                  // print(index['cuid']);
+                  return DropdownMenuItem<String>(
+                    value: index['cuid'] as String,
+                    child: Text(index['name']),
+                  );
+                }).toList(),
+            ),
               TextField(
                 autofocus: false,
                 canRequestFocus: true,
@@ -170,7 +219,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   hintText: 'Whats on your mind today?',
                 ),
               ),
-              Padding(
+              if (uploading == false) Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -200,6 +249,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   ],
                 ),
               ),
+              if(uploading) Text("Uploading..."),
             ],
           ),
         )),

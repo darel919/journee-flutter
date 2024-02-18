@@ -114,8 +114,10 @@ class _HomePostViewState extends State<HomePostView> {
                 final post = posts[index];
                 final user = post['users'];
                 final thread = post['threads'];
+                final category = post['categories'];
                 int threadLength = post['threads'].length;
                 DateTime myDateTime = DateTime.parse(post['created_at']);
+
                 return ListTile(
                   onTap: () {
                       Navigator.push(context, MaterialPageRoute<void>(
@@ -128,7 +130,21 @@ class _HomePostViewState extends State<HomePostView> {
                     child: Image.network(user['avatar_url']
                     )
                   ),
-                  title: Text(user['name'], style: TextStyle(fontSize: 16)),
+                  title: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0,0,8,0),
+                        child: Text(user['name'], style: TextStyle(fontSize: 16)),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
+                        decoration: BoxDecoration(border: Border.all(color: const Color.fromARGB(175, 0, 0, 0)),
+                        borderRadius: BorderRadius.circular(4)),
+                        child: Text(category['name'], style: TextStyle(fontSize: 9)),
+                      ),
+                    ],
+                  ),
                   trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

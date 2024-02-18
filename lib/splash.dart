@@ -35,7 +35,6 @@ class _SplashPageState extends State<SplashPage> {
             'email': userMetadata['email'], 
             'avatar_url': userMetadata['avatar_url'],
           });
-          print('user update ok!');
       await Navigator.pushNamedAndRemoveUntil(
         context,
         '/home',

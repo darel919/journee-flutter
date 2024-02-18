@@ -95,7 +95,7 @@ class _LoginPageState extends State<LoginPage> {
 void displaySnackBar(e) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
-      content: Text('Please restart app. Error while signing in: $e'),
+      content: Text('Please restart application! Error while signing in: $e'),
       elevation: 20.0,
     ),
   );

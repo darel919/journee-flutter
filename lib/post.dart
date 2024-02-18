@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors, unused_local_variable, unnecessary_new, unused_element, prefer_const_literals_to_create_immutables, avoid_print, unused_import, use_build_context_synchronously, no_logic_in_create_state, unnecessary_null_comparison
+// ignore_for_file: prefer_const_constructors, unused_local_variable, unnecessary_new, unused_element, prefer_const_literals_to_create_immutables, avoid_print, unused_import, use_build_context_synchronously, no_logic_in_create_state, unnecessary_null_comparison, prefer_typing_uninitialized_variables
 
 import 'package:flutter/material.dart';
 import 'package:journee/home.dart';
@@ -44,6 +44,8 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
         break;
     }
   }
+
+  late final fetchedData;
   
   Future<void> _deletePost() async {
     try {
@@ -51,13 +53,40 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
       .from('posts')
       .delete()
       .match({'puid': puid.puid});
-      await Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/home',
-        (_) => false
-      );
+
+      if(fetchedData['mediaUrl'] != null) {
+        final List<FileObject> objects = await supabase
+          .storage
+          .from('post_media')
+          .remove([fetchedData['mediaUrlOnDb']]);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Post and media successfully deleted!'),
+            elevation: 20.0,
+          ),
+        );
+
+        await Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/home',
+          (_) => false
+        );
+      } else {
+        await Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/home',
+          (_) => false
+        );
+      }
     } catch (e) {
       print('$e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Post and media delete failed! $e'),
+          elevation: 20.0,
+        )
+      );
     }
   }
 
@@ -96,8 +125,11 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
           if(!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
+
+
       
           final post = snapshot.data![0];
+          fetchedData = post;
           final user = post['users'];
 
           final threads = post['threads'];
@@ -237,7 +269,6 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                   style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red)),
                   child: Text('Delete', style: TextStyle(color: Colors.white),),
                   onPressed: () {
-                    print('Confirmed');
                     _deletePost();
                     Navigator.of(innerContext).pop();
                   },
