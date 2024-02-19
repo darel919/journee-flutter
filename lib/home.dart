@@ -133,97 +133,91 @@ class _HomePostViewState extends State<HomePostView> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-        title: "Home",
-
-      home: UpgradeAlert(
-        upgrader: upgrader, 
-        canDismissDialog: false,
-        showIgnore: false, 
-        showLater: false,
-        onUpdate: () => launchUpdateURL(), 
-        child: Scaffold(
-          appBar: AppBar(
-            title: Text("Home")
-          ),
-          body: RefreshIndicator(
-            onRefresh: () => _refresh(),
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _future,
-              builder: (context, snapshot) {
-                if(!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                  final posts = snapshot.data!;
-                  
-                  return ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: posts.length,
-                  itemBuilder: ((context, index) {
-                    final post = posts[index];
-                    final user = post['users'];
-                    final thread = post['threads'];
-                    final category = post['categories'];
-                    int threadLength = post['threads'].length;
-                    DateTime myDateTime = DateTime.parse(post['created_at']);
-        
-                    return ListTile(
-                      onTap: () {
-                          Navigator.push(context, MaterialPageRoute<void>(
-                            builder: (context) => ViewPostRoute(puid: new Puid(post['puid']))));
-                      },
-                      contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
-                      isThreeLine: true,
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(48.0),
-                        child: Image.network(user['avatar_url']
-                        )
-                      ),
-                      title: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(0,0,8,0),
-                            child: Text(user['name'], style: TextStyle(fontSize: 16)),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
-                            decoration: BoxDecoration(border: Border.all(color: const Color.fromARGB(175, 0, 0, 0)),
-                            borderRadius: BorderRadius.circular(4)),
-                            child: Text(category['name'], style: TextStyle(fontSize: 9)),
-                          ),
-                        ],
-                      ),
-                      trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(post['details'], maxLines: 1, style: TextStyle(fontSize: 12.5)),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Icon(Icons.chat_bubble_outline, size: 20),
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                  child: Text('$threadLength'),
-                                ),
-                              ],
+    return Scaffold(
+        appBar: AppBar(
+          title: Text("Home")
+        ),
+        body: UpgradeAlert(
+          upgrader: upgrader, 
+          canDismissDialog: false,
+          showIgnore: false, 
+          showLater: false,
+          onUpdate: () => launchUpdateURL(), 
+          child: RefreshIndicator(
+              onRefresh: () => _refresh(),
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _future,
+                builder: (context, snapshot) {
+                  if(!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                    final posts = snapshot.data!;
+                    
+                    return ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: posts.length,
+                    itemBuilder: ((context, index) {
+                      final post = posts[index];
+                      final user = post['users'];
+                      final thread = post['threads'];
+                      final category = post['categories'];
+                      int threadLength = post['threads'].length;
+                      DateTime myDateTime = DateTime.parse(post['created_at']);
+          
+                      return ListTile(
+                        onTap: () {
+                            Navigator.push(context, MaterialPageRoute<void>(
+                              builder: (context) => ViewPostRoute(puid: new Puid(post['puid']))));
+                        },
+                        contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
+                        isThreeLine: true,
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(48.0),
+                          child: Image.network(user['avatar_url']
+                          )
+                        ),
+                        title: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(0,0,8,0),
+                              child: Text(user['name'], style: TextStyle(fontSize: 16)),
                             ),
-                          ),
-                          
-                        ],
-                      ),
-                    );
-                  }),
+                            Container(
+                              padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
+                              decoration: BoxDecoration(border: Border.all(color: const Color.fromARGB(175, 0, 0, 0)),
+                              borderRadius: BorderRadius.circular(4)),
+                              child: Text(category['name'], style: TextStyle(fontSize: 9)),
+                            ),
+                          ],
+                        ),
+                        trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(post['details'], maxLines: 1, style: TextStyle(fontSize: 12.5)),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.chat_bubble_outline, size: 20),
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                    child: Text('$threadLength'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                   );
-              },
+                },
+              ),
             ),
           ),
-        ),
-      )
-      
-    );
+        );
   }
 }

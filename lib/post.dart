@@ -153,7 +153,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                             contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
                             leading: ClipRRect(
                               borderRadius: BorderRadius.circular(48.0),
-                              child: Image.network(user['avatar_url']
+                              child: Image.network(user!['avatar_url']
                               )
                             ),
                             title: Row(
