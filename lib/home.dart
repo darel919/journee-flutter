@@ -104,7 +104,7 @@ class _HomePostViewState extends State<HomePostView> {
   bool willUpgrade = false;
   
   late Upgrader upgrader = Upgrader(
-    durationUntilAlertAgain: Duration(seconds: 0),
+    durationUntilAlertAgain: Duration(seconds: 1),
     debugDisplayAlways: false,
     debugLogging: true,
       willDisplayUpgrade: ({appStoreVersion, required display, installedVersion, minAppVersion}) {

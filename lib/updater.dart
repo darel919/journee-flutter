@@ -26,17 +26,13 @@ class _UpdatePageState extends State<UpdatePage> {
   // late final bestItem = appcast.bestItem();
 
   late Upgrader upgrader = Upgrader(
-    durationUntilAlertAgain: Duration(seconds: 0),
+    durationUntilAlertAgain: Duration(seconds: 1),
     debugDisplayAlways: false,
     willDisplayUpgrade: ({appStoreVersion, required display, installedVersion, minAppVersion}) {
-      if(appStoreVersion == version) {
-        willUpgrade = false;
-      } else {
-        willUpgrade = display;}
-        newestVersion = appStoreVersion;
-        print(display);
+      newestVersion = appStoreVersion;
+      willUpgrade = display;
     },
-    debugLogging: true,
+    debugLogging: false,
     minAppVersion: newestVersion,
     appcastConfig:
         AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
@@ -68,8 +64,6 @@ class _UpdatePageState extends State<UpdatePage> {
   }
 
   Future<void> getVersion() async {
-      // print(items);
-    // print('run');
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     setState(() {
       version = packageInfo.version;
@@ -85,12 +79,12 @@ class _UpdatePageState extends State<UpdatePage> {
   Widget build(BuildContext context) {
     
     return Scaffold(
-        appBar: AppBar(title: Text('Journee v$version')),
+        appBar: AppBar(title: willUpgrade ? Text("New update available!") : Text('Journee v$version')),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if(newestVersion == version) Text("You are running the latest version of Journee!"),
+              // if(!willUpgrade) Text("You are running the latest version of Journee!"),
               UpgradeCard(
                 upgrader: upgrader,
                 showIgnore: false,

@@ -16,13 +16,6 @@ class _AccountPageState extends State<AccountPage> {
   late final Future<List<Map<String, dynamic>>> _data;
   late final User? user = supabase.auth.currentUser;
   late final userData = user?.userMetadata!;
-  // String? currentVersion;
-
-  // Future<void> getVersion() async {
-  //   print('run');
-  //   PackageInfo packageInfo = await PackageInfo.fromPlatform();
-  //   currentVersion = packageInfo.version;
-  // }
 
   Future<void> _getProfile() async {
     setState(() {
@@ -72,7 +65,7 @@ class _AccountPageState extends State<AccountPage> {
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(48.0),
               child: 
-                Image.network(userData!['avatar_url']
+               Image.network(userData!['avatar_url']
               )
             ),
             title: Column(
