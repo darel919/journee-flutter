@@ -138,7 +138,7 @@ class _HomePostViewState extends State<HomePostView> {
   }
 
   static const appcastURL = 'https://raw.githubusercontent.com/darel919/journee-flutter/main/android/app/appcast/appcast.xml';
-  static const _urlAndroid = 'https://github.com/darel919/journee-flutter/releases/download/main/app-release.apk';
+  static const _urlAndroid = 'https://github.com/darel919/journee-flutter/releases/download/app/app-release.apk';
   static const _url = 'https://github.com/darel919/journee-flutter/releases/';
 
   String? version;
