@@ -24,12 +24,40 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
 
   int _selectedIndex = 0;
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
+  static const List<NavigationDestination> navbarWidget = [
+    NavigationDestination(
+      icon: Icon(Icons.home_outlined),
+      selectedIcon: Icon(Icons.home_filled),
+      label: 'Home',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.create_outlined),
+      selectedIcon: Icon(Icons.create_rounded),
+      label: 'Create',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.account_circle_outlined),
+      selectedIcon: Icon(Icons.account_circle),
+      label: 'Profile',
+    ),
+  ];
+  static const List<NavigationRailDestination> navbarWidgetWindows = [
+    NavigationRailDestination(
+      icon: Icon(Icons.home_outlined),
+      selectedIcon: Icon(Icons.home_filled),
+      label: Text('Home'),
+    ),
+    NavigationRailDestination(
+      icon: Icon(Icons.create_outlined),
+      selectedIcon: Icon(Icons.create_rounded),
+      label: Text('Create'),
+    ),
+    NavigationRailDestination(
+      icon: Icon(Icons.account_circle_outlined),
+      selectedIcon: Icon(Icons.account_circle),
+      label: Text('Profile'),
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -39,34 +67,48 @@ class _MyHomePageState extends State<MyHomePage> {
       AccountPage()
     ];
 
-    return Scaffold(
+    if(Platform.isAndroid) {
+      return Scaffold(
       body: IndexedStack(
-      index: _selectedIndex,
-      children: _pages
+        index: _selectedIndex,
+        children: _pages
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        elevation: 0,
-        mouseCursor: SystemMouseCursors.grab,
-        showSelectedLabels: true,
-        showUnselectedLabels: false,
-        items: const<BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+      bottomNavigationBar: NavigationBar(
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (int index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        destinations: navbarWidget,
+      )
+    );} else {
+      return Scaffold(
+      body: Row(
+        children: [
+          NavigationRail(
+            destinations: navbarWidgetWindows, 
+            selectedIndex: _selectedIndex,
+            groupAlignment: 0,
+            labelType: NavigationRailLabelType.selected,
+            onDestinationSelected: (int index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+            
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.create),
-            label: 'Create',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_circle),
-            label: 'Profile',
+          const VerticalDivider(thickness: 1, width: 1),
+          Expanded(
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: _pages
+            ),
           ),
         ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped, 
       ),
-    );
+    );}
   }
 }
 
@@ -96,7 +138,7 @@ class _HomePostViewState extends State<HomePostView> {
   }
 
   static const appcastURL = 'https://raw.githubusercontent.com/darel919/journee-flutter/main/android/app/appcast/appcast.xml';
-  static const _urlAndroid = 'https://github.com/darel919/journee-flutter/releases/download/app/app-release.apk';
+  static const _urlAndroid = 'https://github.com/darel919/journee-flutter/releases/download/main/app-release.apk';
   static const _url = 'https://github.com/darel919/journee-flutter/releases/';
 
   String? version;

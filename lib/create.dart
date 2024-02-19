@@ -17,6 +17,7 @@ class CreateDiaryPage extends StatefulWidget {
 }
 
 class _CreateDiaryPageState extends State<CreateDiaryPage> {
+
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final myController = TextEditingController();
   final supabase = Supabase.instance.client;
@@ -275,4 +276,42 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
         )),
     );
   }
+}
+
+// class CreateThread extends StatefulWidget {
+//   const CreateThread({super.key});
+
+//   @override
+//   State<CreateThread> createState() => _CreateThreadState();
+// }
+
+// class _CreateThreadState extends State<CreateThread> {
+//   final myController = TextEditingController();
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: TextField(
+//         autofocus: false,
+//         canRequestFocus: true,
+//         controller: myController,
+//         decoration: const InputDecoration(
+//           border: InputBorder.none,
+//           hintText: 'Reply to this thread',
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+Widget CreateThread() {
+  final myController = TextEditingController();
+  return TextField(
+          autofocus: false,
+          canRequestFocus: true,
+          controller: myController,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'Reply to this thread',
+          ),
+        );
 }

@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors, unused_local_variable, use_build_context_synchronously, avoid_print
+// ignore_for_file: prefer_const_constructors, unused_local_variable, use_build_context_synchronously, avoid_print, prefer_const_literals_to_create_immutables
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -49,7 +49,18 @@ class _SplashPageState extends State<SplashPage> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+                child: Text("Journee", style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),),
+              ),
+              CircularProgressIndicator(),
+            ],
+        ),
+      ));
   }
 }
