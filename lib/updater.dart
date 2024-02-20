@@ -22,8 +22,6 @@ class _UpdatePageState extends State<UpdatePage> {
   String? version;
   String? newestVersion;
   bool willUpgrade = false;
-  // Future<List<AppcastItem>?> items = Appcast().parseAppcastItemsFromUri(appcastURL);
-  // late final bestItem = appcast.bestItem();
 
   late Upgrader upgrader = Upgrader(
     durationUntilAlertAgain: Duration(seconds: 1),

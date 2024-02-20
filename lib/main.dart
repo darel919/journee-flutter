@@ -8,19 +8,18 @@ import 'package:journee/splash.dart';
 import 'package:journee/updater.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 Future<void> main() async {
   await dotenv.load(fileName: 'lib/.env');
   WidgetsFlutterBinding.ensureInitialized();
   var sbaseUrl = dotenv.env['supabaseUrl']!;
   var sbaseAnonKey = dotenv.env['supabaseAnonKey']!;
-
   await Supabase.initialize(
     url: sbaseUrl,
     anonKey: sbaseAnonKey,
   );
-
-  
-
+  GoogleFonts.config.allowRuntimeFetching = false;
   runApp(MyApp());
 }
 
@@ -28,19 +27,20 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return MaterialApp(
       title: 'Journee',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 0, 4, 255)),
         useMaterial3: true,
+        textTheme: GoogleFonts.ralewayTextTheme(textTheme)
       ),
-      initialRoute: '/',
-      // home: SplashPage(),
+      // initialRoute: '/',
+      home: SplashPage(),
       routes: <String, WidgetBuilder> {
-        '/' : (BuildContext context) => SplashPage(),
+        // '/' : (BuildContext context) => SplashPage(),
         '/home':(BuildContext context) => MyHomePage(title: 'Home'),
         '/account':(BuildContext context) => AccountPage(),
         '/login': (BuildContext context) => const LoginPage(),

@@ -20,7 +20,6 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-
 class _MyHomePageState extends State<MyHomePage> {
 
   int _selectedIndex = 0;
@@ -59,6 +58,33 @@ class _MyHomePageState extends State<MyHomePage> {
     ),
   ];
 
+  Widget _bottomNavbar() { 
+    return NavigationBar(
+      labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+      selectedIndex: _selectedIndex,
+      onDestinationSelected: (int index) {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+      destinations: navbarWidget,
+    );
+  }
+
+  Widget _sideNavbar() { 
+    return NavigationRail(
+      destinations: navbarWidgetWindows, 
+      selectedIndex: _selectedIndex,
+      groupAlignment: 0,
+      labelType: NavigationRailLabelType.selected,
+      onDestinationSelected: (int index) {
+        setState(() {
+          _selectedIndex = index;
+        });
+      }
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const List<Widget> _pages = <Widget>[
@@ -73,32 +99,12 @@ class _MyHomePageState extends State<MyHomePage> {
         index: _selectedIndex,
         children: _pages
       ),
-      bottomNavigationBar: NavigationBar(
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (int index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: navbarWidget,
-      )
+      bottomNavigationBar: _bottomNavbar()
     );} else {
       return Scaffold(
       body: Row(
         children: [
-          NavigationRail(
-            destinations: navbarWidgetWindows, 
-            selectedIndex: _selectedIndex,
-            groupAlignment: 0,
-            labelType: NavigationRailLabelType.selected,
-            onDestinationSelected: (int index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-            
-          ),
+          _sideNavbar(),
           const VerticalDivider(thickness: 1, width: 1),
           Expanded(
             child: IndexedStack(
