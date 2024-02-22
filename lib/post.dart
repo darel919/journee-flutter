@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:journee/create.dart';
 import 'package:journee/home.dart';
+import 'package:journee/threads.dart';
 import 'package:journee/user_posts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -94,6 +95,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   late final User? user = supabase.auth.currentUser;
   late final userData = user?.userMetadata!;
   String? postuuid;
+  String? postpuid;
   
   bool isAdmin(){
     if(postuuid == userData!['provider_id']) {
@@ -106,146 +108,163 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text("Post"),
-        actions: <Widget> [
-          PopupMenuButton<int>(
-              onSelected: (item) => handleClick(item),
-              itemBuilder: (context) => [
-                if(isAdmin()) PopupMenuItem<int>(onTap: () => _showMyDialog(context), value: 0, child: Text('Delete')),
-                // PopupMenuItem<int>(value: 1, child: Text('Settings')),
-              ],
-            )
-        ],
-      ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if(!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        await Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/home',
+          (_) => false
+        );
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          title: Text("Post"),
+          actions: <Widget> [
+            PopupMenuButton<int>(
+                onSelected: (item) => handleClick(item),
+                itemBuilder: (context) => [
+                  if(isAdmin()) PopupMenuItem<int>(onTap: () => _showMyDialog(context), value: 0, child: Text('Delete')),
+                  // if(isAdmin()) PopupMenuItem<int>(value: 1, child: Text('Edit')),
+                  // PopupMenuItem<int>(value: 2, child: Text('Share')),
+                ],
+              )
+          ],
+        ),
+        body: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _future,
+          builder: (context, snapshot) {
+            if(!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+        
+            final post = snapshot.data![0];
+            fetchedData = post;
+            final user = post['users'];
       
-          final post = snapshot.data![0];
-          fetchedData = post;
-          final user = post['users'];
-
-          final threads = post['threads'];
-          postuuid = post['uuid'];
-          DateTime myDateTime = DateTime.parse(post['created_at']);
-          
-          return Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ListView(
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        children: <Widget>[
-                          ListTile(
-                            onTap:() {
-                              Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']))));
-                            },
-                            contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(48.0),
-                              child: Image.network(user!['avatar_url']
-                              )
-                            ),
-                            title: Row(
-                              children: [
-                                Text(user['name']),
-                              ],
-                            ),
-                            trailing: Text(timeago.format(myDateTime, locale: 'en'))
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
-                                  child: Text(post['details']),
-                                ),
-                                if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
-                                  padding: const EdgeInsets.fromLTRB(0,0,0,20),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(post['mediaUrl'], width: 400),
-                                  ),
-                                ),
-                                if(post['mediaUrl'] == null && post['mediaUrlOnDb'] != null) Text("This image can only be viewed on Journee Web.", style: TextStyle(fontWeight: FontWeight.bold),)
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (threads.length > 0) Divider(),
-                      // if (threads.length > 0) Center(child: Text("Threads")),
-                      FutureBuilder<List<Map<String, dynamic>>>(
-                        future: _futureThread, 
-                        builder: (context, snapshot) {
-                          if(!snapshot.hasData) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-                      
-                          final threadContent = snapshot.data!;
-
-                          return ListView.builder(
-                            physics: const NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            itemCount: threads.length,
-                            itemBuilder: ((context, index) {
-                              final threadDetails = threadContent[index];
-                              final threadAuthor = threadDetails['users'];
-                              DateTime threadDateTime = DateTime.parse(threadDetails['created_at']);
-                              
-                              return ListTile(
-                                onTap: () {
-                                  // Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(threadAuthor['uuid']))));
-                                },
-                                contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
-                                isThreeLine: true,
-                                leading: ClipRRect(
-                                  borderRadius: BorderRadius.circular(48.0),
-                                  child: Image.network(threadAuthor['avatar_url']
-                                  )
-                                ),
-                                title: Text(threadAuthor['name'], style: TextStyle(fontSize: 16)),
-                                trailing: Text(timeago.format(threadDateTime, locale: 'en_short')),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(threadDetails['details']),
-                                    if (threadDetails['mediaUrl']!= null && threadDetails['mediaUrl'].isNotEmpty) Padding(
-                                      padding: const EdgeInsets.fromLTRB(0,15,0,15),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.network(threadDetails['mediaUrl'], width: 400),
-                                      ),
-                                    ),
-                                  ],
+            final threads = post['threads'];
+            postuuid = post['uuid'];
+            postpuid = post['puid'];
+            DateTime myDateTime = DateTime.parse(post['created_at']);
+            
+            return Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          children: <Widget>[
+                            ListTile(
+                              onTap:() {
+                                Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']))));
+                              },
+                              contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
+                              leading: ClipRRect(
+                                borderRadius: BorderRadius.circular(48.0),
+                                child: Image.network(user!['avatar_url']
                                 )
-                              );
-                            }),
-                          );
-                        }
-                      ),
-                    ],
+                              ),
+                              title: Row(
+                                children: [
+                                  Text(user['name']),
+                                ],
+                              ),
+                              trailing: Text(timeago.format(myDateTime, locale: 'en'))
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+                                    child: Text(post['details']),
+                                  ),
+                                  if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
+                                    padding: const EdgeInsets.fromLTRB(0,0,0,20),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(post['mediaUrl'], width: 400),
+                                    ),
+                                  ),
+                                  if(post['mediaUrl'] == null && post['mediaUrlOnDb'] != null) Row(
+                                    children: [
+                                      Icon(Icons.image_not_supported),
+                                      Text("This image can only be viewed on Journee Web.", style: TextStyle(fontWeight: FontWeight.bold),),
+                                    ],
+                                  )
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (threads.length > 0) Divider(),
+                        // if (threads.length > 0) Center(child: Text("Threads")),
+                        FutureBuilder<List<Map<String, dynamic>>>(
+                          future: _futureThread, 
+                          builder: (context, snapshot) {
+                            if(!snapshot.hasData) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                        
+                            final threadContent = snapshot.data!;
+      
+                            return ListView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              shrinkWrap: true,
+                              itemCount: threads.length,
+                              itemBuilder: ((context, index) {
+                                final threadDetails = threadContent[index];
+                                final threadAuthor = threadDetails['users'];
+                                DateTime threadDateTime = DateTime.parse(threadDetails['created_at']);
+                                
+                                return ListTile(
+                                  onTap: () {
+                                    // Navigator.push(context, new MaterialPageRoute(builder: (context) => new ViewThreadsRoute(tuid: threadDetails['tuid'])));
+                                  },
+                                  contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
+                                  isThreeLine: true,
+                                  leading: ClipRRect(
+                                    borderRadius: BorderRadius.circular(48.0),
+                                    child: Image.network(threadAuthor['avatar_url']
+                                    )
+                                  ),
+                                  title: Text(threadAuthor['name'], style: TextStyle(fontSize: 16)),
+                                  trailing: Text(timeago.format(threadDateTime, locale: 'en_short')),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(threadDetails['details']),
+                                      if (threadDetails['mediaUrl']!= null && threadDetails['mediaUrl'].isNotEmpty) Padding(
+                                        padding: const EdgeInsets.fromLTRB(0,15,0,15),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Image.network(threadDetails['mediaUrl'], width: 400),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                );
+                              }),
+                            );
+                          }
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              // CreateThread(),
-            ],
-          );
-        },
-      )
+               CreateThread(puid: postpuid),
+              ],
+            );
+          },
+        )
+      ),
     );
   }
 
@@ -288,4 +307,4 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
       },
     );
   }
-}
+  }

@@ -11,35 +11,12 @@ class AccountPage extends StatefulWidget {
 }
 
 class _AccountPageState extends State<AccountPage> {
-  var _loading = true;
+  final _loading = true;
   final supabase = Supabase.instance.client;
   late final Future<List<Map<String, dynamic>>> _data;
   late final User? user = supabase.auth.currentUser;
   late final userData = user?.userMetadata!;
 
-  Future<void> _getProfile() async {
-    setState(() {
-      _loading = true;
-    });
-
-    try {
-      _data = supabase
-        .from('users')
-        .select()
-        .eq('uuid', userData!['provider_id'])
-        .single() as Future<List<Map<String, dynamic>>>;
-    } catch (error) {
-      SnackBar(
-        content: const Text('Unexpected error occurred'),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
-    }
-  }
 
   Future<void> _handleLogOut() async {
     await supabase.auth.signOut();

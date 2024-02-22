@@ -154,7 +154,7 @@ class _HomePostViewState extends State<HomePostView> {
   late Upgrader upgrader = Upgrader(
     durationUntilAlertAgain: Duration(seconds: 1),
     debugDisplayAlways: false,
-    debugLogging: true,
+    debugLogging: false,
       willDisplayUpgrade: ({appStoreVersion, required display, installedVersion, minAppVersion}) {
     if(appStoreVersion == version) {
       willUpgrade = false;
@@ -162,7 +162,7 @@ class _HomePostViewState extends State<HomePostView> {
       willUpgrade = display;
     }
       newestVersion = appStoreVersion;
-      print(display);
+      // print(display);
   },
     minAppVersion: newestVersion,
       appcastConfig:
@@ -206,6 +206,7 @@ class _HomePostViewState extends State<HomePostView> {
                     itemCount: posts.length,
                     itemBuilder: ((context, index) {
                       final post = posts[index];
+                      // print(post);
                       final user = post['users'];
                       final thread = post['threads'];
                       final category = post['categories'];
@@ -244,13 +245,26 @@ class _HomePostViewState extends State<HomePostView> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(post['details'], maxLines: 1, style: TextStyle(fontSize: 12.5)),
-                            Padding(
+                            if(post['allowReply']) Padding(
                               padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   Icon(Icons.chat_bubble_outline, size: 20),
-                                  Padding(
+                                  if(threadLength > 0) Padding(
+                                    padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                    child: Text('$threadLength'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if(!post['allowReply']) Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.comments_disabled_outlined, size: 20),
+                                  if(threadLength > 0) Padding(
                                     padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
                                     child: Text('$threadLength'),
                                   ),

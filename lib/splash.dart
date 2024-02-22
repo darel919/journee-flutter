@@ -20,12 +20,17 @@ class _SplashPageState extends State<SplashPage> {
     _redirect();
   }
 
+  bool nowLoading = false;
+
   Future<void> _redirect() async {
-    await Future.delayed(Duration(seconds: 1));
+    await Future.delayed(Duration(milliseconds: 1500));
+    setState(() {
+      nowLoading = true;
+    });
     if (!mounted) {
       return;
     }
-
+    
     final session = supabase.auth.currentSession;
     final userMetadata = session?.user.userMetadata;
     if (session != null) {
@@ -37,6 +42,9 @@ class _SplashPageState extends State<SplashPage> {
             'email': userMetadata['email'], 
             'avatar_url': userMetadata['avatar_url'],
           });
+        setState(() {
+        nowLoading = false;
+        });
       await Navigator.pushNamedAndRemoveUntil(
         context,
         '/home',
@@ -65,6 +73,7 @@ class _SplashPageState extends State<SplashPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              if(nowLoading) Text("Welcome to"),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -73,13 +82,13 @@ class _SplashPageState extends State<SplashPage> {
                     padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
                     child: Text("Journee", style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),),
                   ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(5,0,0,0),
-                      child: Text("v$version"),
-                    ),
+                  if(nowLoading) Padding(
+                    padding: const EdgeInsets.fromLTRB(5,0,0,0),
+                    child: Text("v$version"),
+                  ),
                 ],
               ),
-              CircularProgressIndicator(),
+              if(nowLoading) CircularProgressIndicator(),
             ],
         ),
       ));
