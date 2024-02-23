@@ -4,8 +4,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:journee/account.dart';
-import 'package:journee/create.dart';
+import 'package:journee/modify.dart';
 import 'package:journee/post.dart';
+import 'package:journee/search.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:upgrader/upgrader.dart';
@@ -29,11 +30,16 @@ class _MyHomePageState extends State<MyHomePage> {
       selectedIcon: Icon(Icons.home_filled),
       label: 'Home',
     ),
-    NavigationDestination(
-      icon: Icon(Icons.create_outlined),
-      selectedIcon: Icon(Icons.create_rounded),
-      label: 'Create',
-    ),
+    // NavigationDestination(
+    //   icon: Icon(Icons.create_outlined),
+    //   selectedIcon: Icon(Icons.create_rounded),
+    //   label: 'Create',
+    // ),
+    // NavigationDestination(
+    //   icon: Icon(Icons.search_outlined),
+    //   selectedIcon: Icon(Icons.search_sharp),
+    //   label: 'Search',
+    // ),
     NavigationDestination(
       icon: Icon(Icons.account_circle_outlined),
       selectedIcon: Icon(Icons.account_circle),
@@ -46,11 +52,16 @@ class _MyHomePageState extends State<MyHomePage> {
       selectedIcon: Icon(Icons.home_filled),
       label: Text('Home'),
     ),
-    NavigationRailDestination(
-      icon: Icon(Icons.create_outlined),
-      selectedIcon: Icon(Icons.create_rounded),
-      label: Text('Create'),
-    ),
+    // NavigationRailDestination(
+    //   icon: Icon(Icons.create_outlined),
+    //   selectedIcon: Icon(Icons.create_rounded),
+    //   label: Text('Create'),
+    // ),
+    // NavigationRailDestination(
+    //   icon: Icon(Icons.search_outlined),
+    //   selectedIcon: Icon(Icons.search_sharp),
+    //   label: Text('Search'),
+    // ),
     NavigationRailDestination(
       icon: Icon(Icons.account_circle_outlined),
       selectedIcon: Icon(Icons.account_circle),
@@ -89,7 +100,8 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     const List<Widget> _pages = <Widget>[
       HomePostView(),
-      CreateDiaryPage(),
+      // CreateDiaryPage(),
+      // SearchPage(),
       AccountPage()
     ];
 
@@ -169,7 +181,7 @@ class _HomePostViewState extends State<HomePostView> {
           AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
   );
 
- bool launchUpdateURL() {
+  bool launchUpdateURL() {
     // print('update launch url');
     if(Platform.isAndroid) {
       launchUrl(Uri.parse(_urlAndroid));
@@ -183,7 +195,14 @@ class _HomePostViewState extends State<HomePostView> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text("Home")
+          primary: true,
+          title: Text("Home"),
+          automaticallyImplyLeading: false,
+          actions: <Widget> [searchMode()],
+        ),        
+        floatingActionButton: FloatingActionButton(
+          child: const Icon(Icons.create_outlined),
+          onPressed: () {Navigator.push(context, new MaterialPageRoute(builder: (context) => new CreateDiaryPage()));}
         ),
         body: UpgradeAlert(
           upgrader: upgrader, 
@@ -234,7 +253,7 @@ class _HomePostViewState extends State<HomePostView> {
                             ),
                             Container(
                               padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
-                              decoration: BoxDecoration(border: Border.all(color: const Color.fromARGB(175, 0, 0, 0)),
+                              decoration: BoxDecoration(border: Border.all(color: MediaQuery.of(context).platformBrightness == Brightness.dark ? Colors.white : Colors.black),
                               borderRadius: BorderRadius.circular(4)),
                               child: Text(category['name'], style: TextStyle(fontSize: 9)),
                             ),

@@ -1,7 +1,7 @@
 // ignore_for_file: prefer_const_constructors, unused_local_variable, unnecessary_new, unused_element, prefer_const_literals_to_create_immutables, avoid_print, unused_import, use_build_context_synchronously, no_logic_in_create_state, unnecessary_null_comparison, prefer_typing_uninitialized_variables
 
 import 'package:flutter/material.dart';
-import 'package:journee/create.dart';
+import 'package:journee/modify.dart';
 import 'package:journee/home.dart';
 import 'package:journee/user_posts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -126,6 +126,7 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
           }
       
           final thread = snapshot.data![0];
+          print(thread.length);
           fetchedData = thread;
           final user = thread['users'];
           final post = thread['posts'];

@@ -82,7 +82,7 @@ class _SplashPageState extends State<SplashPage> {
                     padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
                     child: Text("Journee", style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),),
                   ),
-                  if(nowLoading) Padding(
+                  if(!nowLoading) Padding(
                     padding: const EdgeInsets.fromLTRB(5,0,0,0),
                     child: Text("v$version"),
                   ),

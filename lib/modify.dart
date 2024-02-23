@@ -1,7 +1,6 @@
-// ignore_for_file: prefer_const_constructors, use_build_context_synchronously, avoid_print, unused_local_variable, prefer_interpolation_to_compose_strings, prefer_typing_uninitialized_variables, no_leading_underscores_for_local_identifiers, non_constant_identifier_names, unnecessary_new, no_logic_in_create_state
+// ignore_for_file: prefer_const_constructors, use_build_context_synchronously, avoid_print, unused_local_variable, prefer_interpolation_to_compose_strings, prefer_typing_uninitialized_variables, no_leading_underscores_for_local_identifiers, non_constant_identifier_names, unnecessary_new, no_logic_in_create_state, unused_field, prefer_const_literals_to_create_immutables
 
 import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -288,7 +287,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
              ),
               TextField(
                 readOnly: uploading,
-                autofocus: false,
+                autofocus: true,
                 canRequestFocus: true,
                 controller: myController,
                 decoration: const InputDecoration(
@@ -349,19 +348,172 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   }
 }
 
-class CreateThread extends StatefulWidget {
+class EditDiary extends StatefulWidget {
+  const EditDiary({super.key, required this.puid});
 
-  const CreateThread({super.key, required this.puid});
-  
   @override
-  State<CreateThread> createState() => _CreateThreadState(puid: puid);
-  
+  State<EditDiary> createState() => _EditDiaryState(puid: puid);
+
   final String? puid;
 }
 
-class _CreateThreadState extends State<CreateThread> {
-  _CreateThreadState({required this.puid});
+class _EditDiaryState extends State<EditDiary> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  _EditDiaryState({required this.puid});
   final String? puid;
+  final myController = TextEditingController();
+  final supabase = Supabase.instance.client;
+  // late final User? user = supabase.auth.currentUser;
+  // late final userData = user?.userMetadata!;
+  // late List<Map<String, dynamic>> categories = [];
+  // String? selectedCategory;
+  // bool mediaUploadMode = false;
+  bool uploading = false;
+  bool allowThreadReply = false;
+  String? mediaUrl;
+  bool loading = true;
+  // String? earlyPuid; 
+
+  Future<void> _fetch() async {
+    var _res = await supabase.from('posts').select('''*''').eq('puid', puid!);
+    var details = _res[0]['details'];
+    setState(() {
+      loading = false;
+      mediaUrl = _res[0]['mediaUrl'];
+      myController.text = details;
+      allowThreadReply = _res[0]['allowReply'];
+    });
+  }
+
+  Future<void> upload() async {
+    setState(() {
+      uploading = true;
+    });
+    await supabase.from('posts')
+    .update({
+      'details': myController.text,
+      'allowReply': allowThreadReply
+    })
+    .match({ 'puid': puid });
+    setState(() {
+      uploading = false;
+    });
+    Navigator.push(context, 
+      MaterialPageRoute<void>(
+        builder: (context) => ViewPostRoute(puid: new Puid(puid!))
+      )
+    );
+  }
+
+  @override
+  void initState() {
+    _fetch();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Edit Diary")),
+      body: loading ? Center(child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text("Loading...", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25)),
+          CircularProgressIndicator(),
+        ],
+      )) : Form(
+        key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.all(15.0),
+          child: Column(
+            children: <Widget>[
+
+              TextField(
+                readOnly: uploading,
+                autofocus: true,
+                canRequestFocus: true,
+                controller: myController,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  hintText: 'Whats on your mind today?',
+                ),
+              ),
+              if(mediaUrl != null && !uploading) Expanded(child: Image.network(mediaUrl!)),
+              if (!uploading) Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Row(
+                    //   children: [
+                    //     ElevatedButton(
+                    //       onPressed: () {
+                    //         if (_formKey.currentState!.validate()) {
+                    //           // Process data.
+                    //           pickPicture();
+                    //         }
+                    //       },
+                    //       child: Icon(Icons.photo_size_select_actual_rounded),
+                    //     ),
+                    //      if(Platform.isAndroid) ElevatedButton(
+                    //       onPressed: () {
+                    //         if (_formKey.currentState!.validate()) {
+                    //           // Process data.
+                    //           capturePicture();
+                    //         }
+                    //       },
+                    //       child: Icon(Icons.camera_alt_outlined),
+                    //     ),
+                    //   ],
+                    // ),
+                    Row(
+                      children: [
+                        Text("Threads"),
+                        Switch(
+                          value: allowThreadReply, 
+                          onChanged: (bool allowThreadReplyChange) {
+                            setState(() {
+                              allowThreadReply = allowThreadReplyChange;
+                            });
+                          }
+                        ),
+                      ],
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                            upload();
+                        }
+                      },
+                      child: const Text('Save and Upload'),
+                    ),
+                  ],
+                ),
+              ),
+              if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
+            ],
+          ),
+        )),
+    );
+  }
+}
+
+class CreateThread extends StatefulWidget {
+
+  const CreateThread({super.key, required this.puid, required this.allowThread});
+  
+  @override
+  State<CreateThread> createState() => _CreateThreadState(puid: puid, allowThread: allowThread);
+  
+  final String? puid;
+  final bool allowThread;
+}
+
+class _CreateThreadState extends State<CreateThread> {
+  _CreateThreadState({required this.puid, required this.allowThread});
+  final String? puid;
+  final bool allowThread;
   final myController = TextEditingController();
   final supabase = Supabase.instance.client;
   bool uploading = false;
@@ -371,7 +523,7 @@ class _CreateThreadState extends State<CreateThread> {
   late final userData = user?.userMetadata!;
   String? earlyTuid; 
 
-    Future<void> uploadThread() async {  
+  Future<void> uploadThread() async {  
     try {
       if(myController.text.isNotEmpty) {
         setState(() {
@@ -454,7 +606,7 @@ class _CreateThreadState extends State<CreateThread> {
             ),
           );
           uploadedPuid = uploadPost[0]['puid'];
-           setState(() {
+            setState(() {
               uploading = false;
             });
           // Navigator.of(context).pop();
@@ -482,47 +634,73 @@ class _CreateThreadState extends State<CreateThread> {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-          readOnly: true,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            hintText: 'Reply to this thread',
-          ),
-          onTap: () {
-              showModalBottomSheet<void>(
-                context: context,
-                builder: (BuildContext context) {
-                  return Scaffold(
-                    appBar: AppBar(title: Text("Reply to this diary")),
-                    body: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          TextField(
-                            readOnly: uploading,
-                            autofocus: false,
-                            canRequestFocus: true,
-                            controller: myController,
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              hintText: 'Whats on your mind today?',
-                            ),
-                          ),
-                          if(filePicked != null && !uploading) Expanded(child: Image.file(File(filePicked.files.single.path!))),
-                          ElevatedButton(
-                            child: const Text('Upload'),
-                            onPressed: () => uploadThread(),
-                          ),
-                        ],
-                      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: allowThread ? TextField(
+      readOnly: true,
+      decoration: const InputDecoration(
+        // border: OutlineInputBorder(),
+        border: InputBorder.none,
+        hintText: 'Reply to this thread',
+      ),
+      onTap: () {
+        showModalBottomSheet<void>(
+          useRootNavigator: true,
+          enableDrag: !uploading,
+          isDismissible: !uploading,
+          context: context,
+          builder: (BuildContext context) {
+            return SizedBox(
+              child: Scaffold(
+                appBar: uploading ? AppBar(
+                  title: Text("Reply to this diary"),
+                  automaticallyImplyLeading: false
+                ) : AppBar(
+                  title: Text("Reply to this diary"),
+                  actions: <Widget>[
+                    ElevatedButton(
+                      child: const Text('Upload'),
+                      onPressed: () => uploadThread(),
                     ),
-                  );
-                }
-              );
-          },
+                  ],
+
+                ),
+                body: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[   
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16,0,0,8),
+                        child: TextField(
+                          readOnly: uploading,
+                          autofocus: true,
+                          canRequestFocus: true,
+                          controller: myController,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'Whats on your mind today?',
+                          ),
+                        ),
+                      ),
+                      // if(filePicked != null && !uploading) Expanded(child: Image.file(File(filePicked.files.single.path!))),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
         );
+      }) : TextField(
+        readOnly: true,
+        decoration: const InputDecoration(
+          // border: OutlineInputBorder(),
+          border: InputBorder.none,
+          hintText: 'Threads disabled',
+        )
+      )
+    );
   }
 }
-

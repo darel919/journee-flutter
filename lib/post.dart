@@ -1,7 +1,7 @@
 // ignore_for_file: prefer_const_constructors, unused_local_variable, unnecessary_new, unused_element, prefer_const_literals_to_create_immutables, avoid_print, unused_import, use_build_context_synchronously, no_logic_in_create_state, unnecessary_null_comparison, prefer_typing_uninitialized_variables
 
 import 'package:flutter/material.dart';
-import 'package:journee/create.dart';
+import 'package:journee/modify.dart';
 import 'package:journee/home.dart';
 import 'package:journee/threads.dart';
 import 'package:journee/user_posts.dart';
@@ -96,6 +96,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   late final userData = user?.userMetadata!;
   String? postuuid;
   String? postpuid;
+  bool allowThread = true;
   
   bool isAdmin(){
     if(postuuid == userData!['provider_id']) {
@@ -119,14 +120,13 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
       },
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           title: Text("Post"),
           actions: <Widget> [
             PopupMenuButton<int>(
                 onSelected: (item) => handleClick(item),
                 itemBuilder: (context) => [
                   if(isAdmin()) PopupMenuItem<int>(onTap: () => _showMyDialog(context), value: 0, child: Text('Delete')),
-                  // if(isAdmin()) PopupMenuItem<int>(value: 1, child: Text('Edit')),
+                  if(isAdmin()) PopupMenuItem<int>(onTap: () => {Navigator.push(context, new MaterialPageRoute(builder: (context) => new EditDiary(puid: postpuid)))}, value: 1, child: Text('Edit')),
                   // PopupMenuItem<int>(value: 2, child: Text('Share')),
                 ],
               )
@@ -146,6 +146,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
             final threads = post['threads'];
             postuuid = post['uuid'];
             postpuid = post['puid'];
+            allowThread = post['allowReply'];
             DateTime myDateTime = DateTime.parse(post['created_at']);
             
             return Column(
@@ -190,7 +191,20 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                     padding: const EdgeInsets.fromLTRB(0,0,0,20),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(post['mediaUrl'], width: 400),
+                                      child: Image.network(post['mediaUrl'], 
+                                      // width: 400,
+                                      fit: BoxFit.cover,
+                                      loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                                        if (loadingProgress == null) return child; // If the image is fully loaded, return the child widget
+                                          return Center( // Otherwise, return a loading widget
+                                            child: CircularProgressIndicator( // You can use any widget you like, such as a Shimmer widget
+                                              value: loadingProgress.expectedTotalBytes != null
+                                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                                : null,
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ),
                                   ),
                                   if(post['mediaUrl'] == null && post['mediaUrlOnDb'] != null) Row(
@@ -245,7 +259,20 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                         padding: const EdgeInsets.fromLTRB(0,15,0,15),
                                         child: ClipRRect(
                                           borderRadius: BorderRadius.circular(8),
-                                          child: Image.network(threadDetails['mediaUrl'], width: 400),
+                                          child: Image.network(threadDetails['mediaUrl'], 
+                                          // width: 400,
+                                          fit: BoxFit.cover,
+                                          loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                                            if (loadingProgress == null) return child; // If the image is fully loaded, return the child widget
+                                              return Center( // Otherwise, return a loading widget
+                                                child: CircularProgressIndicator( // You can use any widget you like, such as a Shimmer widget
+                                                  value: loadingProgress.expectedTotalBytes != null
+                                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                                    : null,
+                                                ),
+                                              );
+                                            },
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -259,7 +286,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                     ),
                   ),
                 ),
-               CreateThread(puid: postpuid),
+               CreateThread(puid: postpuid, allowThread: allowThread),
               ],
             );
           },

@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_literals_to_create_immutables, prefer_const_constructors, avoid_print, unused_local_variable, unnecessary_const, no_leading_underscores_for_local_identifiers, unused_element, unnecessary_new, unused_field
+// ignore_for_file: prefer_const_literals_to_create_immutables, prefer_const_constructors, avoid_print, unused_local_variable, unnecessary_const, no_leading_underscores_for_local_identifiers, unused_element, unnecessary_new, unused_field, unrelated_type_equality_checks
 
 import 'package:flutter/material.dart';
 import 'package:journee/account.dart';
@@ -23,24 +23,33 @@ Future<void> main() async {
   runApp(MyApp());
 }
 
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  ThemeData _theme(brightness1) {
+    var baseTheme = ThemeData(brightness: brightness1);
+    
+    return ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Color(0x00001238), 
+          brightness: brightness1
+        ),
+        useMaterial3: true,
+        textTheme: GoogleFonts.ralewayTextTheme(baseTheme.textTheme)
+      );
+  }
+  
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Journee',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 0, 4, 255)),
-        useMaterial3: true,
-        textTheme: GoogleFonts.ralewayTextTheme(textTheme)
-      ),
-      // initialRoute: '/',
+      theme: _theme(Brightness.light),
+      themeMode: ThemeMode.system, 
+      darkTheme: _theme(Brightness.dark),
       home: SplashPage(),
       routes: <String, WidgetBuilder> {
-        // '/' : (BuildContext context) => SplashPage(),
         '/home':(BuildContext context) => MyHomePage(title: 'Home'),
         '/account':(BuildContext context) => AccountPage(),
         '/login': (BuildContext context) => const LoginPage(),
