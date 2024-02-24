@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_const_constructors, unused_local_variable, use_build_context_synchronously, avoid_print, prefer_const_literals_to_create_immutables
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -84,7 +85,7 @@ class _SplashPageState extends State<SplashPage> {
                   ),
                   if(!nowLoading) Padding(
                     padding: const EdgeInsets.fromLTRB(5,0,0,0),
-                    child: Text("v$version"),
+                    child: kIsWeb ? Text("Web v$version") : Text('v$version'),
                   ),
                 ],
               ),

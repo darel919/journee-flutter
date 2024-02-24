@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-// import 'package:google_sign_in_all_platforms/google_sign_in_all_platforms.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class LoginPage extends StatefulWidget {
@@ -39,10 +38,9 @@ class _LoginPageState extends State<LoginPage> {
       var desktopClientSecret =  dotenv.env['windowsSecretId']!;
       
       if(kIsWeb) {
-        
         final GoogleSignInAccount? googleSignIn = await GoogleSignIn(
           clientId: webClientId,
-          scopes: ['email', 'profile', 'openid'],
+          // scopes: ['email', 'profile', 'openid'],
         ).signInSilently();
         if (googleSignIn != null) {
           final GoogleSignInAuthentication googleAuth = await googleSignIn.authentication;
@@ -57,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
           }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Login success!'),
+              content: Text('Web Login success!'),
               elevation: 20.0,
             ),
           );
@@ -65,19 +63,19 @@ class _LoginPageState extends State<LoginPage> {
       } 
       else {
         if (Platform.isWindows) {  
-                // GoogleSignIn googleSignInDesktop = GoogleSignIn(
-                //   // params: GoogleSignInParams(
-                //     clientId: desktopClientId,
-                //     // ser: desktopClientSecret,
-                //   // )
-                // );
-                // final googleUser = await googleSignInDesktop.signIn();
-                // print(googleUser);
-                // if(googleUser != null) {
-                // //   // accessToken = googleUser.accessToken;
-                // //   // idToken = googleUser.idToken;
-                //   print("Desktop mode GSI login");
-                // }
+          // GoogleSignIn googleSignInDesktop = GoogleSignIn(
+          //   // params: GoogleSignInParams(
+          //     clientId: desktopClientId,
+          //     // ser: desktopClientSecret,
+          //   // )
+          // );
+          // final googleUser = await googleSignInDesktop.signIn();
+          // print(googleUser);
+          // if(googleUser != null) {
+          // //   // accessToken = googleUser.accessToken;
+          // //   // idToken = googleUser.idToken;
+          //   print("Desktop mode GSI login");
+          // }
         }
         else if(Platform.isAndroid) {
           GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -90,22 +88,22 @@ class _LoginPageState extends State<LoginPage> {
             accessToken = googleSignInAuthentication.accessToken;
             idToken = googleSignInAuthentication.idToken;
             print('Android GSI Login');
+            if (accessToken!.isNotEmpty && idToken!.isNotEmpty) {
+              await supabase.auth.signInWithIdToken(
+                provider: OAuthProvider.google,
+                idToken: idToken!,
+                accessToken: accessToken,
+                nonce: 'NONCE',
+              );
+            }
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Login success!'),
+                elevation: 20.0,
+              ),
+            );
           }
         } 
-         if (accessToken!.isNotEmpty && idToken!.isNotEmpty) {
-          await supabase.auth.signInWithIdToken(
-            provider: OAuthProvider.google,
-            idToken: idToken!,
-            accessToken: accessToken,
-            nonce: 'NONCE',
-          );
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Login success!'),
-            elevation: 20.0,
-          ),
-        );
       }
     } catch (e) {
       displaySnackBar(e);
