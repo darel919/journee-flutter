@@ -19,7 +19,7 @@ Future<void> main() async {
     url: sbaseUrl,
     anonKey: sbaseAnonKey,
   );
-  GoogleFonts.config.allowRuntimeFetching = false;
+  // GoogleFonts.config.allowRuntimeFetching = false;
   runApp(MyApp());
 }
 
