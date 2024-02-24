@@ -94,24 +94,23 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                 uploading = false;
               });
             }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Post with media upload success'),
-              elevation: 20.0,
-            ),
-          );
-          Navigator.of(context).pushReplacementNamed('/home');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Post with media upload success'),
+                elevation: 20.0,
+              ),
+            );
+            Navigator.of(context).pushReplacementNamed('/home');
           } else {
-            File file = File(filePicked.files.single.path!);
             PlatformFile file2 = filePicked.files.first;
             Uint8List? postMedia = filePicked.files.first.bytes;
-            File postMediaAndroid = file;
             String fileName = file2.name;
 
             earlyPuid = earlyUploadPost[0]['puid'];
             final uploadPath = earlyPuid!+'/'+fileName;
             final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
             if(kIsWeb) {
+              print('run on web');
               final String path = await supabase.storage.from('post_media').uploadBinary(
                 uploadPath,
                 postMedia!,
@@ -126,7 +125,17 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               setState(() {
                 uploading = false;
               });
-            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Post with media upload success'),
+                  elevation: 20.0,
+                ),
+              );
+              Navigator.of(context).pushReplacementNamed('/home');
+            } 
+            else {
+              File file = File(filePicked.files.single.path!);
+              File postMediaAndroid = file;
               final String path = await supabase.storage.from('post_media').upload(
                 uploadPath,
                 postMediaAndroid,
@@ -141,14 +150,14 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               setState(() {
                 uploading = false;
               });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Post with media upload success'),
+                  elevation: 20.0,
+                ),
+              );
+              Navigator.of(context).pushReplacementNamed('/home');
             }
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Post with media upload success'),
-                elevation: 20.0,
-              ),
-            );
-            Navigator.of(context).pushReplacementNamed('/home');
           }
         } else {
           await supabase
@@ -235,9 +244,17 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     if(captureMode) {
       return File(filePicked.path);
     } else {
-      return File(filePicked.files.single.path!);
+      if(kIsWeb) {
+        // print(filePicked);
+        // Uint8List fileBytes = filePicked.files.first.bytes;
+        return File(filePicked.files.first.bytes!);
+      } else {
+        return File(filePicked.files.single.path!);
+      }
     }
   }
+
+  late Uint8List webPreview = filePicked.files.first.bytes!;
 
   @override
   Widget build(BuildContext context) {
@@ -295,7 +312,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   hintText: 'Whats on your mind today?',
                 ),
               ),
-              if(filePicked != null && !uploading) Expanded(child: Image.file(preview())),
+              if(!kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.file(preview())),
+              if(kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.memory(webPreview)),
               if (!uploading) Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: Row(

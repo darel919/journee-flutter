@@ -126,7 +126,10 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                 onSelected: (item) => handleClick(item),
                 itemBuilder: (context) => [
                   if(isAdmin()) PopupMenuItem<int>(onTap: () => _showMyDialog(context), value: 0, child: Text('Delete')),
-                  if(isAdmin()) PopupMenuItem<int>(onTap: () => {Navigator.push(context, new MaterialPageRoute(builder: (context) => new EditDiary(puid: postpuid)))}, value: 1, child: Text('Edit')),
+                  if(isAdmin()) PopupMenuItem<int>(onTap: () => {
+                    Navigator.push(context, new MaterialPageRoute(builder: (context) => new EditDiary(puid: postpuid)))
+                    }, value: 1, child: Text('Edit')
+                  ),
                   // PopupMenuItem<int>(value: 2, child: Text('Share')),
                 ],
               )
@@ -163,7 +166,11 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                           children: <Widget>[
                             ListTile(
                               onTap:() {
-                                Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']))));
+                                if(isAdmin()) {
+                                  Navigator.of(context).pushReplacementNamed('/account');
+                                } else {
+                                  Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']), isSelf: false)));
+                                }
                               },
                               contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
                               leading: ClipRRect(

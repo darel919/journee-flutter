@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:journee/user_posts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AccountPage extends StatefulWidget {
@@ -36,7 +37,8 @@ class _AccountPageState extends State<AccountPage> {
       appBar: AppBar(
         title: Text('Profile')
       ),
-      body: Center(child: Column(
+      body: Expanded(
+        child: Column(
         children: [
           ListTile(
             // contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
@@ -63,9 +65,10 @@ class _AccountPageState extends State<AccountPage> {
                 child: Text('Check for updates'))
             ],
           ),
-          // UserPageRoute(uuid: Uuid(userData!['provider_id']))
+          Expanded(child: UserPageRoute(uuid: Uuid(userData!['provider_id']), isSelf: true))
         ],
-      ),)
+              ),
+      )
     );
   }
 }

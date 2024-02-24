@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors, unnecessary_new
+// ignore_for_file: prefer_const_constructors, unnecessary_new, no_logic_in_create_state
 
 import 'package:flutter/material.dart';
 import 'package:journee/post.dart';
@@ -7,32 +7,43 @@ import 'package:timeago/timeago.dart' as timeago;
 
 class Uuid {
   final String uuid;
-
   Uuid(this.uuid);
 }
 
-class UserPageRoute extends StatelessWidget {
+class UserPageRoute extends StatefulWidget {
   final Uuid uuid;
-  late final Future<List<Map<String, dynamic>>> _future;
+  final bool isSelf;
 
-  UserPageRoute({super.key, required this.uuid}) {
-    _initializeFuture();
-  }
+  const UserPageRoute({super.key, required this.uuid, required this.isSelf});
 
-   void _initializeFuture() {
-    _future = Supabase.instance.client
+  @override
+  State<UserPageRoute> createState() => _UserPageRouteState(uuid: uuid, isSelf: isSelf);
+}
+
+class _UserPageRouteState extends State<UserPageRoute> {
+  final Uuid uuid;
+  final bool isSelf;
+  final supabase = Supabase.instance.client;
+
+  _UserPageRouteState({Key? key, required this.uuid, required this.isSelf});
+
+   late final _future = supabase
       .from('posts')
       .select('''*, users(*), threads ( * ), categories ( * )''')
       .eq('uuid', uuid.uuid)
       .order('created_at',  ascending: false);
-   }
 
-   @override
+  String? username;
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        // backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text("User"),
+      appBar: isSelf ? AppBar(
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false,
+      ) : AppBar(
+        title: Text("Post by user"),
+        automaticallyImplyLeading: true,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _future,
@@ -41,12 +52,14 @@ class UserPageRoute extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
             final posts = snapshot.data!;
+            username = posts[0]['users']['name'];
             
             return ListView.builder(
             itemCount: posts.length,
             itemBuilder: ((context, index) {
               final post = posts[index];
               final user = post['users'];
+              // username = user['name'];
               DateTime myDateTime = DateTime.parse(post['created_at']);
               return ListTile(
                 onTap: () {

@@ -147,7 +147,7 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
                         children: <Widget>[
                           ListTile(
                             onTap:() {
-                              Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']))));
+                              Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']), isSelf: false)));
                             },
                             contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
                             leading: ClipRRect(
