@@ -1,12 +1,15 @@
-// ignore_for_file: avoid_print, unused_local_variable, prefer_const_constructors, unused_element, prefer_typing_uninitialized_variables, use_build_context_synchronously, camel_case_types, no_leading_underscores_for_local_identifiers
+// ignore_for_file: avoid_print, unused_local_variable, prefer_const_constructors, unused_element, prefer_typing_uninitialized_variables, use_build_context_synchronously, camel_case_types, no_leading_underscores_for_local_identifiers, unused_import
 
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:googleapis_auth/auth_io.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 
 class LoginPage extends StatefulWidget {
   
@@ -40,12 +43,11 @@ class _LoginPageState extends State<LoginPage> {
       if(kIsWeb) {
         final GoogleSignInAccount? googleSignIn = await GoogleSignIn(
           clientId: webClientId,
-          // scopes: ['email', 'profile', 'openid'],
         ).signInSilently();
         if (googleSignIn != null) {
           final GoogleSignInAuthentication googleAuth = await googleSignIn.authentication;
           idToken = googleAuth.idToken;
-          print('Web GSI Login, $idToken');
+          print('Web GSI Login');
           if (idToken!.isNotEmpty) {
             await supabase.auth.signInWithIdToken(
               provider: OAuthProvider.google,
@@ -60,61 +62,90 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
         }
-      } 
-      else {
-        if (Platform.isWindows) {  
-          // GoogleSignIn googleSignInDesktop = GoogleSignIn(
-          //   // params: GoogleSignInParams(
-          //     clientId: desktopClientId,
-          //     // ser: desktopClientSecret,
-          //   // )
-          // );
-          // final googleUser = await googleSignInDesktop.signIn();
-          // print(googleUser);
-          // if(googleUser != null) {
-          // //   // accessToken = googleUser.accessToken;
-          // //   // idToken = googleUser.idToken;
-          //   print("Desktop mode GSI login");
-          // }
-        }
-        else if(Platform.isAndroid) {
-          GoogleSignIn _googleSignIn = GoogleSignIn(
-            serverClientId: webClientId
-          );
-          final GoogleSignInAccount? googleSignInAccount = await _googleSignIn.signIn();
+      } else {
+          if (Platform.isWindows) {  
+            var client = http.Client();
+            try {
+                print("Desktop mode OAuth2 login");
+                Future<void> _launchAuthInBrowser(String url) async {
+                  final Uri parsedUrl = Uri.parse(url);
+                  await canLaunchUrl(parsedUrl) ? await launchUrl(parsedUrl) : print('Could not launch $url');
+                }
+                var id = ClientId(
+                  desktopClientId, // Your client ID for desktop
+                  desktopClientSecret, // Your client secret for desktop
+                );
+                var scopes = ['email', 'profile', 'openid'];
+                var credentials = await obtainAccessCredentialsViaUserConsent(
+                    id, scopes, client, (url) => _launchAuthInBrowser(url));
+                
+                idToken = credentials.idToken;
+                // print(idToken);
+                  if (idToken!.isNotEmpty) {
+                  await supabase.auth.signInWithIdToken(
+                    provider: OAuthProvider.google,
+                    idToken: idToken!,
+                    nonce: 'NONCE',
+                  );
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Login success!'),
+                    elevation: 20.0,
+                  ),
+                );
+              } catch(e) {
+                print('$e');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error logging in: $e'),
+                    elevation: 20.0,
+                  ),
+                );
+              } finally {
+                client.close();
+              }
+          }
+          else if(Platform.isAndroid) {
+            GoogleSignIn _googleSignIn = GoogleSignIn(
+              serverClientId: webClientId
+            );
+            final GoogleSignInAccount? googleSignInAccount = await _googleSignIn.signIn();
 
-          if (googleSignInAccount != null) {
-            final GoogleSignInAuthentication googleSignInAuthentication = await googleSignInAccount.authentication;
-            accessToken = googleSignInAuthentication.accessToken;
-            idToken = googleSignInAuthentication.idToken;
-            print('Android GSI Login');
-            if (accessToken!.isNotEmpty && idToken!.isNotEmpty) {
-              await supabase.auth.signInWithIdToken(
-                provider: OAuthProvider.google,
-                idToken: idToken!,
-                accessToken: accessToken,
-                nonce: 'NONCE',
+            if (googleSignInAccount != null) {
+              final GoogleSignInAuthentication googleSignInAuthentication = await googleSignInAccount.authentication;
+              accessToken = googleSignInAuthentication.accessToken;
+              idToken = googleSignInAuthentication.idToken;
+              print('Android GSI Login');
+              if (accessToken!.isNotEmpty && idToken!.isNotEmpty) {
+                await supabase.auth.signInWithIdToken(
+                  provider: OAuthProvider.google,
+                  idToken: idToken!,
+                  accessToken: accessToken,
+                  nonce: 'NONCE',
+                );
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Login success!'),
+                  elevation: 20.0,
+                ),
               );
             }
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Login success!'),
-                elevation: 20.0,
-              ),
-            );
-          }
-        } 
-      }
-    } catch (e) {
+          } 
+        }
+    } 
+    catch (e) {
       displaySnackBar(e);
       print('Error during login: $e');
-    } finally {
+    } 
+    finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
-   }
+    }
   }
 
   void displaySnackBar(e) {

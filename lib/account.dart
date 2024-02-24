@@ -65,7 +65,7 @@ class _AccountPageState extends State<AccountPage> {
                 child: Text('Check for updates'))
             ],
           ),
-          Expanded(child: UserPageRoute(uuid: Uuid(userData!['provider_id']), isSelf: true))
+          // Expanded(child: UserPageRoute(uuid: Uuid(userData!['provider_id']), isSelf: true))
         ],
               ),
       )

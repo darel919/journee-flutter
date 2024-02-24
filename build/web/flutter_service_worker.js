@@ -7,7 +7,7 @@ const RESOURCES = {"assets/AssetManifest.bin": "5026191af470549e4daebaf2eff31580
 "assets/AssetManifest.bin.json": "aaad67b77773794b0d70a6d87ea0c48a",
 "assets/AssetManifest.json": "27a854db6ac915787ae80ac0907a0281",
 "assets/FontManifest.json": "dc3d03800ccca4601324923c0b1d6d57",
-"assets/fonts/MaterialIcons-Regular.otf": "ca9d06b4508e624664fc0bce18530b9f",
+"assets/fonts/MaterialIcons-Regular.otf": "bf4960d8a1976644cff0802f68e7052c",
 "assets/fonts/Raleway-Black.ttf": "ca057783cb90d483d16662f202212050",
 "assets/fonts/Raleway-BlackItalic.ttf": "6bb69e40367ae9814db8c80152eed900",
 "assets/fonts/Raleway-Bold.ttf": "21c82294041b1504a5cbe4f566c8acd6",
@@ -45,11 +45,11 @@ const RESOURCES = {"assets/AssetManifest.bin": "5026191af470549e4daebaf2eff31580
 "icons/Icon-512.png": "96e752610906ba2a93c65f8abe1645f1",
 "icons/Icon-maskable-192.png": "c457ef57daa1d16f64b27b786ec2ea3c",
 "icons/Icon-maskable-512.png": "301a7604d45b3e739efc881eb04896ea",
-"index.html": "d81cf451bc20ff5fd8978f2ec5d13820",
-"/": "d81cf451bc20ff5fd8978f2ec5d13820",
-"main.dart.js": "1bb4ab78b86b7faf90bdcce4c61f7df5",
+"index.html": "a1fe8c650fb57f56c31d47c641b8d6a8",
+"/": "a1fe8c650fb57f56c31d47c641b8d6a8",
+"main.dart.js": "c2d2d2c9f1497560c058da85b6bf1109",
 "manifest.json": "594f6b55dd8edffc2e0478ded2de10d6",
-"version.json": "a1daad4c163038f96fc4394e78defab3"};
+"version.json": "289cefe7103e178458b9f569034bc460"};
 // The application shell files that are downloaded before a service worker can
 // start.
 const CORE = ["main.dart.js",

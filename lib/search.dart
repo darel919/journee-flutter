@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:journee/post.dart';
 import 'package:journee/splash.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 Widget searchMode() {
@@ -23,17 +24,28 @@ Widget searchMode() {
       },
       suggestionsBuilder: (BuildContext context, SearchController controller) async {
         _searchingWithQuery = controller.text;
-       final data = await supabase.from('posts').select()
-       .ilike('details', '%${_searchingWithQuery!}%').order('created_at',  ascending: false);
+       final data = await supabase
+       .rpc('search_posts_and_threads', params: {'keyword': '$_searchingWithQuery' });
+        // .from('posts')
+        // .select()
+        // .ilike('details', '%${_searchingWithQuery!}%');
+        // .select()
+        // .ilike('details', '%${_searchingWithQuery!}%')
+        // .order('created_at',  ascending: false);
+      //  .select('''*, threads( * )''')
+      //  .ilike('details', '%${_searchingWithQuery!}%')
+      //  .order('created_at',  ascending: false);
         
         if (_searchingWithQuery != controller.text) {
           return _lastOptions;
         }
 
         _lastOptions = List<ListTile>.generate(data.length, (int index) {
+          // print(data);
           final String item = data[index]['details'];
           final String date = data[index]['created_at'];
           final String puid = data[index]['puid'];
+          // final String tuid = data[index]['tuid'];
           DateTime myDateTime = DateTime.parse(date);
           return ListTile(
             onTap: () {

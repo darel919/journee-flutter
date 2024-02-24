@@ -242,6 +242,7 @@ class _HomePostViewState extends State<HomePostView> {
                       final user = post['users'];
                       final thread = post['threads'];
                       final category = post['categories'];
+                      final special = post['type'];
                       int threadLength = post['threads'].length;
                       DateTime myDateTime = DateTime.parse(post['created_at']);
           
@@ -250,7 +251,7 @@ class _HomePostViewState extends State<HomePostView> {
                             Navigator.push(context, MaterialPageRoute<void>(
                               builder: (context) => ViewPostRoute(puid: new Puid(post['puid']))));
                         },
-                        contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
+                        contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
                         isThreeLine: true,
                         leading: ClipRRect(
                           borderRadius: BorderRadius.circular(48.0),
@@ -270,6 +271,10 @@ class _HomePostViewState extends State<HomePostView> {
                               borderRadius: BorderRadius.circular(4)),
                               child: Text(category['name'], style: TextStyle(fontSize: 9)),
                             ),
+                            if(special == 'Special') Padding(
+                              padding: const EdgeInsets.fromLTRB(5,0,0,0),
+                              child: Icon(Icons.star_border_outlined),
+                            )
                           ],
                         ),
                         trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
@@ -295,7 +300,7 @@ class _HomePostViewState extends State<HomePostView> {
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.comments_disabled_outlined, size: 20),
+                                  // Icon(Icons.comments_disabled_outlined, size: 20),
                                   if(threadLength > 0) Padding(
                                     padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
                                     child: Text('$threadLength'),

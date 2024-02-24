@@ -52,7 +52,9 @@ class _UserPageRouteState extends State<UserPageRoute> {
             return const Center(child: CircularProgressIndicator());
           }
             final posts = snapshot.data!;
-            username = posts[0]['users']['name'];
+            if(snapshot.hasData) {
+              // username = posts[0]['users']['name'];
+            }
             
             return ListView.builder(
             itemCount: posts.length,
