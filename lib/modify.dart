@@ -312,7 +312,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                           },
                           child: Icon(Icons.photo_size_select_actual_rounded),
                         ),
-                         if(Platform.isAndroid) ElevatedButton(
+                         if(!kIsWeb && Platform.isAndroid) ElevatedButton(
                           onPressed: () {
                             if (_formKey.currentState!.validate()) {
                               // Process data.

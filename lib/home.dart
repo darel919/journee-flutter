@@ -2,6 +2,7 @@
 
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:journee/account.dart';
 import 'package:journee/modify.dart';
@@ -105,28 +106,40 @@ class _MyHomePageState extends State<MyHomePage> {
       AccountPage()
     ];
 
-    if(Platform.isAndroid) {
+    if(kIsWeb) {
       return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages
-      ),
-      bottomNavigationBar: _bottomNavbar()
-    );} else {
-      return Scaffold(
-      body: Row(
-        children: [
-          _sideNavbar(),
-          const VerticalDivider(thickness: 1, width: 1),
-          Expanded(
-            child: IndexedStack(
-              index: _selectedIndex,
-              children: _pages
-            ),
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: _pages
+        ),
+        bottomNavigationBar: _bottomNavbar());
+    } 
+    else {
+      if(Platform.isAndroid) {
+        return Scaffold(
+          body: IndexedStack(
+            index: _selectedIndex,
+            children: _pages
           ),
-        ],
-      ),
-    );}
+          bottomNavigationBar: _bottomNavbar());
+      } 
+      else {
+        return Scaffold(
+          body: Row(
+            children: [
+              _sideNavbar(),
+              const VerticalDivider(thickness: 1, width: 1),
+              Expanded(
+                child: IndexedStack(
+                  index: _selectedIndex,
+                  children: _pages
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 }
 

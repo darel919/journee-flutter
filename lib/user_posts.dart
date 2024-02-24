@@ -15,7 +15,7 @@ class UserPageRoute extends StatelessWidget {
   final Uuid uuid;
   late final Future<List<Map<String, dynamic>>> _future;
 
-  UserPageRoute({Key? key, required this.uuid}) : super(key: key) {
+  UserPageRoute({super.key, required this.uuid}) {
     _initializeFuture();
   }
 
