@@ -37,38 +37,36 @@ class _AccountPageState extends State<AccountPage> {
       appBar: AppBar(
         title: Text('Profile')
       ),
-      body: Expanded(
-        child: Column(
-        children: [
-          ListTile(
-            // contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(48.0),
-              child: 
-               Image.network(userData!['avatar_url']
-              )
-            ),
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(userData!['name'], style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                Text(userData!['provider_id'], style: TextStyle(fontSize: 12))
-              ],
-            ),
-            trailing: ElevatedButton(onPressed: () async => _handleLogOut(), child: Text("Log Out")),
+      body: Column(
+      children: [
+        ListTile(
+          // contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(48.0),
+            child: 
+             Image.network(userData!['avatar_url']
+            )
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if(!kIsWeb) ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/update'),
-                child: Text('Check for updates'))
+              Text(userData!['name'], style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              Text(userData!['provider_id'], style: TextStyle(fontSize: 12))
             ],
           ),
-          // Expanded(child: UserPageRoute(uuid: Uuid(userData!['provider_id']), isSelf: true))
-        ],
-              ),
-      )
+          trailing: ElevatedButton(onPressed: () async => _handleLogOut(), child: Text("Log Out")),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if(!kIsWeb) ElevatedButton(
+              onPressed: () => Navigator.pushNamed(context, '/update'),
+              child: Text('Check for updates'))
+          ],
+        ),
+        // Expanded(child: UserPageRoute(uuid: Uuid(userData!['provider_id']), isSelf: true))
+      ],
+            )
     );
   }
 }

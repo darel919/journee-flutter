@@ -18,6 +18,7 @@ Future<void> main() async {
   await Supabase.initialize(
     url: sbaseUrl,
     anonKey: sbaseAnonKey,
+    debug: false
   );
   // GoogleFonts.config.allowRuntimeFetching = false;
   runApp(MyApp());
@@ -42,19 +43,29 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Journee',
-      theme: _theme(Brightness.light),
-      themeMode: ThemeMode.system, 
-      darkTheme: _theme(Brightness.dark),
-      home: SplashPage(),
-      routes: <String, WidgetBuilder> {
-        '/home':(BuildContext context) => MyHomePage(title: 'Home'),
-        '/account':(BuildContext context) => AccountPage(),
-        '/login': (BuildContext context) => const LoginPage(),
-        '/update': (BuildContext context) => UpdatePage(),
+    return PopScope(
+      canPop: true,
+      onPopInvoked: (didPop) async{
+        await Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/home',
+          (_) => false
+        );
       },
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Journee',
+        theme: _theme(Brightness.light),
+        themeMode: ThemeMode.system, 
+        darkTheme: _theme(Brightness.dark),
+        home: SplashPage(),
+        routes: <String, WidgetBuilder> {
+          '/home':(BuildContext context) => MyHomePage(title: 'Home'),
+          '/account':(BuildContext context) => AccountPage(),
+          '/login': (BuildContext context) => const LoginPage(),
+          '/update': (BuildContext context) => UpdatePage(),
+        },
+      ),
     );
   }
 }

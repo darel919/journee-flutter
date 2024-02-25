@@ -27,6 +27,7 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
     .select('''*, posts(*), users(*) ''')
     .eq('tuid', tuid!)
     .order('created_at',  ascending: false);
+    // _scrollDown();
 
   // late final _futureThread = supabase
   //   .from('threads')
@@ -44,7 +45,7 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
 
   late final fetchedData;
   
-  Future<void> _deletePost() async {
+  Future<void> _deleteThread() async {
     try {
       await supabase
       .from('threads')
@@ -89,11 +90,11 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
 
   late final User? user = supabase.auth.currentUser;
   late final userData = user?.userMetadata!;
-  String? postuuid;
+  String? threadstuid;
   String? postpuid;
   
   bool isAdmin(){
-    if(postuuid == userData!['provider_id']) {
+    if(threadstuid == userData!['provider_id']) {
       return true;
     } else {
       false;
@@ -101,19 +102,33 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
     return false;
   }
 
+  final ScrollController _controller = ScrollController();
+  @override 
+  void initState() {
+    super.initState();
+  }
+
+  // This is what you're looking for!
+  void _scrollDown() {
+    _controller.animateTo(
+      _controller.position.maxScrollExtent,
+      duration: Duration(seconds: 2),
+      curve: Curves.fastOutSlowIn,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text("Thread"),
         actions: <Widget> [
           PopupMenuButton<int>(
               onSelected: (item) => handleClick(item),
               itemBuilder: (context) => [
                 if(isAdmin()) PopupMenuItem<int>(onTap: () => _showMyDialog(context), value: 0, child: Text('Delete')),
-                if(isAdmin()) PopupMenuItem<int>(value: 1, child: Text('Edit')),
-                PopupMenuItem<int>(value: 2, child: Text('Share')),
+                // if(isAdmin()) PopupMenuItem<int>(value: 1, child: Text('Edit')),
+                // PopupMenuItem<int>(value: 2, child: Text('Share')),
               ],
             )
         ],
@@ -124,79 +139,80 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
           if(!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-      
-          final thread = snapshot.data![0];
-          print(thread.length);
-          fetchedData = thread;
-          final user = thread['users'];
-          final post = thread['posts'];
-          DateTime myDateTime = DateTime.parse(thread['created_at']);
-          print(thread);
+          final threads = snapshot.data!;
+          final post = threads[0]['posts'];
+          threadstuid = threads[0]['users']['uuid'];
+          final postAuthor = threads[0]['users'];
+          DateTime myDateTime = DateTime.parse(post['created_at']);
           
           return Column(
             children: [
               Expanded(
                 child: SingleChildScrollView(
+                  controller: _controller,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ListView(
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        children: <Widget>[
-                          ListTile(
-                            onTap:() {
-                              Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']), isSelf: false)));
-                            },
-                            contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(48.0),
-                              child: Image.network(user!['avatar_url']
-                              )
-                            ),
-                            title: Row(
-                              children: [
-                                Text(user['name']),
-                              ],
-                            ),
-                            trailing: Text(timeago.format(myDateTime, locale: 'en'))
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
-                                  child: Text(post['details']),
-                                ),
-                                if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
-                                  padding: const EdgeInsets.fromLTRB(0,0,0,20),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(post['mediaUrl'], width: 400),
-                                  ),
-                                ),
-                                if(post['mediaUrl'] == null && post['mediaUrlOnDb'] != null) Row(
-                                  children: [
-                                    Icon(Icons.image_not_supported),
-                                    Text("This image can only be viewed on Journee Web.", style: TextStyle(fontWeight: FontWeight.bold),),
-                                  ],
-                                )
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                      // ListView(
+                      //   physics: const NeverScrollableScrollPhysics(),
+                      //   shrinkWrap: true,
+                      //   children: <Widget>[
+                      //     ListTile(
+                      //       onTap:() {
+                      //         Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']), isSelf: false)));
+                      //       },
+                      //       contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
+                      //       leading: ClipRRect(
+                      //         borderRadius: BorderRadius.circular(48.0),
+                      //         child: Image.network(postAuthor!['avatar_url']
+                      //         )
+                      //       ),
+                      //       title: Row(
+                      //         children: [
+                      //           Text(postAuthor['name']),
+                      //         ],
+                      //       ),
+                      //       trailing: Text(timeago.format(myDateTime, locale: 'en'))
+                      //     ),
+                      //     Padding(
+                      //       padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                      //       child: Column(
+                      //         crossAxisAlignment: CrossAxisAlignment.start,
+                      //         children: [
+                      //           Padding(
+                      //             padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+                      //             child: Text(post['details']),
+                      //           ),
+                      //           if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
+                      //             padding: const EdgeInsets.fromLTRB(0,0,0,20),
+                      //             child: ClipRRect(
+                      //               borderRadius: BorderRadius.circular(8),
+                      //               child: Image.network(post['mediaUrl'], width: 400),
+                      //             ),
+                      //           ),
+                      //           if(post['mediaUrl'] == null && post['mediaUrlOnDb'] != null) Row(
+                      //             children: [
+                      //               Icon(Icons.image_not_supported),
+                      //               Text("This image can only be viewed on Journee Web.", style: TextStyle(fontWeight: FontWeight.bold),),
+                      //             ],
+                      //           )
+                      //         ],
+                      //       ),
+                      //     ),
+                      //   ],
+                      // ),
                       ListView.builder(
+
                         physics: const NeverScrollableScrollPhysics(),
                         shrinkWrap: true,
-                        itemCount: thread.length,
+                        itemCount: threads.length,
                         itemBuilder: ((context, index) {
-                          final threadDetails = thread;
+                          final thread = threads[index];
+                          fetchedData = thread;
+                          final user = thread['users'];
                           // final threadAuthor = threadDetails['users'];
-                          DateTime threadDateTime = DateTime.parse(threadDetails['created_at']);
+                          DateTime threadDateTime = DateTime.parse(thread['created_at']);
                           
                           return ListTile(
                             onTap: () {
@@ -214,12 +230,12 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(threadDetails['details']),
-                                if (threadDetails['mediaUrl']!= null && threadDetails['mediaUrl'].isNotEmpty) Padding(
+                                Text(thread['details']),
+                                if (thread['mediaUrl']!= null && thread['mediaUrl'].isNotEmpty) Padding(
                                   padding: const EdgeInsets.fromLTRB(0,15,0,15),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(threadDetails['mediaUrl'], width: 400),
+                                    child: Image.network(thread['mediaUrl'], width: 400),
                                   ),
                                 ),
                               ],
@@ -261,7 +277,7 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
                   style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red)),
                   child: Text('Delete', style: TextStyle(color: Colors.white),),
                   onPressed: () {
-                    _deletePost();
+                    _deleteThread();
                     Navigator.of(innerContext).pop();
                   },
                 ),

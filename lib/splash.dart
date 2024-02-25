@@ -44,7 +44,7 @@ class _SplashPageState extends State<SplashPage> {
             'avatar_url': userMetadata['avatar_url'],
           });
         setState(() {
-        nowLoading = false;
+          nowLoading = false;
         });
       await Navigator.pushNamedAndRemoveUntil(
         context,

@@ -36,7 +36,8 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   late final _futureThread = supabase
     .from('threads')
     .select('''*, users(*), threads ( * )''')
-    .eq('puid', puid.puid);
+    .eq('puid', puid.puid)
+    .order('created_at',  ascending: true);
 
   void handleClick(int item) {
     switch (item) {
@@ -247,7 +248,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                 
                                 return ListTile(
                                   onTap: () {
-                                    // Navigator.push(context, new MaterialPageRoute(builder: (context) => new ViewThreadsRoute(tuid: threadDetails['tuid'])));
+                                    Navigator.push(context, new MaterialPageRoute(builder: (context) => new ViewThreadsRoute(tuid: threadDetails['tuid'])));
                                   },
                                   contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
                                   isThreeLine: true,
