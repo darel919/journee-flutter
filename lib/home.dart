@@ -238,7 +238,6 @@ class _HomePostViewState extends State<HomePostView> {
                     itemCount: posts.length,
                     itemBuilder: ((context, index) {
                       final post = posts[index];
-                      // print(post);
                       final user = post['users'];
                       final thread = post['threads'];
                       final category = post['categories'];
@@ -281,33 +280,50 @@ class _HomePostViewState extends State<HomePostView> {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(post['details'], maxLines: 1, style: TextStyle(fontSize: 12.5)),
-                            if(post['allowReply']) Padding(
+                            Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
+                            if(post['mediaUrl_preview'] != null) Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8.0),
+                                child: Image.network(post['mediaUrl_preview'], width: 400)),
+                            ),
+                            Padding(
                               padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
                               child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.chat_bubble_outline, size: 20),
-                                  if(threadLength > 0) Padding(
-                                    padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                    child: Text('$threadLength'),
+                                  if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
+                                    padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
+                                    child: Icon(Icons.image_outlined, size: 22),
+                                  ),
+                                  if(post['allowReply']) Padding(
+                                    padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.chat_bubble_outline, size: 20),
+                                        if(threadLength > 0) Padding(
+                                          padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                          child: Text('$threadLength'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if(!post['allowReply']) Padding(
+                                    padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        // Icon(Icons.comments_disabled_outlined, size: 20),
+                                        if(threadLength > 0) Padding(
+                                          padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                          child: Text('$threadLength'),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                            if(!post['allowReply']) Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // Icon(Icons.comments_disabled_outlined, size: 20),
-                                  if(threadLength > 0) Padding(
-                                    padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                    child: Text('$threadLength'),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            )
                           ],
                         ),
                       );

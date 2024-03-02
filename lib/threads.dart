@@ -34,6 +34,21 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
   //   .select()
   //   .eq('replyingTo', tuid!);
 
+  late final fetchedData;
+  late final User? user = supabase.auth.currentUser;
+  late final userData = user?.userMetadata!;
+  String? threadstuid;
+  String? postpuid;
+  bool isAdmin() {
+    if(threadstuid == userData!['provider_id']) {
+      return true;
+    } else {
+      false;
+    }
+    return false;
+  }
+  final ScrollController _controller = ScrollController();
+  
   void handleClick(int item) {
     switch (item) {
       case 0:
@@ -43,7 +58,45 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
     }
   }
 
-  late final fetchedData;
+  Future<void> _showMyDialog(BuildContext context) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return Builder(
+          builder: (BuildContext innerContext) {
+            return AlertDialog(
+              title: Text('Are you sure?'),
+              content: SingleChildScrollView(
+                child: Column(
+                  children: <Widget>[
+                    Text('You are about to delete this thread'),
+                    Text("This action can't be undone and deleted post can't be recovered later."),
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red)),
+                  child: Text('Delete', style: TextStyle(color: Colors.white),),
+                  onPressed: () {
+                    _deleteThread();
+                    Navigator.of(innerContext).pop();
+                  },
+                ),
+                TextButton(
+                  child: Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(innerContext).pop();
+                  },
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
+  }
   
   Future<void> _deleteThread() async {
     try {
@@ -88,27 +141,11 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
     }
   }
 
-  late final User? user = supabase.auth.currentUser;
-  late final userData = user?.userMetadata!;
-  String? threadstuid;
-  String? postpuid;
-  
-  bool isAdmin(){
-    if(threadstuid == userData!['provider_id']) {
-      return true;
-    } else {
-      false;
-    }
-    return false;
-  }
-
-  final ScrollController _controller = ScrollController();
   @override 
   void initState() {
     super.initState();
   }
 
-  // This is what you're looking for!
   void _scrollDown() {
     _controller.animateTo(
       _controller.position.maxScrollExtent,
@@ -252,46 +289,6 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
           );
         },
       )
-    );
-  }
-
-  Future<void> _showMyDialog(BuildContext context) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false, // user must tap button!
-      builder: (BuildContext context) {
-        return Builder(
-          builder: (BuildContext innerContext) {
-            return AlertDialog(
-              title: Text('Are you sure?'),
-              content: SingleChildScrollView(
-                child: Column(
-                  children: <Widget>[
-                    Text('You are about to delete this thread'),
-                    Text("This action can't be undone and deleted post can't be recovered later."),
-                  ],
-                ),
-              ),
-              actions: <Widget>[
-                TextButton(
-                  style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red)),
-                  child: Text('Delete', style: TextStyle(color: Colors.white),),
-                  onPressed: () {
-                    _deleteThread();
-                    Navigator.of(innerContext).pop();
-                  },
-                ),
-                TextButton(
-                  child: Text('Cancel'),
-                  onPressed: () {
-                    Navigator.of(innerContext).pop();
-                  },
-                ),
-              ],
-            );
-          }
-        );
-      },
     );
   }
   }

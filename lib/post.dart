@@ -63,6 +63,13 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
           .from('post_media')
           .remove([fetchedData['mediaUrlOnDb']]);
 
+        if(fetchedData['mediaUrl_preview'] != null) {
+          final List<FileObject> objects = await supabase
+          .storage
+          .from('post_media')
+          .remove([fetchedData['mediaUrl_previewOnDb']]);
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Post and media successfully deleted!'),
@@ -193,7 +200,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                 children: [
                                   Padding(
                                     padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
-                                    child: Text(post['details']),
+                                    child: Text(post['details'], style: TextStyle(height: 2.2)),
                                   ),
                                   if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
                                     padding: const EdgeInsets.fromLTRB(0,0,0,20),

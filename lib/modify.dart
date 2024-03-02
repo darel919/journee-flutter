@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:journee/post.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:image_compression_flutter/image_compression_flutter.dart';
 
 class CreateDiaryPage extends StatefulWidget {
   const CreateDiaryPage({super.key});
@@ -24,7 +25,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   late final User? user = supabase.auth.currentUser;
   late final userData = user?.userMetadata!;
   late List<Map<String, dynamic>> categories = [];
-  String? selectedCategory;
+  ValueNotifier<String?> selectedCategory = ValueNotifier<String?>(null);
+  String? selectedCatName;
   bool mediaUploadMode = false;
   bool uploading = false;
   bool allowThreadReply = true;
@@ -36,7 +38,77 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   @override
   void initState() {
     super.initState();
+    listenToSelectedCategory(context, (String input) {
+      createNewCategory(input);
+    });
     fetchCategory();
+  }
+
+  void showCategoryCreateDialog(BuildContext context, Function callback) {
+    TextEditingController textController = TextEditingController();
+
+    void textChecker() {
+      if(textController.text.isNotEmpty) {
+        Navigator.pop(context, textController.text);
+        callback(textController.text);
+      } else {
+        Navigator.pop(context, textController.text);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('New category name cannot be EMPTY!'),
+            elevation: 20.0,
+          ),
+        );
+        setState(() {
+          selectedCategory.value = categories[1]['cuid'];
+          selectedCatName = categories[1]['name'];
+        });
+      }
+    }
+
+    showDialog(
+      context: context, builder: (context) {
+        return AlertDialog(
+          title: Text('Create a new category'),
+          content: TextField(
+            autofocus: true,
+            controller: textController,
+            decoration: InputDecoration(hintText: 'Enter a category name'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                textChecker();
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    ).then((result) {
+      if (result == null) {
+        setState(() {
+          selectedCategory.value = categories[1]['cuid'];
+          selectedCatName = categories[1]['name'];
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('New category creation cancelled'),
+            elevation: 20.0,
+          ),
+        );
+        // print('The user dismissed the dialog');
+      }
+    });
+  }
+
+  void listenToSelectedCategory(BuildContext context, Function callback) {
+    selectedCategory.addListener(() {
+      String? currentValue = selectedCategory.value;
+      if (currentValue == 'create') {
+        showCategoryCreateDialog(context, callback);
+      }
+    });
   }
 
   Future<void> fetchCategory() async {
@@ -45,10 +117,30 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     .select();
     setState(() {
         categories = _data;
-        selectedCategory = _data[1]['cuid'];
+        categories.add({
+          'cuid': 'create',
+          'name': 'Create new category',
+        });
+        selectedCategory.value = _data[1]['cuid'];
+        selectedCatName = _data[1]['name'];
     });
   }
-
+  
+  Future<void> createNewCategory(String categoryName) async {
+    await supabase.from('categories').insert({
+      'name': categoryName,
+      'uuid': userData!['provider_id'], 
+    });
+    print(categoryName);
+    fetchCategory();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('New category created successfully'),
+        elevation: 20.0,
+      ),
+    );
+  }
+  
   @override
   void dispose() {
     myController.dispose();
@@ -57,50 +149,53 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
   Future<void> upload() async {  
     try {
-      if(myController.text.isNotEmpty) {
-        setState(() {
-          uploading = true;
-        });
-        if(mediaUploadMode) {
-          final List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
-          .insert({
-            'uuid': userData!['provider_id'], 
-            'cuid': selectedCategory,
-            'details': myController.text, 
-            'allowReply': allowThreadReply, 
-            'type': 'Diary'
-          })
-          .select();
+      if(!uploading) {
+        if(myController.text.isNotEmpty) {
+          setState(() {
+            uploading = true;
+          });
+          if(mediaUploadMode) {
+            final List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
+            .insert({
+              'uuid': userData!['provider_id'], 
+              'cuid': selectedCategory.value,
+              'details': myController.text, 
+              'allowReply': allowThreadReply, 
+              'type': 'Diary'
+            })
+            .select();
 
-          if(captureMode) {
-            File postMediaAndroid = File(filePicked.path);
-            earlyPuid = earlyUploadPost[0]['puid'];
-            final uploadPath = earlyPuid!+'/'+filePicked.name;
-            final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
-            if(!kIsWeb) {
-              final String path = await supabase.storage.from('post_media').upload(
-                uploadPath,
-                postMediaAndroid,
-                fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+            if(captureMode) {
+              File postMediaAndroid = File(filePicked.path);
+              earlyPuid = earlyUploadPost[0]['puid'];
+              final uploadPath = earlyPuid!+'/'+filePicked.name;
+              final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+
+              if(!kIsWeb) {
+                final String path = await supabase.storage.from('post_media').upload(
+                  uploadPath,
+                  postMediaAndroid,
+                  fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                );
+                await supabase.from('posts')
+                .update({
+                  'mediaUrl': completeImgDir, 
+                  'mediaUrlOnDb': uploadPath, 
+                })
+                .match({ 'puid': earlyPuid });
+                setState(() {
+                  uploading = false;
+                });
+              }
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Post with media upload success'),
+                  elevation: 20.0,
+                ),
               );
-              await supabase.from('posts')
-              .update({
-                'mediaUrl': completeImgDir, 
-                'mediaUrlOnDb': uploadPath, 
-              })
-              .match({ 'puid': earlyPuid });
-              setState(() {
-                uploading = false;
-              });
-            }
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Post with media upload success'),
-                elevation: 20.0,
-              ),
-            );
-            Navigator.of(context).pushReplacementNamed('/home');
-          } else {
+              Navigator.of(context).pushReplacementNamed('/home');
+            } else {
             PlatformFile file2 = filePicked.files.first;
             Uint8List? postMedia = filePicked.files.first.bytes;
             String fileName = file2.name;
@@ -108,16 +203,39 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             earlyPuid = earlyUploadPost[0]['puid'];
             final uploadPath = earlyPuid!+'/'+fileName;
             final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+            
             if(kIsWeb) {
               final String path = await supabase.storage.from('post_media').uploadBinary(
                 uploadPath,
                 postMedia!,
                 fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
               );
+              ImageFile input = ImageFile(
+                rawBytes: postMedia, 
+                filePath: fileName,
+              );
+              Configuration config = Configuration(
+                outputType: ImageOutputType.webpThenJpg,
+                useJpgPngNativeCompressor: false,
+                quality: 25,
+              );
+
+              final param = ImageFileConfiguration(input: input, config: config);
+              final compressedOutput = await compressor.compress(param);
+              final previewUploadPath = earlyPuid!+'/preview/'+fileName;
+              final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
+              
+              final String compressedPreviewPath = await supabase.storage.from('post_media').uploadBinary(
+                previewUploadPath,
+                compressedOutput.rawBytes,
+                fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+              );
               await supabase.from('posts')
               .update({
                 'mediaUrl': completeImgDir, 
                 'mediaUrlOnDb': uploadPath, 
+                'mediaUrl_preview': previewCompleteImgDir,
+                'mediaUrl_previewOnDb': previewUploadPath,
               })
               .match({ 'puid': earlyPuid });
               setState(() {
@@ -134,15 +252,46 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             else {
               File file = File(filePicked.files.single.path!);
               File postMediaAndroid = file;
+              Future<Uint8List> bytes() async { return file.readAsBytes(); } 
+              ImageFile input = ImageFile(
+                rawBytes: await bytes(), 
+                filePath: file.toString()
+              );
+
               final String path = await supabase.storage.from('post_media').upload(
                 uploadPath,
                 postMediaAndroid,
+                fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+              );
+
+              Configuration config = Configuration(
+                outputType: ImageOutputType.webpThenJpg,
+                useJpgPngNativeCompressor: false,
+                quality: 25,
+              );
+
+              final param = ImageFileConfiguration(input: input, config: config);
+              final compressedOutput = await compressor.compress(param);
+              Future<File> compressedPreview() async {
+                final tempDir = Directory.systemTemp;
+                final file = await File('${tempDir.path}/$fileName').create();
+                file.writeAsBytesSync(compressedOutput.rawBytes);
+                return file;
+              }
+              final previewUploadPath = earlyPuid!+'/preview/'+fileName;
+              final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
+              
+              final String compressedPreviewPath = await supabase.storage.from('post_media').upload(
+                previewUploadPath,
+                await compressedPreview(),
                 fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
               );
               await supabase.from('posts')
               .update({
                 'mediaUrl': completeImgDir, 
                 'mediaUrlOnDb': uploadPath, 
+                'mediaUrl_preview': previewCompleteImgDir,
+                'mediaUrl_previewOnDb': previewUploadPath,
               })
               .match({ 'puid': earlyPuid });
               setState(() {
@@ -156,36 +305,45 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               );
               Navigator.of(context).pushReplacementNamed('/home');
             }
+            }
+          } else {
+            await supabase
+            .from('posts')
+            .insert({
+              'uuid': userData!['provider_id'], 
+              'cuid': selectedCategory.value,
+              'details': myController.text, 
+              'allowReply': allowThreadReply, 
+              'type': 'Diary'
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Post uploaded!'),
+                elevation: 20.0,
+              ),
+            );
+            setState(() {
+                uploading = false;
+              });
+            Navigator.of(context).pushReplacementNamed('/home');
           }
         } else {
-          await supabase
-          .from('posts')
-          .insert({
-            'uuid': userData!['provider_id'], 
-            'cuid': selectedCategory,
-            'details': myController.text, 
-            'allowReply': allowThreadReply, 
-            'type': 'Diary'
-          });
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Post uploaded!'),
-              elevation: 20.0,
-            ),
-          );
-           setState(() {
-              uploading = false;
-            });
-          Navigator.of(context).pushReplacementNamed('/home');
+              SnackBar(
+                content: Text('Please input text before uploading!'),
+                elevation: 20.0,
+              ),
+            );
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Please input text before uploading!'),
-              elevation: 20.0,
-            ),
-          );
+          SnackBar(
+            content: Text('Please wait! Post is uploading!'),
+            elevation: 20.0,
+          ),
+        );
       }
+      
     } catch (e) {
       uploading = false;
       print(e);
@@ -256,7 +414,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Create New"),
+        title: Text("Create new '$selectedCatName'"),
       ),
       body: Form(
         key: _formKey,
@@ -269,14 +427,19 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                children: [
                  DropdownButton<String>(
                     hint: Text('Select your category'),
-                    value: selectedCategory,
+                    disabledHint: Text('Loading'),
+                    value: selectedCategory.value,
                     onChanged: (newValue) {
                       setState(() {
-                        selectedCategory = newValue; 
+                        selectedCategory.value = newValue; 
                       });
                     },
                     items: categories.map((index) {
                       return DropdownMenuItem<String>(
+                        onTap: () {
+                          selectedCatName = index['name'];
+                          print('`${index['name']}`');
+                        },
                         value: index['cuid'] as String,
                         child: Text(index['name']),
                       );
@@ -436,105 +599,44 @@ class _CreateThreadState extends State<CreateThread> {
 
   Future<void> uploadThread() async {  
     String? uploadedPuid;
-    try {
-      if(myController.text.isNotEmpty) {
-        setState(() {
-          uploading = true;
-        });
-        if(mediaUploadMode) {
-          final List<Map<String, dynamic>> earlyUploadThread = await supabase.from('threads')
-          .insert({
-            'uuid': userData!['provider_id'], 
-            'puid': puid,
-            'details': myController.text, 
-          })
-          .select();
+    if(!uploading) {
+      try {
+        if(myController.text.isNotEmpty) {
+          setState(() {
+            uploading = true;
+          });
+          if(mediaUploadMode) {
+            final List<Map<String, dynamic>> earlyUploadThread = await supabase.from('threads')
+            .insert({
+              'uuid': userData!['provider_id'], 
+              'puid': puid,
+              'details': myController.text, 
+            })
+            .select();
 
-          if(captureMode) {
-            File postMediaAndroid = File(filePicked.path);
-            earlyTuid = earlyUploadThread[0]['tuid'];
-            final uploadPath = earlyTuid!+'/'+filePicked.name;
-            final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
-            if(!kIsWeb) {
-              final String path = await supabase.storage.from('post_media').upload(
-                uploadPath,
-                postMediaAndroid,
-                fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-              );
-              final uploadedThread = await supabase.from('threads')
-              .update({
-                'mediaUrl': completeImgDir, 
-                'mediaUrlOnDb': uploadPath, 
-              })
-              .match({ 'tuid': earlyTuid })
-              .select();
-              setState(() {
-                uploadedPuid = uploadedThread[0]['puid'];
-                uploading = false;
-              });
-            }
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Post with media upload success'),
-                elevation: 20.0,
-              ),
-            );
-            // Navigator.of(context).pushReplacementNamed('/home');
-            await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => ViewPostRoute(puid: new Puid(uploadedPuid!))));
-          } else {
-            PlatformFile file2 = filePicked.files.first;
-            Uint8List? postMedia = filePicked.files.first.bytes;
-            String fileName = file2.name;
-
-            earlyTuid = earlyUploadThread[0]['tuid'];
-            final uploadPath = earlyTuid!+'/'+fileName;
-            final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
-            if(kIsWeb) {
-              final String path = await supabase.storage.from('post_media').uploadBinary(
-                uploadPath,
-                postMedia!,
-                fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-              );
-              final uploadedThread = await supabase.from('threads')
-              .update({
-                'mediaUrl': completeImgDir, 
-                'mediaUrlOnDb': uploadPath, 
-              })
-              .match({ 'tuid': earlyTuid })
-              .select();
-
-              setState(() {
-                uploadedPuid = uploadedThread[0]['puid'];
-                uploading = false;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Post with media upload success'),
-                  elevation: 20.0,
-                ),
-              );
-              await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => ViewPostRoute(puid: new Puid(uploadedPuid!))));
-            } 
-            else {
-              File file = File(filePicked.files.single.path!);
-              File postMediaAndroid = file;
-              final String path = await supabase.storage.from('post_media').upload(
-                uploadPath,
-                postMediaAndroid,
-                fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-              );
-              final uploadedThread = await supabase.from('threads')
-              .update({
-                'mediaUrl': completeImgDir, 
-                'mediaUrlOnDb': uploadPath, 
-              })
-              .match({ 'tuid': earlyTuid })
-              .select();
-
-              setState(() {
-                uploadedPuid = uploadedThread[0]['puid'];
-                uploading = false;
-              });
+            if(captureMode) {
+              File postMediaAndroid = File(filePicked.path);
+              earlyTuid = earlyUploadThread[0]['tuid'];
+              final uploadPath = earlyTuid!+'/'+filePicked.name;
+              final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+              if(!kIsWeb) {
+                final String path = await supabase.storage.from('post_media').upload(
+                  uploadPath,
+                  postMediaAndroid,
+                  fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                );
+                final uploadedThread = await supabase.from('threads')
+                .update({
+                  'mediaUrl': completeImgDir, 
+                  'mediaUrlOnDb': uploadPath, 
+                })
+                .match({ 'tuid': earlyTuid })
+                .select();
+                setState(() {
+                  uploadedPuid = uploadedThread[0]['puid'];
+                  uploading = false;
+                });
+              }
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Post with media upload success'),
@@ -543,49 +645,228 @@ class _CreateThreadState extends State<CreateThread> {
               );
               // Navigator.of(context).pushReplacementNamed('/home');
               await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => ViewPostRoute(puid: new Puid(uploadedPuid!))));
+            } else {
+              PlatformFile file2 = filePicked.files.first;
+              Uint8List? postMedia = filePicked.files.first.bytes;
+              String fileName = file2.name;
+
+              earlyTuid = earlyUploadThread[0]['tuid'];
+              final uploadPath = earlyTuid!+'/'+fileName;
+              final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+              if(kIsWeb) {
+                final String path = await supabase.storage.from('post_media').uploadBinary(
+                  uploadPath,
+                  postMedia!,
+                  fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                );
+                final uploadedThread = await supabase.from('threads')
+                .update({
+                  'mediaUrl': completeImgDir, 
+                  'mediaUrlOnDb': uploadPath, 
+                })
+                .match({ 'tuid': earlyTuid })
+                .select();
+
+                setState(() {
+                  uploadedPuid = uploadedThread[0]['puid'];
+                  uploading = false;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Post with media upload success'),
+                    elevation: 20.0,
+                  ),
+                );
+                await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => ViewPostRoute(puid: new Puid(uploadedPuid!))));
+              } 
+              else {
+                File file = File(filePicked.files.single.path!);
+                File postMediaAndroid = file;
+                final String path = await supabase.storage.from('post_media').upload(
+                  uploadPath,
+                  postMediaAndroid,
+                  fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                );
+                final uploadedThread = await supabase.from('threads')
+                .update({
+                  'mediaUrl': completeImgDir, 
+                  'mediaUrlOnDb': uploadPath, 
+                })
+                .match({ 'tuid': earlyTuid })
+                .select();
+
+                setState(() {
+                  uploadedPuid = uploadedThread[0]['puid'];
+                  uploading = false;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Post with media upload success'),
+                    elevation: 20.0,
+                  ),
+                );
+                // Navigator.of(context).pushReplacementNamed('/home');
+                await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => ViewPostRoute(puid: new Puid(uploadedPuid!))));
+              }
             }
+          } else {
+            final List<Map<String, dynamic>> uploadPost = await supabase
+            .from('threads')
+            .insert({
+              'uuid': userData!['provider_id'], 
+              'puid': puid,
+              'details': myController.text, 
+            }).select();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Reply uploaded!'),
+                elevation: 20.0,
+              ),
+            );
+            uploadedPuid = uploadPost[0]['puid'];
+              setState(() {
+                uploading = false;
+              });
+            // Navigator.of(context).pop();
+            await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => ViewPostRoute(puid: new Puid(uploadedPuid!))));
           }
         } else {
-          final List<Map<String, dynamic>> uploadPost = await supabase
-          .from('threads')
-          .insert({
-            'uuid': userData!['provider_id'], 
-            'puid': puid,
-            'details': myController.text, 
-          }).select();
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Reply uploaded!'),
-              elevation: 20.0,
-            ),
-          );
-          uploadedPuid = uploadPost[0]['puid'];
-            setState(() {
-              uploading = false;
-            });
-          // Navigator.of(context).pop();
-          await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => ViewPostRoute(puid: new Puid(uploadedPuid!))));
+              SnackBar(
+                content: Text('Please input text before uploading!'),
+                elevation: 20.0,
+              ),
+            );
         }
-      } else {
+      } catch (e) {
+        uploading = false;
+        print(e);
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Please input text before uploading!'),
-              elevation: 20.0,
-            ),
-          );
+          SnackBar(
+            content: Text('Error while replying this post. Error: $e'),
+            elevation: 20.0,
+          ),
+        );
       }
-    } catch (e) {
-      uploading = false;
-      print(e);
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error while replying this post. Error: $e'),
+          content: Text('Please wait! Thread is uploading'),
           elevation: 20.0,
         ),
       );
     }
   }
 
+  Future<void> bottomSheet() async {
+    return showModalBottomSheet<dynamic>(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
+      ),
+      clipBehavior: Clip.antiAliasWithSaveLayer,
+      // useRootNavigator: true,
+      useSafeArea: true,
+      enableDrag: !uploading,
+      isDismissible: false,
+      isScrollControlled: true,
+      context: context,
+      builder: (BuildContext context) {
+        return bottomSheetThreadMaker();
+      }
+    );
+  }
+
+  StatefulBuilder bottomSheetThreadMaker() {
+    return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return Scaffold(
+            appBar: uploading ? AppBar(
+              title: Text("Reply to this diary"),
+              automaticallyImplyLeading: false
+            ) : AppBar(
+              title: Text("Reply to this diary"),
+              actions: <Widget>[
+                ElevatedButton(
+                  child: const Text('Upload'),
+                  onPressed: () {
+                    uploadThread().then((value) {
+                      setState(() {
+                        uploading = true;
+                      });
+                    });
+                  }
+                ),
+              ],
+            ),
+            body: Form(
+              key: _formKey,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  children: <Widget>[   
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16,0,0,8),
+                      child: TextField(
+                        readOnly: uploading,
+                        autofocus: true,
+                        canRequestFocus: true,
+                        controller: myController,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Whats on your mind today?',
+                        ),
+                      ),
+                    ),
+                    if(!kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.file(preview())),
+                    if(kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.memory(webPreview)),
+                    if(!uploading) Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  if (_formKey.currentState!.validate()) {
+                                    pickPicture().then((value) {
+                                      setState(() {
+                                        mediaUploadMode = true;
+                                      });
+                                    });
+                                  }
+                                },
+                                child: Icon(Icons.photo_size_select_actual_rounded),
+                              ),
+                              if(!kIsWeb && Platform.isAndroid) ElevatedButton(
+                                onPressed: () {
+                                  if (_formKey.currentState!.validate()) {
+                                    capturePicture().then((value) {
+                                      setState(() {
+                                        mediaUploadMode = true;
+                                      });
+                                    });
+                                  }
+                                },
+                                child: Icon(Icons.camera_alt_outlined),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+      );
+  }
+  
   @override
   void dispose() {
     myController.dispose();
@@ -604,98 +885,7 @@ class _CreateThreadState extends State<CreateThread> {
         hintText: 'Reply to this thread',
       ),
       onTap: () {
-        showModalBottomSheet<dynamic>(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(20),
-            ),
-          ),
-          clipBehavior: Clip.antiAliasWithSaveLayer,
-          // useRootNavigator: true,
-          useSafeArea: true,
-          enableDrag: !uploading,
-          isDismissible: false,
-          isScrollControlled: true,
-          context: context,
-          builder: (BuildContext context) {
-            return StatefulBuilder(
-              builder: (BuildContext context, StateSetter setState) {
-                return Scaffold(
-                  appBar: uploading ? AppBar(
-                    title: Text("Reply to this diary"),
-                    automaticallyImplyLeading: false
-                  ) : AppBar(
-                    title: Text("Reply to this diary"),
-                    actions: <Widget>[
-                      ElevatedButton(
-                        child: const Text('Upload'),
-                        onPressed: () => uploadThread(),
-                      ),
-                    ],
-                  ),
-                  body: Form(
-                    key: _formKey,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        children: <Widget>[   
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16,0,0,8),
-                            child: TextField(
-                              readOnly: uploading,
-                              autofocus: true,
-                              canRequestFocus: true,
-                              controller: myController,
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                hintText: 'Whats on your mind today?',
-                              ),
-                            ),
-                          ),
-                          if(!kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.file(preview())),
-                          if(kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.memory(webPreview)),
-                          if(!uploading) Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        if (_formKey.currentState!.validate()) {
-                                          pickPicture().then((value) {
-                                            setState(() {
-                                              mediaUploadMode = true;
-                                            });
-                                          });
-                                        }
-                                      },
-                                      child: Icon(Icons.photo_size_select_actual_rounded),
-                                    ),
-                                    if(!kIsWeb && Platform.isAndroid) ElevatedButton(
-                                      onPressed: () {
-                                        if (_formKey.currentState!.validate()) {
-                                          capturePicture();
-                                        }
-                                      },
-                                      child: Icon(Icons.camera_alt_outlined),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }
-            );
-          }
-        );
+        bottomSheet();
       }) : TextField(
         readOnly: true,
         decoration: const InputDecoration(
