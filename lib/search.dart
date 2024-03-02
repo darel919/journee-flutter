@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:journee/post.dart';
 import 'package:journee/splash.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -49,8 +50,7 @@ Widget searchMode() {
           DateTime myDateTime = DateTime.parse(date);
           return ListTile(
             onTap: () {
-              Navigator.push(context, MaterialPageRoute<void>(
-                builder: (context) => ViewPostRoute(puid: Puid(puid))));
+              context.go('/post/$puid');
             },
             title: Text(item, maxLines: 2),
             trailing: Text(timeago.format(myDateTime, locale: 'en_short')),

@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 final supabase = Supabase.instance.client;
@@ -46,13 +47,10 @@ class _SplashPageState extends State<SplashPage> {
         setState(() {
           nowLoading = false;
         });
-      await Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/home',
-        (_) => false
-      );
-    } else {
-      Navigator.of(context).pushReplacementNamed('/login');
+      context.pushReplacement('/');
+    } 
+    else {
+      context.pushReplacement('/login');
     }
   }
 

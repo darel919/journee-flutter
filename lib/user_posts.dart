@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_const_constructors, unnecessary_new, no_logic_in_create_state
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:journee/post.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -61,11 +62,12 @@ class _UserPageRouteState extends State<UserPageRoute> {
             itemBuilder: ((context, index) {
               final post = posts[index];
               final user = post['users'];
+              final puid = post['puid'];
               // username = user['name'];
               DateTime myDateTime = DateTime.parse(post['created_at']);
               return ListTile(
                 onTap: () {
-                    Navigator.push(context, new MaterialPageRoute(builder: (context) => new ViewPostRoute(puid: new Puid(post['puid']))));
+                    context.go('/post/$puid');
                 },
                 contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
                 isThreeLine: true,

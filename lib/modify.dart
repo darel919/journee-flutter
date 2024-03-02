@@ -4,8 +4,9 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:journee/post.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_compression_flutter/image_compression_flutter.dart';
@@ -34,6 +35,9 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   var filePicked;
   bool captureMode = false;
   late Uint8List webPreview = filePicked.files.first.bytes!;
+  Future<SharedPreferences> store() async {
+    return await SharedPreferences.getInstance();
+  }
 
   @override
   void initState() {
@@ -103,10 +107,15 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   }
 
   void listenToSelectedCategory(BuildContext context, Function callback) {
-    selectedCategory.addListener(() {
+    selectedCategory.addListener(() async {
       String? currentValue = selectedCategory.value;
       if (currentValue == 'create') {
         showCategoryCreateDialog(context, callback);
+      } else {
+        store().then((SharedPreferences store) async{
+           await store.setString('selectedCategoryMemory_value', currentValue!);
+        });
+       
       }
     });
   }
@@ -121,18 +130,37 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
           'cuid': 'create',
           'name': 'Create new category',
         });
-        selectedCategory.value = _data[1]['cuid'];
-        selectedCatName = _data[1]['name'];
+
+        store().then((SharedPreferences store) async{
+            selectedCategory.value = store.getString('selectedCategoryMemory_value') ?? _data[1]['cuid'];
+        });
     });
   }
   
   Future<void> createNewCategory(String categoryName) async {
-    await supabase.from('categories').insert({
+    var cat = await supabase.from('categories').insert({
       'name': categoryName,
       'uuid': userData!['provider_id'], 
+    })
+    .select();
+
+    var _data = await supabase
+    .from('categories')
+    .select();
+
+    setState(() {
+        categories = _data;
+        categories.add({
+          'cuid': 'create',
+          'name': 'Create new category',
+        });
+        selectedCategory.value = cat[0]['cuid'];
+        selectedCatName = cat[0]['name'];
+        store().then((SharedPreferences store) async{
+            selectedCategory.value = store.getString('selectedCategoryMemory_value') ?? _data[1]['cuid'];
+        });
+       
     });
-    print(categoryName);
-    fetchCategory();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('New category created successfully'),
@@ -194,7 +222,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   elevation: 20.0,
                 ),
               );
-              Navigator.of(context).pushReplacementNamed('/home');
+              context.pushReplacement('/');
             } else {
             PlatformFile file2 = filePicked.files.first;
             Uint8List? postMedia = filePicked.files.first.bytes;
@@ -247,7 +275,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   elevation: 20.0,
                 ),
               );
-              Navigator.of(context).pushReplacementNamed('/home');
+               context.pushReplacement('/');
             } 
             else {
               File file = File(filePicked.files.single.path!);
@@ -303,7 +331,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   elevation: 20.0,
                 ),
               );
-              Navigator.of(context).pushReplacementNamed('/home');
+               context.pushReplacement('/');
             }
             }
           } else {
@@ -325,7 +353,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             setState(() {
                 uploading = false;
               });
-            Navigator.of(context).pushReplacementNamed('/home');
+             context.pushReplacement('/');
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -414,7 +442,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Create new '$selectedCatName'"),
+        title: selectedCatName != null ? Text("Create new '$selectedCatName'") : Text("Create new post"),
       ),
       body: Form(
         key: _formKey,
@@ -643,8 +671,7 @@ class _CreateThreadState extends State<CreateThread> {
                   elevation: 20.0,
                 ),
               );
-              // Navigator.of(context).pushReplacementNamed('/home');
-              await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => ViewPostRoute(puid: new Puid(uploadedPuid!))));
+              context.pushReplacement('/post/$uploadedPuid');
             } else {
               PlatformFile file2 = filePicked.files.first;
               Uint8List? postMedia = filePicked.files.first.bytes;
@@ -677,7 +704,7 @@ class _CreateThreadState extends State<CreateThread> {
                     elevation: 20.0,
                   ),
                 );
-                await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => ViewPostRoute(puid: new Puid(uploadedPuid!))));
+                context.pushReplacement('/post/$uploadedPuid');
               } 
               else {
                 File file = File(filePicked.files.single.path!);
@@ -705,8 +732,7 @@ class _CreateThreadState extends State<CreateThread> {
                     elevation: 20.0,
                   ),
                 );
-                // Navigator.of(context).pushReplacementNamed('/home');
-                await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => ViewPostRoute(puid: new Puid(uploadedPuid!))));
+                context.pushReplacement('/post/$uploadedPuid');
               }
             }
           } else {
@@ -727,8 +753,7 @@ class _CreateThreadState extends State<CreateThread> {
               setState(() {
                 uploading = false;
               });
-            // Navigator.of(context).pop();
-            await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => ViewPostRoute(puid: new Puid(uploadedPuid!))));
+            context.pushReplacement('/post/$uploadedPuid');
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -948,11 +973,7 @@ class _EditDiaryState extends State<EditDiary> {
     setState(() {
       uploading = false;
     });
-    Navigator.push(context, 
-      MaterialPageRoute<void>(
-        builder: (context) => ViewPostRoute(puid: new Puid(puid!))
-      )
-    );
+    context.go('/post/$puid');
   }
 
   @override

@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:journee/account.dart';
 import 'package:journee/home.dart';
 import 'package:journee/login.dart';
+import 'package:journee/modify.dart';
+import 'package:journee/post.dart';
 import 'package:journee/splash.dart';
+import 'package:journee/threads.dart';
 import 'package:journee/updater.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: 'lib/.env');
@@ -25,7 +29,7 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  MyApp({super.key});
 
   ThemeData _theme(brightness1) {
     var baseTheme = ThemeData(brightness: brightness1);
@@ -40,32 +44,83 @@ class MyApp extends StatelessWidget {
       );
   }
   
+  // GoRouter configuration
+  final _router = GoRouter(
+    redirect: (BuildContext context, GoRouterState state) {
+      final session = supabase.auth.currentSession;
+      if (session != null) {
+        return null;
+      } else {
+        return '/login';
+      }   
+    },
+    // initialLocation: '/',
+    routes: <RouteBase>[
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const MyHomePage(title: 'Home'),
+        routes: <RouteBase>[
+          GoRoute(
+            path: 'post/:puid',
+            builder: (context, state) => ViewPostRoute(puid: state.pathParameters['puid']),
+            routes: <RouteBase>[
+              GoRoute(
+                path: 'edit',
+                builder: (context, state) => EditDiary(puid: state.pathParameters['puid']),
+              ),
+            ]
+          ),
+          GoRoute(
+            path: 'thread/:tuid',
+            builder: (context, state) => ViewThreadsRoute(tuid: state.pathParameters['tuid']),
+            // routes: <RouteBase>[
+            //   GoRoute(
+            //     path: 'edit',
+            //     builder: (context, state) => EditDiary(puid: state.pathParameters['puid']),
+            //   ),
+            // ]
+          ),
+          GoRoute(
+            path: 'create/diary',
+            builder: (context, state) => const CreateDiaryPage(),
+          ),
+          GoRoute(
+            path: 'account',
+            builder: (context, state) => const AccountPage(),
+          ),
+          GoRoute(
+            path: 'update',
+            builder: (context, state) => const UpdatePage(),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginPage(),
+      ),
+       GoRoute(
+        path: '/init',
+        builder: (context, state) => const SplashPage(),
+      ),
+    ],
+  );
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return PopScope(
-      canPop: true,
-      onPopInvoked: (didPop) async{
-        await Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/home',
-          (_) => false
-        );
-      },
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Journee',
-        theme: _theme(Brightness.light),
-        themeMode: ThemeMode.system, 
-        darkTheme: _theme(Brightness.dark),
-        home: SplashPage(),
-        routes: <String, WidgetBuilder> {
-          '/home':(BuildContext context) => MyHomePage(title: 'Home'),
-          '/account':(BuildContext context) => AccountPage(),
-          '/login': (BuildContext context) => const LoginPage(),
-          '/update': (BuildContext context) => UpdatePage(),
-        },
-      ),
+    return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
+      title: 'Journee',
+      theme: _theme(Brightness.light),
+      themeMode: ThemeMode.system, 
+      darkTheme: _theme(Brightness.dark),
+      routerConfig: _router,
+      // home: SplashPage(),
+      // routes: <String, WidgetBuilder> {
+      //   '/home':(BuildContext context) => MyHomePage(title: 'Home'),
+      //   '/account':(BuildContext context) => AccountPage(),
+      //   '/login': (BuildContext context) => const LoginPage(),
+      //   '/update': (BuildContext context) => UpdatePage(),
+      // },
     );
   }
 }

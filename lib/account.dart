@@ -2,7 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:journee/user_posts.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AccountPage extends StatefulWidget {
@@ -19,7 +19,6 @@ class _AccountPageState extends State<AccountPage> {
   late final User? user = supabase.auth.currentUser;
   late final userData = user?.userMetadata!;
 
-
   Future<void> _handleLogOut() async {
     await supabase.auth.signOut();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -28,7 +27,7 @@ class _AccountPageState extends State<AccountPage> {
         elevation: 20.0,
       ),
     );
-    Navigator.of(context).pushReplacementNamed('/login');
+    context.go('/login');
   }
   
   @override
@@ -60,7 +59,7 @@ class _AccountPageState extends State<AccountPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if(!kIsWeb) ElevatedButton(
-              onPressed: () => Navigator.pushNamed(context, '/update'),
+              onPressed: () => context.go('/update'),
               child: Text('Check for updates'))
           ],
         ),

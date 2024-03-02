@@ -1,9 +1,10 @@
-// ignore_for_file: prefer_const_literals_to_create_immutables, prefer_const_constructors, avoid_print, unused_local_variable, unnecessary_const, no_leading_underscores_for_local_identifiers, unused_element, unnecessary_new, unused_field
+// ignore_for_file: prefer_const_literals_to_create_immutables, prefer_const_constructors, avoid_print, unused_local_variable, unnecessary_const, no_leading_underscores_for_local_identifiers, unused_element, unnecessary_new, unused_field, prefer_interpolation_to_compose_strings
 
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:journee/account.dart';
 import 'package:journee/modify.dart';
 import 'package:journee/post.dart';
@@ -151,31 +152,12 @@ class HomePostView extends StatefulWidget {
 }
 
 class _HomePostViewState extends State<HomePostView> {
-    final _future = Supabase.instance.client
-    .from('posts')
-    .select('''*, users(*), threads ( * ), categories ( * )''')
-    .order('created_at',  ascending: false);
-  
-    Future<void> _refresh() async {
-    try {
-      await Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/home',
-        (_) => false
-      );
-    } catch (e) {
-      print('$e');
-    }
-  }
-
   static const appcastURL = 'https://raw.githubusercontent.com/darel919/journee-flutter/main/android/app/appcast/appcast.xml';
   static const _urlAndroid = 'https://github.com/darel919/journee-flutter/releases/download/app/app-release.apk';
   static const _url = 'https://github.com/darel919/journee-flutter/releases/';
-
   String? version;
   String? newestVersion;
   bool willUpgrade = false;
-  
   late Upgrader upgrader = Upgrader(
     durationUntilAlertAgain: Duration(seconds: 1),
     debugDisplayAlways: false,
@@ -187,21 +169,27 @@ class _HomePostViewState extends State<HomePostView> {
       willUpgrade = display;
     }
       newestVersion = appStoreVersion;
-      // print(display);
   },
     minAppVersion: newestVersion,
       appcastConfig:
           AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
   );
-
   bool launchUpdateURL() {
-    // print('update launch url');
     if(Platform.isAndroid) {
       launchUrl(Uri.parse(_urlAndroid));
     } if(Platform.isWindows) {
       launchUrl(Uri.parse(_url));
     }
     return true;
+  }
+
+    final _future = Supabase.instance.client
+    .from('posts')
+    .select('''*, users(*), threads ( * ), categories ( * )''')
+    .order('created_at',  ascending: false);
+  
+  Future<void> _refresh() async {
+    context.pushReplacement('/');
   }
 
   @override
@@ -215,7 +203,9 @@ class _HomePostViewState extends State<HomePostView> {
         ),        
         floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.create_outlined),
-          onPressed: () {Navigator.push(context, new MaterialPageRoute(builder: (context) => new CreateDiaryPage()));}
+          onPressed: () {
+              context.go('/create/diary');
+            }
         ),
         body: UpgradeAlert(
           upgrader: upgrader, 
@@ -242,13 +232,13 @@ class _HomePostViewState extends State<HomePostView> {
                       final thread = post['threads'];
                       final category = post['categories'];
                       final special = post['type'];
+                      final puid = post['puid'];
                       int threadLength = post['threads'].length;
                       DateTime myDateTime = DateTime.parse(post['created_at']);
           
                       return ListTile(
                         onTap: () {
-                            Navigator.push(context, MaterialPageRoute<void>(
-                              builder: (context) => ViewPostRoute(puid: new Puid(post['puid']))));
+                            context.go('/post/$puid');
                         },
                         contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
                         isThreeLine: true,

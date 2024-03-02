@@ -3,6 +3,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -40,7 +41,7 @@ class _UpdatePageState extends State<UpdatePage> {
     print('update launch url');
     if(Platform.isAndroid) {
       launchUrl(Uri.parse(_urlAndroid));
-        Navigator.of(context).pushReplacementNamed('/');
+      context.pushReplacement('/');
     } if(Platform.isWindows) {
       launchUrl(Uri.parse(_url));
     }
@@ -54,11 +55,7 @@ class _UpdatePageState extends State<UpdatePage> {
   }
 
   Future<void> goHome() async {
-    await Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/home',
-        (_) => false
-      );
+    context.go('/');
   }
 
   Future<void> getVersion() async {

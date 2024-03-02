@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -41,27 +42,7 @@ class _LoginPageState extends State<LoginPage> {
       var desktopClientSecret =  dotenv.env['windowsSecretId']!;
       
       if(kIsWeb) {
-        final GoogleSignInAccount? googleSignIn = await GoogleSignIn(
-          clientId: webClientId,
-        ).signInSilently();
-        if (googleSignIn != null) {
-          final GoogleSignInAuthentication googleAuth = await googleSignIn.authentication;
-          idToken = googleAuth.idToken;
-          print('Web GSI Login');
-          if (idToken!.isNotEmpty) {
-            await supabase.auth.signInWithIdToken(
-              provider: OAuthProvider.google,
-              idToken: idToken!,
-              nonce: 'NONCE',
-            );
-          }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Web Login success!'),
-              elevation: 20.0,
-            ),
-          );
-        }
+        var link = await supabase.auth.signInWithOAuth(OAuthProvider.google);
       } else {
           if (Platform.isWindows) {  
             var client = http.Client();
@@ -158,7 +139,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _restart() {
-    Navigator.pushNamedAndRemoveUntil(context,'/',(_) => false);
+    context.pushReplacement('/');
   }
 
   @override
@@ -169,7 +150,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (session != null) {
         _redirecting = true;
-        Navigator.of(context).pushReplacementNamed('/');
+        context.go('/init');
       } else {
         _handleGoogleSignIn();
       }

@@ -1,6 +1,7 @@
-// ignore_for_file: prefer_const_constructors, unused_local_variable, unnecessary_new, unused_element, prefer_const_literals_to_create_immutables, avoid_print, unused_import, use_build_context_synchronously, no_logic_in_create_state, unnecessary_null_comparison, prefer_typing_uninitialized_variables
+// ignore_for_file: prefer_const_constructors, unused_local_variable, unnecessary_new, unused_element, prefer_const_literals_to_create_immutables, avoid_print, unused_import, use_build_context_synchronously, no_logic_in_create_state, unnecessary_null_comparison, prefer_typing_uninitialized_variables, prefer_interpolation_to_compose_strings
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:journee/modify.dart';
 import 'package:journee/home.dart';
 import 'package:journee/threads.dart';
@@ -8,13 +9,13 @@ import 'package:journee/user_posts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
-class Puid {
-  final String puid;
-  Puid(this.puid);
-}
+// class Puid {
+//   final String puid;
+//   Puid(this.puid);
+// }
 
 class ViewPostRoute extends StatefulWidget {
-  final Puid puid;
+  final String? puid;
   const ViewPostRoute({super.key, required this.puid});
 
   @override
@@ -22,7 +23,7 @@ class ViewPostRoute extends StatefulWidget {
 }
 
 class _ViewPostRouteState extends State<ViewPostRoute> {
-  final Puid puid;
+  final String? puid;
   final supabase = Supabase.instance.client;
 
   _ViewPostRouteState({Key? key, required this.puid});
@@ -30,13 +31,13 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   late final _future = supabase
     .from('posts')
     .select('''*, users(*), threads ( * ), categories ( * )''')
-    .eq('puid', puid.puid)
+    .eq('puid', puid!)
     .order('created_at',  ascending: false);
 
   late final _futureThread = supabase
     .from('threads')
     .select('''*, users(*), threads ( * )''')
-    .eq('puid', puid.puid)
+    .eq('puid', puid!)
     .order('created_at',  ascending: true);
 
   void handleClick(int item) {
@@ -47,15 +48,14 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
         break;
     }
   }
-
-  late final fetchedData;
-  
+  late Map<String, dynamic> fetchedData = {};
+ 
   Future<void> _deletePost() async {
     try {
       await supabase
       .from('posts')
       .delete()
-      .match({'puid': puid.puid});
+      .match({'puid': puid});
 
       if(fetchedData['mediaUrl'] != null) {
         final List<FileObject> objects = await supabase
@@ -76,18 +76,9 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
             elevation: 20.0,
           ),
         );
-
-        await Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/home',
-          (_) => false
-        );
+        context.pushReplacement('/');
       } else {
-        await Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/home',
-          (_) => false
-        );
+        context.pushReplacement('/');
       }
     } catch (e) {
       print('$e');
@@ -118,16 +109,12 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        await Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/home',
-          (_) => false
-        );
+      onPopInvoked: (didPop) {
+        context.go('/');
       },
       child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: true,
           title: Text("Post"),
           actions: <Widget> [
             PopupMenuButton<int>(
@@ -135,7 +122,8 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                 itemBuilder: (context) => [
                   if(isAdmin()) PopupMenuItem<int>(onTap: () => _showMyDialog(context), value: 0, child: Text('Delete')),
                   if(isAdmin()) PopupMenuItem<int>(onTap: () => {
-                    Navigator.push(context, new MaterialPageRoute(builder: (context) => new EditDiary(puid: postpuid)))
+                     context.go('/post/$postpuid/edit')
+                    // Navigator.push(context, new MaterialPageRoute(builder: (context) => new EditDiary(puid: postpuid)))
                     }, value: 1, child: Text('Edit')
                   ),
                   // PopupMenuItem<int>(value: 2, child: Text('Share')),
@@ -153,7 +141,6 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
             final post = snapshot.data![0];
             fetchedData = post;
             final user = post['users'];
-      
             final threads = post['threads'];
             postuuid = post['uuid'];
             postpuid = post['puid'];
@@ -175,8 +162,9 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                             ListTile(
                               onTap:() {
                                 if(isAdmin()) {
-                                  Navigator.of(context).pushReplacementNamed('/account');
+                                  context.go('/account');
                                 } else {
+                                  // context.go('/post/$uploadedPuid');
                                   Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']), isSelf: false)));
                                 }
                               },
@@ -251,11 +239,12 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                               itemBuilder: ((context, index) {
                                 final threadDetails = threadContent[index];
                                 final threadAuthor = threadDetails['users'];
+                                final tuid = threadDetails['tuid'];
                                 DateTime threadDateTime = DateTime.parse(threadDetails['created_at']);
                                 
                                 return ListTile(
                                   onTap: () {
-                                    Navigator.push(context, new MaterialPageRoute(builder: (context) => new ViewThreadsRoute(tuid: threadDetails['tuid'])));
+                                    context.go('/thread/$tuid');
                                   },
                                   contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
                                   isThreeLine: true,
@@ -333,13 +322,12 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                   child: Text('Delete', style: TextStyle(color: Colors.white),),
                   onPressed: () {
                     _deletePost();
-                    Navigator.of(innerContext).pop();
                   },
                 ),
                 TextButton(
                   child: Text('Cancel'),
                   onPressed: () {
-                    Navigator.of(innerContext).pop();
+                    context.pop();
                   },
                 ),
               ],
