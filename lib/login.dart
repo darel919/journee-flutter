@@ -42,7 +42,16 @@ class _LoginPageState extends State<LoginPage> {
       var desktopClientSecret =  dotenv.env['windowsSecretId']!;
       
       if(kIsWeb) {
-        var link = await supabase.auth.signInWithOAuth(OAuthProvider.google);
+        var link = await supabase.auth.signInWithOAuth(
+          OAuthProvider.google
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Web Login success!'),
+            elevation: 20.0,
+          ),
+        );
+        // context.go('/init');
       } else {
           if (Platform.isWindows) {  
             var client = http.Client();
@@ -150,7 +159,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (session != null) {
         _redirecting = true;
-        context.go('/init');
+        context.pushReplacement('/init');
       } else {
         _handleGoogleSignIn();
       }
