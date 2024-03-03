@@ -1,36 +1,33 @@
-// ignore_for_file: prefer_const_constructors, unnecessary_new, no_logic_in_create_state
+// ignore_for_file: prefer_const_constructors, unnecessary_new, no_logic_in_create_state, prefer_is_empty
+
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
-class Uuid {
-  final String uuid;
-  Uuid(this.uuid);
-}
 
 class UserPageRoute extends StatefulWidget {
-  final Uuid uuid;
-  final bool isSelf;
+  final String? uuid;
+  final String? isself;
 
-  const UserPageRoute({super.key, required this.uuid, required this.isSelf});
+  const UserPageRoute({super.key, required this.uuid, required this.isself});
 
   @override
-  State<UserPageRoute> createState() => _UserPageRouteState(uuid: uuid, isSelf: isSelf);
+  State<UserPageRoute> createState() => _UserPageRouteState(uuid: uuid, isself: isself);
 }
 
 class _UserPageRouteState extends State<UserPageRoute> {
-  final Uuid uuid;
-  final bool isSelf;
+  final String? uuid;
+  final String? isself;
   final supabase = Supabase.instance.client;
 
-  _UserPageRouteState({Key? key, required this.uuid, required this.isSelf});
+  _UserPageRouteState({Key? key, required this.uuid, required this.isself});
 
    late final _future = supabase
       .from('posts')
       .select('''*, users(*), threads ( * ), categories ( * )''')
-      .eq('uuid', uuid.uuid)
+      .eq('uuid', uuid!)
       .order('created_at',  ascending: false);
 
   String? username;
@@ -38,7 +35,7 @@ class _UserPageRouteState extends State<UserPageRoute> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: isSelf ? AppBar(
+      appBar: isself == 'true' ? AppBar(
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
       ) : AppBar(
@@ -57,30 +54,103 @@ class _UserPageRouteState extends State<UserPageRoute> {
             }
             
             return ListView.builder(
-            itemCount: posts.length,
-            itemBuilder: ((context, index) {
-              final post = posts[index];
-              final user = post['users'];
-              final puid = post['puid'];
-              // username = user['name'];
-              DateTime myDateTime = DateTime.parse(post['created_at']);
-              return ListTile(
-                onTap: () {
-                    context.go('/post/$puid');
-                },
-                contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
-                isThreeLine: true,
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(48.0),
-                  child: Image.network(user['avatar_url']
-                  )
-                ),
-                title: Text(user['name'], style: TextStyle(fontSize: 16)),
-                trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
-                subtitle: Text(post['details'], maxLines: 1, style: TextStyle(fontSize: 12.5)),
-              );
-            }),
-            );
+              itemCount: posts.length,
+              itemBuilder: ((context, index) {
+                final post = posts[index];
+                final user = post['users'];
+                final puid = post['puid'];
+                final category = post['categories'];
+                final special = post['type'];
+                int threadLength = post['threads'].length;
+                int totalLength = posts.length;
+                DateTime myDateTime = DateTime.parse(post['created_at']);
+                if(totalLength > 0) {
+                  return ListTile(
+                  onTap: () {
+                      context.push('/post/$puid');
+                  },
+                  contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
+                  isThreeLine: true,
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(48.0),
+                    child: Image.network(user['avatar_url']
+                    )
+                  ),
+                  title: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0,0,8,0),
+                        child: Text(user['name'], style: TextStyle(fontSize: 16)),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
+                        decoration: BoxDecoration(border: Border.all(color: MediaQuery.of(context).platformBrightness == Brightness.dark ? Colors.white : Colors.black),
+                        borderRadius: BorderRadius.circular(4)),
+                        child: Text(category['name'], style: TextStyle(fontSize: 9)),
+                      ),
+                      if(special == 'Special') Padding(
+                        padding: const EdgeInsets.fromLTRB(5,0,0,0),
+                        child: Icon(Icons.star_border_outlined),
+                      )
+                    ],
+                  ),
+                  trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
+                      if(post['mediaUrl_preview'] != null) Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: Image.network(post['mediaUrl_preview'], width: 400)),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                        child: Row(
+                          children: [
+                            if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
+                              child: Icon(Icons.image_outlined, size: 22),
+                            ),
+                            if(post['allowReply']) Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.chat_bubble_outline, size: 20),
+                                  if(threadLength > 0) Padding(
+                                    padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                    child: Text('$threadLength'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if(!post['allowReply']) Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Icon(Icons.comments_disabled_outlined, size: 20),
+                                  if(threadLength > 0) Padding(
+                                    padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                    child: Text('$threadLength'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                );
+                } else {
+                  return Center(child: Text("No post found for this user."));
+                }
+              }),
+          );
         },
       )
     );

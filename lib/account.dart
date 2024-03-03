@@ -3,6 +3,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:journee/user_posts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AccountPage extends StatefulWidget {
@@ -39,7 +40,6 @@ class _AccountPageState extends State<AccountPage> {
       body: Column(
       children: [
         ListTile(
-          // contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
           leading: ClipRRect(
             borderRadius: BorderRadius.circular(48.0),
             child: 
@@ -63,7 +63,7 @@ class _AccountPageState extends State<AccountPage> {
               child: Text('Check for updates'))
           ],
         ),
-        // Expanded(child: UserPageRoute(uuid: Uuid(userData!['provider_id']), isSelf: true))
+        Expanded(child: UserPageRoute(uuid: userData!['provider_id'], isself: 'true'))
       ],
             )
     );

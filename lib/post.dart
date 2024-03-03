@@ -118,7 +118,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                 itemBuilder: (context) => [
                   if(isAdmin()) PopupMenuItem<int>(onTap: () => _showMyDialog(context), value: 0, child: Text('Delete')),
                   if(isAdmin()) PopupMenuItem<int>(onTap: () => {
-                     context.go('/post/$postpuid/edit')
+                     context.push('/post/$postpuid/edit')
                     // Navigator.push(context, new MaterialPageRoute(builder: (context) => new EditDiary(puid: postpuid)))
                     }, value: 1, child: Text('Edit')
                   ),
@@ -160,8 +160,8 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                 if(isAdmin()) {
                                   context.go('/account');
                                 } else {
-                                  // context.go('/post/$uploadedPuid');
-                                  Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(post['uuid']), isSelf: false)));
+                                  context.push('/user/$postuuid/false');
+                                  // Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: post['uuid'], isSelf: false)));
                                 }
                               },
                               contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),

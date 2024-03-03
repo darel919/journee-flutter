@@ -10,6 +10,7 @@ import 'package:journee/post.dart';
 import 'package:journee/splash.dart';
 import 'package:journee/threads.dart';
 import 'package:journee/updater.dart';
+import 'package:journee/user_posts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -83,6 +84,10 @@ class MyApp extends StatelessWidget {
           GoRoute(
             path: 'category/:cuid',
             builder: (context, state) => CategoriesViewPage(cuid: state.pathParameters['cuid']),
+          ),
+           GoRoute(
+            path: 'user/:uuid/:isself',
+            builder: (context, state) => UserPageRoute(uuid: state.pathParameters['uuid'], isself: state.pathParameters['isself']),
           ),
           GoRoute(
             path: 'create/diary',

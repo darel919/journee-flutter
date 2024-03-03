@@ -37,9 +37,9 @@ class _MyHomePageState extends State<MyHomePage> {
     //   label: 'Create',
     // ),
     // NavigationDestination(
-    //   icon: Icon(Icons.search_outlined),
-    //   selectedIcon: Icon(Icons.search_sharp),
-    //   label: 'Search',
+    //   icon: Icon(Icons.grid_view_outlined),
+    //   selectedIcon: Icon(Icons.grid_view_rounded),
+    //   label: 'Grid Mode',
     // ),
     NavigationDestination(
       icon: Icon(Icons.account_circle_outlined),
@@ -59,8 +59,8 @@ class _MyHomePageState extends State<MyHomePage> {
     //   label: Text('Create'),
     // ),
     // NavigationRailDestination(
-    //   icon: Icon(Icons.search_outlined),
-    //   selectedIcon: Icon(Icons.search_sharp),
+    //   icon: Icon(Icons.grid_view_outlined),
+    //   selectedIcon: Icon(Icons.grid_view_rounded),
     //   label: Text('Search'),
     // ),
     NavigationRailDestination(
@@ -101,8 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     const List<Widget> _pages = <Widget>[
       HomePostView(),
-      // CreateDiaryPage(),
-      // SearchPage(),
+      // HomePostViewGridMode(),
       AccountPage()
     ];
 
@@ -342,6 +341,110 @@ class _HomePostViewState extends State<HomePostView> {
             ]
           ),
           ),
+    );
+  }
+}
+
+class HomePostViewGridMode extends StatefulWidget {
+  const HomePostViewGridMode({super.key});
+
+  @override
+  State<HomePostViewGridMode> createState() => _HomePostViewGridModeState();
+}
+
+class _HomePostViewGridModeState extends State<HomePostViewGridMode> {
+    final _future = Supabase.instance.client
+    .from('posts')
+    .select('''*, users(*), threads ( * ), categories ( * )''')
+    .order('created_at',  ascending: false);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Journee Grid Mode")
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if(!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+            final posts = snapshot.data!;
+            
+            return GridView.builder(
+            gridDelegate:
+              const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: posts.length,
+            itemBuilder: ((context, index) {
+              final post = posts[index];
+              final user = post['users'];
+              final thread = post['threads'];
+              final category = post['categories'];
+              final special = post['type'];
+              final puid = post['puid'];
+              int threadLength = post['threads'].length;
+              DateTime myDateTime = DateTime.parse(post['created_at']);
+  
+              return GridTile(
+                child: Column(
+                  // crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if(post['mediaUrl_preview'] != null) Image.network(
+                      post['mediaUrl_preview'], 
+                      // cacheHeight: 128, 
+                      // cacheWidth: 128, 
+                      fit: BoxFit.cover, 
+                      width: 128, 
+                      height: 128
+                      ),
+                    // Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
+                    
+                    // Padding(
+                    //   padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                    //   child: Row(
+                    //     children: [
+                    //       if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
+                    //         padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
+                    //         child: Icon(Icons.image_outlined, size: 22),
+                    //       ),
+                    //       if(post['allowReply']) Padding(
+                    //         padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                    //         child: Row(
+                    //           crossAxisAlignment: CrossAxisAlignment.center,
+                    //           children: [
+                    //             Icon(Icons.chat_bubble_outline, size: 20),
+                    //             if(threadLength > 0) Padding(
+                    //               padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                    //               child: Text('$threadLength'),
+                    //             ),
+                    //           ],
+                    //         ),
+                    //       ),
+                    //       if(!post['allowReply']) Padding(
+                    //         padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                    //         child: Row(
+                    //           crossAxisAlignment: CrossAxisAlignment.center,
+                    //           children: [
+                    //             // Icon(Icons.comments_disabled_outlined, size: 20),
+                    //             if(threadLength > 0) Padding(
+                    //               padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                    //               child: Text('$threadLength'),
+                    //             ),
+                    //           ],
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // )
+                  ],
+                ),
+              );
+            }),
+          );
+        },
+      ),
     );
   }
 }

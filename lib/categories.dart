@@ -1,6 +1,5 @@
 // ignore_for_file: prefer_const_constructors, prefer_interpolation_to_compose_strings, no_logic_in_create_state, avoid_print
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:journee/search.dart';
@@ -46,7 +45,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
               final user = category['users'];
               final cuid = category['cuid'];
               final length = category['posts'].length;
-              // print(category);
               
               if(user == null) {
                 return Padding(
@@ -131,13 +129,15 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
   .order('created_at',  ascending: false);
 
 
-  String catName = 'Category view';
+  String catName = 'this category';
+  String? catDesc;
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(catName),
-        actions: <Widget> [searchMode()],
+        title: Text("Category"),
+        actions: <Widget> [categorySearchMode(cuid!, catName)],
       ),
        body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _futureCatView,
@@ -148,99 +148,112 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
           
           final posts = snapshot.data!;
           catName = posts[0]['categories']['name'];
+          catDesc = posts[0]['categories']['desc'];
+          final length = posts.length;
 
-          return ListView.builder(
-            itemCount: posts.length,
-            itemBuilder: ((context, index) {
-              final post = posts[index];
-              final user = post['users'];
-              final puid = post['puid'];
-              catName = posts[0]['categories']['name'];
-              int threadLength = post['threads'].length;
-              final special = post['type'];
-              DateTime myDateTime = DateTime.parse(post['created_at']);
-              
-              return ListTile(
-                onTap: () {
-                  context.push('/post/$puid');
-                },
-                contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
-                isThreeLine: true,
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(48.0),
-                  child: Image.network(user['avatar_url']
-                  )
-                ),
-                title: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(0,0,4,0),
-                          child: Text(user['name']),
-                        ),
-                        if(special == 'Special') Padding(
-                          padding: const EdgeInsets.fromLTRB(5,0,0,0),
-                          child: Icon(Icons.star_border_outlined),
+          return Column(
+            children: [
+              ListTile(
+                title: Text(catName),
+                subtitle: catDesc != null ? Text(catDesc!) : Text("No description available"),
+                trailing: Text('$length posts'),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: posts.length,
+                  itemBuilder: ((context, index) {
+                    final post = posts[index];
+                    final user = post['users'];
+                    final puid = post['puid'];
+                    catName = posts[0]['categories']['name'];
+                    int threadLength = post['threads'].length;
+                    final special = post['type'];
+                    DateTime myDateTime = DateTime.parse(post['created_at']);
+                    
+                    return ListTile(
+                      onTap: () {
+                        context.push('/post/$puid');
+                      },
+                      contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+                      isThreeLine: true,
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(48.0),
+                        child: Image.network(user['avatar_url']
                         )
-                      ],
-                    ),
-                  ],
-                ),
-                trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
-                    if(post['mediaUrl_preview'] != null) Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8.0),
-                        child: Image.network(post['mediaUrl_preview'], width: 400)),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                      child: Row(
+                      ),
+                      title: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
-                            child: Icon(Icons.image_outlined, size: 22),
-                          ),
-                          if(post['allowReply']) Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Icon(Icons.chat_bubble_outline, size: 20),
-                                if(threadLength > 0) Padding(
-                                  padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                  child: Text('$threadLength'),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if(!post['allowReply']) Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                // Icon(Icons.comments_disabled_outlined, size: 20),
-                                if(threadLength > 0) Padding(
-                                  padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                  child: Text('$threadLength'),
-                                ),
-                              ],
-                            ),
+                          Row(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(0,0,4,0),
+                                child: Text(user['name']),
+                              ),
+                              if(special == 'Special') Padding(
+                                padding: const EdgeInsets.fromLTRB(5,0,0,0),
+                                child: Icon(Icons.star_border_outlined),
+                              )
+                            ],
                           ),
                         ],
                       ),
-                    )
-                  ],
+                      trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
+                          if(post['mediaUrl_preview'] != null) Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8.0),
+                              child: Image.network(post['mediaUrl_preview'], width: 400)),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                            child: Row(
+                              children: [
+                                if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
+                                  padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
+                                  child: Icon(Icons.image_outlined, size: 22),
+                                ),
+                                if(post['allowReply']) Padding(
+                                  padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.chat_bubble_outline, size: 20),
+                                      if(threadLength > 0) Padding(
+                                        padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                        child: Text('$threadLength'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if(!post['allowReply']) Padding(
+                                  padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      // Icon(Icons.comments_disabled_outlined, size: 20),
+                                      if(threadLength > 0) Padding(
+                                        padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                        child: Text('$threadLength'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    );
+                    }
+                  ),
                 ),
-              );
-              }
-            ),
+              ),
+            ],
           );
         }
       ),
