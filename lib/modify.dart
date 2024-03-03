@@ -30,7 +30,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   String? selectedCatName;
   bool mediaUploadMode = false;
   bool uploading = false;
-  bool allowThreadReply = true;
+  ValueNotifier<bool?> allowThreadReply = ValueNotifier<bool?>(true);
   String? earlyPuid; 
   var filePicked;
   bool captureMode = false;
@@ -115,8 +115,13 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
         store().then((SharedPreferences store) async{
            await store.setString('selectedCategoryMemory_value', currentValue!);
         });
-       
       }
+    });
+    allowThreadReply.addListener(() async {
+      bool? currentValue = allowThreadReply.value;
+        store().then((SharedPreferences store) async{
+           await store.setBool('allowThreadReplyPref', currentValue!);
+        });
     });
   }
 
@@ -134,6 +139,15 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
         store().then((SharedPreferences store) async{
             selectedCategory.value = store.getString('selectedCategoryMemory_value') ?? _data[1]['cuid'];
         });
+    });
+    threadsCheck();
+  }
+
+  Future<void> threadsCheck() async {
+    setState(() {
+      store().then((SharedPreferences store) async{
+        allowThreadReply.value = store.getBool('allowThreadReplyPref') ?? true;
+      });
     });
   }
   
@@ -188,7 +202,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               'uuid': userData!['provider_id'], 
               'cuid': selectedCategory.value,
               'details': myController.text, 
-              'allowReply': allowThreadReply, 
+              'allowReply': allowThreadReply.value, 
               'type': 'Diary'
             })
             .select();
@@ -222,7 +236,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   elevation: 20.0,
                 ),
               );
-              context.pushReplacement('/');
+               context.pushReplacement('/post/$earlyPuid');
             } else {
             PlatformFile file2 = filePicked.files.first;
             Uint8List? postMedia = filePicked.files.first.bytes;
@@ -331,19 +345,20 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   elevation: 20.0,
                 ),
               );
-               context.pushReplacement('/');
+              context.pushReplacement('/post/$earlyPuid');
             }
             }
           } else {
-            await supabase
+            var link = await supabase
             .from('posts')
             .insert({
               'uuid': userData!['provider_id'], 
               'cuid': selectedCategory.value,
               'details': myController.text, 
-              'allowReply': allowThreadReply, 
+              'allowReply': allowThreadReply.value, 
               'type': 'Diary'
-            });
+            })
+            .select();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Post uploaded!'),
@@ -353,7 +368,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             setState(() {
                 uploading = false;
               });
-             context.pushReplacement('/');
+            String puid = link[0]['puid'];
+            context.pushReplacement('/post/$puid');
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -525,10 +541,10 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       children: [
                         Text("Threads"),
                         Switch(
-                          value: allowThreadReply, 
+                          value: allowThreadReply.value!, 
                           onChanged: (bool allowThreadReplyChange) {
                             setState(() {
-                              allowThreadReply = allowThreadReplyChange;
+                              allowThreadReply.value = allowThreadReplyChange;
                             });
                           }
                         ),
@@ -973,7 +989,7 @@ class _EditDiaryState extends State<EditDiary> {
     setState(() {
       uploading = false;
     });
-    context.go('/post/$puid');
+    context.pushReplacement('/post/$puid');
   }
 
   @override

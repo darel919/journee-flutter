@@ -59,7 +59,7 @@ class _AccountPageState extends State<AccountPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if(!kIsWeb) ElevatedButton(
-              onPressed: () => context.go('/update'),
+              onPressed: () => context.push('/update'),
               child: Text('Check for updates'))
           ],
         ),

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:journee/account.dart';
+import 'package:journee/categories.dart';
 import 'package:journee/home.dart';
 import 'package:journee/login.dart';
 import 'package:journee/modify.dart';
@@ -43,8 +44,7 @@ class MyApp extends StatelessWidget {
         textTheme: GoogleFonts.ralewayTextTheme(baseTheme.textTheme)
       );
   }
-  
-  // GoRouter configuration
+
   final _router = GoRouter(
     redirect: (BuildContext context, GoRouterState state) {
       final session = supabase.auth.currentSession;
@@ -54,7 +54,7 @@ class MyApp extends StatelessWidget {
         return '/login';
       }   
     },
-    // initialLocation: '/',
+    initialLocation: '/init',
     routes: <RouteBase>[
       GoRoute(
         path: '/',
@@ -79,6 +79,10 @@ class MyApp extends StatelessWidget {
             //     builder: (context, state) => EditDiary(puid: state.pathParameters['puid']),
             //   ),
             // ]
+          ),
+          GoRoute(
+            path: 'category/:cuid',
+            builder: (context, state) => CategoriesViewPage(cuid: state.pathParameters['cuid']),
           ),
           GoRoute(
             path: 'create/diary',
@@ -114,13 +118,6 @@ class MyApp extends StatelessWidget {
       themeMode: ThemeMode.system, 
       darkTheme: _theme(Brightness.dark),
       routerConfig: _router,
-      // home: SplashPage(),
-      // routes: <String, WidgetBuilder> {
-      //   '/home':(BuildContext context) => MyHomePage(title: 'Home'),
-      //   '/account':(BuildContext context) => AccountPage(),
-      //   '/login': (BuildContext context) => const LoginPage(),
-      //   '/update': (BuildContext context) => UpdatePage(),
-      // },
     );
   }
 }

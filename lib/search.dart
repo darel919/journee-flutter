@@ -46,7 +46,6 @@ Widget searchMode() {
           final String item = data[index]['details'];
           final String date = data[index]['created_at'];
           final String puid = data[index]['puid'];
-          // final String tuid = data[index]['tuid'];
           DateTime myDateTime = DateTime.parse(date);
           return ListTile(
             onTap: () {

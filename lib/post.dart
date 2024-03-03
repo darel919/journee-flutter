@@ -9,10 +9,6 @@ import 'package:journee/user_posts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
-// class Puid {
-//   final String puid;
-//   Puid(this.puid);
-// }
 
 class ViewPostRoute extends StatefulWidget {
   final String? puid;
@@ -244,7 +240,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                 
                                 return ListTile(
                                   onTap: () {
-                                    context.go('/thread/$tuid');
+                                    context.push('/thread/$tuid');
                                   },
                                   contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
                                   isThreeLine: true,

@@ -82,13 +82,13 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
                   child: Text('Delete', style: TextStyle(color: Colors.white),),
                   onPressed: () {
                     _deleteThread();
-                    Navigator.of(innerContext).pop();
                   },
                 ),
                 TextButton(
                   child: Text('Cancel'),
                   onPressed: () {
-                    Navigator.of(innerContext).pop();
+                    // Navigator.of(innerContext).pop();
+                    context.pop();
                   },
                 ),
               ],

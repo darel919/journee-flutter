@@ -6,8 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:journee/account.dart';
-import 'package:journee/modify.dart';
-import 'package:journee/post.dart';
+import 'package:journee/categories.dart';
 import 'package:journee/search.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -73,7 +72,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _bottomNavbar() { 
     return NavigationBar(
-      labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
       selectedIndex: _selectedIndex,
       onDestinationSelected: (int index) {
         setState(() {
@@ -183,7 +182,7 @@ class _HomePostViewState extends State<HomePostView> {
     return true;
   }
 
-    final _future = Supabase.instance.client
+  final _future = Supabase.instance.client
     .from('posts')
     .select('''*, users(*), threads ( * ), categories ( * )''')
     .order('created_at',  ascending: false);
@@ -194,135 +193,155 @@ class _HomePostViewState extends State<HomePostView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          primary: true,
-          title: Text("Home"),
-          automaticallyImplyLeading: false,
-          actions: <Widget> [searchMode()],
-        ),        
-        floatingActionButton: FloatingActionButton(
-          child: const Icon(Icons.create_outlined),
-          onPressed: () {
-              context.go('/create/diary');
-            }
-        ),
-        body: UpgradeAlert(
-          upgrader: upgrader, 
-          canDismissDialog: false,
-          showIgnore: false, 
-          showLater: false,
-          onUpdate: () => launchUpdateURL(), 
-          child: RefreshIndicator(
-              onRefresh: () => _refresh(),
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _future,
-                builder: (context, snapshot) {
-                  if(!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                    final posts = snapshot.data!;
-                    
-                    return ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: posts.length,
-                    itemBuilder: ((context, index) {
-                      final post = posts[index];
-                      final user = post['users'];
-                      final thread = post['threads'];
-                      final category = post['categories'];
-                      final special = post['type'];
-                      final puid = post['puid'];
-                      int threadLength = post['threads'].length;
-                      DateTime myDateTime = DateTime.parse(post['created_at']);
-          
-                      return ListTile(
-                        onTap: () {
-                            context.go('/post/$puid');
-                        },
-                        contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
-                        isThreeLine: true,
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(48.0),
-                          child: Image.network(user['avatar_url']
-                          )
-                        ),
-                        title: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(0,0,8,0),
-                              child: Text(user['name'], style: TextStyle(fontSize: 16)),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
-                              decoration: BoxDecoration(border: Border.all(color: MediaQuery.of(context).platformBrightness == Brightness.dark ? Colors.white : Colors.black),
-                              borderRadius: BorderRadius.circular(4)),
-                              child: Text(category['name'], style: TextStyle(fontSize: 9)),
-                            ),
-                            if(special == 'Special') Padding(
-                              padding: const EdgeInsets.fromLTRB(5,0,0,0),
-                              child: Icon(Icons.star_border_outlined),
-                            )
-                          ],
-                        ),
-                        trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
-                            if(post['mediaUrl_preview'] != null) Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.0),
-                                child: Image.network(post['mediaUrl_preview'], width: 400)),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                              child: Row(
-                                children: [
-                                  if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
-                                    padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
-                                    child: Icon(Icons.image_outlined, size: 22),
-                                  ),
-                                  if(post['allowReply']) Padding(
-                                    padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.chat_bubble_outline, size: 20),
-                                        if(threadLength > 0) Padding(
-                                          padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                          child: Text('$threadLength'),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if(!post['allowReply']) Padding(
-                                    padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        // Icon(Icons.comments_disabled_outlined, size: 20),
-                                        if(threadLength > 0) Padding(
-                                          padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                          child: Text('$threadLength'),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          ],
-                        ),
-                      );
-                    }),
-                  );
-                },
-              ),
-            ),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+          appBar: AppBar(
+            primary: true,
+            title: Text("Journee"),
+            bottom: TabBar( 
+            tabs: [ 
+              Tab( 
+                // icon: Icon(Icons.home_filled), 
+                text: "All", 
+              ), 
+              Tab( 
+                // icon: Icon(Icons.category_outlined), 
+                text: "Categories", 
+              ), 
+            ], 
+          ), 
+            automaticallyImplyLeading: false,
+            actions: <Widget> [searchMode()],
+          ),        
+          floatingActionButton: FloatingActionButton(
+            child: const Icon(Icons.create_outlined),
+            onPressed: () {
+                context.push('/create/diary');
+              }
           ),
-        );
+          body: TabBarView(
+            children: [
+              UpgradeAlert(
+              upgrader: upgrader, 
+              canDismissDialog: false,
+              showIgnore: false, 
+              showLater: false,
+              onUpdate: () => launchUpdateURL(), 
+              child: RefreshIndicator(
+                  onRefresh: () => _refresh(),
+                  child: FutureBuilder<List<Map<String, dynamic>>>(
+                    future: _future,
+                    builder: (context, snapshot) {
+                      if(!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                        final posts = snapshot.data!;
+                        
+                        return ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: posts.length,
+                        itemBuilder: ((context, index) {
+                          final post = posts[index];
+                          final user = post['users'];
+                          final thread = post['threads'];
+                          final category = post['categories'];
+                          final special = post['type'];
+                          final puid = post['puid'];
+                          int threadLength = post['threads'].length;
+                          DateTime myDateTime = DateTime.parse(post['created_at']);
+              
+                          return ListTile(
+                            onTap: () {
+                                context.push('/post/$puid');
+                            },
+                            contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+                            isThreeLine: true,
+                            leading: ClipRRect(
+                              borderRadius: BorderRadius.circular(48.0),
+                              child: Image.network(user['avatar_url']
+                              )
+                            ),
+                            title: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(0,0,8,0),
+                                  child: Text(user['name'], style: TextStyle(fontSize: 16)),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
+                                  decoration: BoxDecoration(border: Border.all(color: MediaQuery.of(context).platformBrightness == Brightness.dark ? Colors.white : Colors.black),
+                                  borderRadius: BorderRadius.circular(4)),
+                                  child: Text(category['name'], style: TextStyle(fontSize: 9)),
+                                ),
+                                if(special == 'Special') Padding(
+                                  padding: const EdgeInsets.fromLTRB(5,0,0,0),
+                                  child: Icon(Icons.star_border_outlined),
+                                )
+                              ],
+                            ),
+                            trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
+                                if(post['mediaUrl_preview'] != null) Padding(
+                                  padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                    child: Image.network(post['mediaUrl_preview'], width: 400)),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                  child: Row(
+                                    children: [
+                                      if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
+                                        padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
+                                        child: Icon(Icons.image_outlined, size: 22),
+                                      ),
+                                      if(post['allowReply']) Padding(
+                                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.chat_bubble_outline, size: 20),
+                                            if(threadLength > 0) Padding(
+                                              padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                              child: Text('$threadLength'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if(!post['allowReply']) Padding(
+                                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            // Icon(Icons.comments_disabled_outlined, size: 20),
+                                            if(threadLength > 0) Padding(
+                                              padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                              child: Text('$threadLength'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              ],
+                            ),
+                          );
+                        }),
+                      );
+                    },
+                  ),
+                ),
+              ), 
+              CategoriesPage()
+            ]
+          ),
+          ),
+    );
   }
 }
