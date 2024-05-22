@@ -80,7 +80,8 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
                 TextButton(
                   style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red)),
                   child: Text('Delete', style: TextStyle(color: Colors.white),),
-                  onPressed: () {
+                  onPressed: () async {
+                    // context.pop();
                     _deleteThread();
                   },
                 ),
@@ -104,7 +105,7 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
       await supabase
       .from('threads')
       .delete()
-      .match({'tuid': tuid});
+      .match({'tuid': tuid!});
 
       if(fetchedData['mediaUrl'] != null) {
         final List<FileObject> objects = await supabase
@@ -118,8 +119,10 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
             elevation: 20.0,
           ),
         );
+        // context.pop();
         context.pushReplacement('/');
       } else {
+        // context.pop();
         context.pushReplacement('/');
       }
     } catch (e) {
@@ -240,11 +243,13 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
                           final thread = threads[index];
                           fetchedData = thread;
                           final user = thread['users'];
+                          final userid = user['uuid'];
                           // final threadAuthor = threadDetails['users'];
                           DateTime threadDateTime = DateTime.parse(thread['created_at']);
                           
                           return ListTile(
                             onTap: () {
+                              context.go('/user/$userid/false');
                               // Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(threadAuthor['uuid']))));
                             },
                             contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),

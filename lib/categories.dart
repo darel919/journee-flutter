@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_const_constructors, prefer_interpolation_to_compose_strings, no_logic_in_create_state, avoid_print
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:journee/search.dart';
@@ -51,7 +52,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
                   padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
                   child: ListTile(
                     onTap: () {
-                      context.push('/category/$cuid');
+                      kIsWeb ? context.go('/category/$cuid') : context.push('/category/$cuid');
                     },
                     leading: Padding(
                       padding: const EdgeInsets.fromLTRB(8, 0, 0, 0),
@@ -79,7 +80,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
                   padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
                   child: ListTile(
                     onTap: () {
-                      context.push('/category/$cuid');
+                      kIsWeb ? context.go('/category/$cuid') : context.push('/category/$cuid');
                     },
                     leading: ClipRRect(
                       borderRadius: BorderRadius.circular(48.0),

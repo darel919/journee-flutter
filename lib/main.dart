@@ -6,7 +6,9 @@ import 'package:journee/categories.dart';
 import 'package:journee/home.dart';
 import 'package:journee/login.dart';
 import 'package:journee/modify.dart';
+import 'package:journee/navbar.dart';
 import 'package:journee/post.dart';
+import 'package:journee/search.dart';
 import 'package:journee/splash.dart';
 import 'package:journee/threads.dart';
 import 'package:journee/updater.dart';
@@ -28,11 +30,100 @@ Future<void> main() async {
   );
   // GoogleFonts.config.allowRuntimeFetching = false;
   runApp(MyApp());
+  
+}
+
+final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
+
+class NavigatorRoutes {
+  final _router = GoRouter(
+    redirect: (BuildContext context, GoRouterState state) {
+      final session = supabase.auth.currentSession;
+      if (session != null) {
+        return null;
+      } else {
+        return '/login';
+      }   
+    },
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: '/init',
+    routes: <RouteBase>[
+      ShellRoute(
+        navigatorKey: _shellNavigatorKey,
+        builder: (context, state, child) => NavBar(child: child),
+        routes: <RouteBase>[
+          GoRoute(           
+            path: '/',
+            builder: (context, state) => HomePostView(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: 'post/:puid',
+                builder: (context, state) => ViewPostRoute(
+                  puid: state.pathParameters['puid']
+                ),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: 'edit',
+                    builder: (context, state) => EditDiary(
+                      puid: state.pathParameters['puid']
+                    ),
+                  ),
+                ]
+              ),
+              GoRoute(
+                path: 'thread/:tuid',
+                builder: (context, state) => ViewThreadsRoute(
+                  tuid: state.pathParameters['tuid']
+                ),
+              ),
+              GoRoute(
+                path: 'category/:cuid',
+                builder: (context, state) => CategoriesViewPage(
+                  cuid: state.pathParameters['cuid']
+                ),
+              ),
+              GoRoute(
+                path: 'user/:uuid/:isself',
+                builder: (context, state) => UserPageRoute(
+                  uuid: state.pathParameters['uuid'], 
+                  isself: state.pathParameters['isself']
+                ),
+              ),
+              GoRoute(
+                path: 'create/diary',
+                builder: (context, state) => const CreateDiaryPage(),
+              ),
+              GoRoute(
+                path: 'search',
+                builder: (context, state) => const SearchPage(),
+              ),
+              GoRoute(
+                path: 'account',
+                builder: (context, state) => const AccountPage(),
+              ),
+            ],
+          ),
+        ]
+      ),   
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: '/init',
+        builder: (context, state) => const SplashPage(),
+      ),
+      GoRoute(
+        path: '/update',
+        builder: (context, state) => const UpdatePage(),
+      ),
+    ],
+  );    
 }
 
 class MyApp extends StatelessWidget {
   MyApp({super.key});
-
   ThemeData _theme(brightness1) {
     var baseTheme = ThemeData(brightness: brightness1);
     
@@ -45,74 +136,7 @@ class MyApp extends StatelessWidget {
         textTheme: GoogleFonts.ralewayTextTheme(baseTheme.textTheme)
       );
   }
-
-  final _router = GoRouter(
-    redirect: (BuildContext context, GoRouterState state) {
-      final session = supabase.auth.currentSession;
-      if (session != null) {
-        return null;
-      } else {
-        return '/login';
-      }   
-    },
-    initialLocation: '/init',
-    routes: <RouteBase>[
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const MyHomePage(title: 'Home'),
-        routes: <RouteBase>[
-          GoRoute(
-            path: 'post/:puid',
-            builder: (context, state) => ViewPostRoute(puid: state.pathParameters['puid']),
-            routes: <RouteBase>[
-              GoRoute(
-                path: 'edit',
-                builder: (context, state) => EditDiary(puid: state.pathParameters['puid']),
-              ),
-            ]
-          ),
-          GoRoute(
-            path: 'thread/:tuid',
-            builder: (context, state) => ViewThreadsRoute(tuid: state.pathParameters['tuid']),
-            // routes: <RouteBase>[
-            //   GoRoute(
-            //     path: 'edit',
-            //     builder: (context, state) => EditDiary(puid: state.pathParameters['puid']),
-            //   ),
-            // ]
-          ),
-          GoRoute(
-            path: 'category/:cuid',
-            builder: (context, state) => CategoriesViewPage(cuid: state.pathParameters['cuid']),
-          ),
-           GoRoute(
-            path: 'user/:uuid/:isself',
-            builder: (context, state) => UserPageRoute(uuid: state.pathParameters['uuid'], isself: state.pathParameters['isself']),
-          ),
-          GoRoute(
-            path: 'create/diary',
-            builder: (context, state) => const CreateDiaryPage(),
-          ),
-          GoRoute(
-            path: 'account',
-            builder: (context, state) => const AccountPage(),
-          ),
-          GoRoute(
-            path: 'update',
-            builder: (context, state) => const UpdatePage(),
-          ),
-        ],
-      ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginPage(),
-      ),
-       GoRoute(
-        path: '/init',
-        builder: (context, state) => const SplashPage(),
-      ),
-    ],
-  );
+  final _appRouter = NavigatorRoutes();
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -122,7 +146,8 @@ class MyApp extends StatelessWidget {
       theme: _theme(Brightness.light),
       themeMode: ThemeMode.system, 
       darkTheme: _theme(Brightness.dark),
-      routerConfig: _router,
+      // routerConfig: _router,
+      routerConfig: _appRouter._router,
     );
   }
 }

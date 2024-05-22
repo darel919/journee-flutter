@@ -51,7 +51,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
       await supabase
       .from('posts')
       .delete()
-      .match({'puid': puid});
+      .match({'puid': puid!});
 
       if(fetchedData['mediaUrl'] != null) {
         final List<FileObject> objects = await supabase
@@ -106,7 +106,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   Widget build(BuildContext context) {
     return PopScope(
       onPopInvoked: (didPop) {
-        context.go('/');
+        context.pushReplacement('/');
       },
       child: Scaffold(
         appBar: AppBar(
@@ -161,7 +161,6 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                   context.go('/account');
                                 } else {
                                   context.push('/user/$postuuid/false');
-                                  // Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: post['uuid'], isSelf: false)));
                                 }
                               },
                               contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
@@ -286,7 +285,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                     ),
                   ),
                 ),
-               CreateThread(puid: postpuid, allowThread: allowThread),
+                CreateThread(puid: postpuid, allowThread: allowThread),
               ],
             );
           },

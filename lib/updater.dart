@@ -27,14 +27,14 @@ class _UpdatePageState extends State<UpdatePage> {
   late Upgrader upgrader = Upgrader(
     durationUntilAlertAgain: Duration(seconds: 1),
     debugDisplayAlways: false,
-    willDisplayUpgrade: ({appStoreVersion, required display, installedVersion, minAppVersion}) {
-      newestVersion = appStoreVersion;
-      willUpgrade = display;
-    },
+    // willDisplayUpgrade: ({appStoreVersion, required display, installedVersion, minAppVersion}) {
+    //   newestVersion = appStoreVersion;
+    //   willUpgrade = display;
+    // },
     debugLogging: false,
     minAppVersion: newestVersion,
-    appcastConfig:
-        AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
+    // appcastConfig:
+    //     AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
   );
 
   bool launchUpdateURL() {

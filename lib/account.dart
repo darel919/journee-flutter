@@ -1,8 +1,9 @@
-// ignore_for_file: prefer_const_constructors, unused_field, use_build_context_synchronously, must_be_immutable, use_function_type_syntax_for_parameters, non_constant_identifier_names, prefer_typing_uninitialized_variables, unused_local_variable, avoid_print
+// ignore_for_file: prefer_const_constructors, unused_field, use_build_context_synchronously, must_be_immutable, use_function_type_syntax_for_parameters, non_constant_identifier_names, prefer_typing_uninitialized_variables, unused_local_variable, avoid_print, unused_import
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:journee/search.dart';
 import 'package:journee/user_posts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -30,42 +31,60 @@ class _AccountPageState extends State<AccountPage> {
     );
     context.go('/login');
   }
+
+  void handleClick(int item) {
+    switch (item) {
+      case 0:
+        break;
+      case 1:
+        break;
+    }
+  }
   
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile')
+        // title: Text('Profile'),
+        actions: [
+          PopupMenuButton<int>(
+            onSelected: (item) => handleClick(item),
+            itemBuilder: (context) => [
+              PopupMenuItem<int>(onTap: () async => _handleLogOut(), value: 0, child: Text("Sign out")),
+              PopupMenuItem<int>(onTap: () async => context.push('/update'), value: 1, child: Text("Check for updates")),
+            ],
+          )
+        ],
       ),
       body: Column(
-      children: [
-        ListTile(
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(48.0),
-            child: 
-             Image.network(userData!['avatar_url']
-            )
-          ),
-          title: Column(
+        children: [
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(userData!['name'], style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-              Text(userData!['provider_id'], style: TextStyle(fontSize: 12))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 0, 16),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(48.0),
+                  child: 
+                    Image.network(userData!['avatar_url']
+                  )
+                ),
+              ),
+              ListTile(
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(userData!['name'], style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                    Text(userData!['provider_id'], style: TextStyle(fontSize: 12))
+                  ],
+                ),
+                trailing: userPostSearchMode(userData!['provider_id'], userData!['name']),
+              ),
             ],
           ),
-          trailing: ElevatedButton(onPressed: () async => _handleLogOut(), child: Text("Log Out")),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if(!kIsWeb) ElevatedButton(
-              onPressed: () => context.push('/update'),
-              child: Text('Check for updates'))
+          Expanded(child: UserPageRoute(uuid: userData!['provider_id'], isself: 'true'))
           ],
-        ),
-        Expanded(child: UserPageRoute(uuid: userData!['provider_id'], isself: 'true'))
-      ],
-            )
+        )
     );
   }
 }
