@@ -6,12 +6,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:journee/heregeolocation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_compression_flutter/image_compression_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-
+import 'package:flutter_pannable_rating_bar/flutter_pannable_rating_bar.dart';
 
 class CreateDiaryPage extends StatefulWidget {
   const CreateDiaryPage({super.key});
@@ -30,11 +31,11 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   late List<Map<String, dynamic>> categories = [];
   ValueNotifier<String?> selectedCategory = ValueNotifier<String?>(null);
   String? selectedCatName;
-  
   bool mediaUploadMode = false;
   bool uploading = false;
   ValueNotifier<bool?> allowThreadReply = ValueNotifier<bool?>(true);
   ValueNotifier<bool?> embedLocation = ValueNotifier<bool?>(false);
+  ValueNotifier<bool?> nowGPSReady = ValueNotifier<bool?>(false);
   String? earlyPuid; 
   String? globalLat = '';
   String? globalLong = '';
@@ -108,7 +109,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             elevation: 20.0,
           ),
         );
-        // print('The user dismissed the dialog');
       }
     });
   }
@@ -133,6 +133,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     embedLocation.addListener(() async {
       bool? currentValue = embedLocation.value;
       if(embedLocation.value == true) checkDeviceLocation();
+      if(embedLocation.value == false) clearGPSLoc();
+      
         store().then((SharedPreferences store) async{
            await store.setBool('embedLocationPref', currentValue!);
         });
@@ -207,6 +209,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   }
 
   Future<void> checkDeviceLocation() async {
+    nowGPSReady.value = false;
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     LocationPermission permission;
     if (!serviceEnabled) {
@@ -218,7 +221,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        print('Location permissions are denied');
         setState(() {
           embedLocation.value = false;
           store().then((SharedPreferences store) async{
@@ -229,7 +231,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     }
     if (permission == LocationPermission.deniedForever) {
       // Permissions are denied forever, handle appropriately. 
-      print("Location denied forever.");
       setState(() {
         embedLocation.value = false;
         store().then((SharedPreferences store) async{
@@ -255,34 +256,36 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     );
     globalLat = position.latitude.toString();
     globalLong = position.longitude.toString();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Location acquired! '+globalLat!+globalLong!),
-        elevation: 20.0,
-      ),
-    );
+    nowGPSReady.value = true;
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(
+    //     content: Text('Location acquired! '+globalLat!+globalLong!),
+    //     elevation: 20.0,
+    //   ),
+    // );
   }
   
   Future<void> clearGPSLoc() async {
     globalLat = '';
     globalLong = '';
-    print("gps reset");
-    print('lat: '+globalLat!);
-    print('long: '+globalLong!);
+    nowGPSReady.value = false;
   }
+  
   bool isGPSReady() {
     if(globalLat == '' && globalLong == '') {
+      nowGPSReady.value = false;
       return false;
     } else {
+      nowGPSReady.value = true;
       return true;
     }
   }
 
-  @override
-  void dispose() {
-    myController.dispose();
-    clearGPSLoc();
-    super.dispose();
+  bool isFoodReviewMode() {
+    if(selectedCategory.value == '368d3855-965d-4f13-b741-7975bbac80bf') {
+      return true;
+    } 
+    return false;
   }
 
   Future<void> upload() async {  
@@ -292,6 +295,272 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
           setState(() {
             uploading = true;
           });
+
+          // CHECK IF IN FOOD REVIEW MODE
+          if(isFoodReviewMode()) {
+            if(embedLocation.value == true) {
+              // DISABLE UPLOAD IF GPS NOT READY IN FOOD REVIEW MODE
+              if(isGPSReady() == false) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Location not ready! Please wait before uploading!'),
+                    elevation: 20.0,
+                  ),
+                );
+                setState(() {
+                  uploading = false;
+                });
+              } 
+              // CONTINUE UPLOAD IF GPS ALLOWED IN FOOD REVIEW MODE
+              else {
+                // CONTINUE UPLOAD IF MEDIA ATTACHED IN FOOD REVIEW MODE
+                if(mediaUploadMode) {
+                  final List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
+                  .insert({
+                    'uuid': userData!['provider_id'], 
+                    'cuid': selectedCategory.value,
+                    'details': myController.text, 
+                    'allowReply': allowThreadReply.value, 
+                    'type': 'Diary',
+                  })
+                  .select();
+
+                  if(captureMode) {
+                    File postMediaAndroid = File(filePicked.path);
+                    String? earlyPuid = earlyUploadPost[0]['puid'];
+                    final uploadPath = earlyPuid!+'/'+filePicked.name;
+                    final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+
+                    if(!kIsWeb) {
+                      final String path = await supabase.storage.from('post_media').upload(
+                        uploadPath,
+                        postMediaAndroid,
+                        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                      );
+
+                      await supabase.from('posts')
+                      .update({
+                        'mediaUrl': completeImgDir, 
+                        'mediaUrlOnDb': uploadPath,
+                      })
+                      .match({ 'puid': earlyPuid });
+                      // setState(() {
+                      //   uploading = false;
+                      // });
+                      
+                      final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);
+                      // print(endpointData);
+                      
+                      final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
+                      .insert({
+                        'lat': globalLat, 
+                        'long': globalLong, 
+                        'name': endpointData!['title'],
+                        'full_address': endpointData['address']['label']
+                      })
+                      .select();
+
+                      final List<Map<String, dynamic>> uploadReviewUID = await supabase.from('foodReviews')
+                      .insert({
+                        'puid': earlyPuid,
+                        'darelRate': darelRating,
+                        'inesRate': inesRating
+                      })
+                      .select();
+
+                      // UPDATE CREATED LOCATION UNIQUE ID AND REVIEW UNIQUE ID
+                      await supabase.from('posts')
+                      .update({
+                        'luid': uploadLocUID[0]['luid'],
+                        'ruid': uploadReviewUID[0]['ruid'],
+                      })
+                      .match({ 'puid': earlyPuid });
+                      clearGPSLoc();
+
+                      setState(() {
+                        uploading = false;
+                      });
+                    }
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Food review upload success'),
+                        elevation: 20.0,
+                      ),
+                    );
+                    context.pushReplacement('/post/$earlyPuid');
+
+                  } else {
+                    PlatformFile file2 = filePicked.files.first;
+                    Uint8List? postMedia = filePicked.files.first.bytes;
+                    String fileName = file2.name;
+
+                    String? earlyPuid = earlyUploadPost[0]['puid'];
+                    final uploadPath = earlyPuid!+'/'+fileName;
+                    final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+                    
+                    if(kIsWeb) {
+                      final String path = await supabase.storage.from('post_media').uploadBinary(
+                        uploadPath,
+                        postMedia!,
+                        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                      );
+                      ImageFile input = ImageFile(
+                        rawBytes: postMedia, 
+                        filePath: fileName,
+                      );
+                      Configuration config = Configuration(
+                        outputType: ImageOutputType.webpThenJpg,
+                        useJpgPngNativeCompressor: false,
+                        quality: 25,
+                      );
+
+                      final param = ImageFileConfiguration(input: input, config: config);
+                      final compressedOutput = await compressor.compress(param);
+                      final previewUploadPath = earlyPuid!+'/preview/'+fileName;
+                      final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
+                      
+                      final String compressedPreviewPath = await supabase.storage.from('post_media').uploadBinary(
+                        previewUploadPath,
+                        compressedOutput.rawBytes,
+                        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                      );
+                      await supabase.from('posts')
+                      .update({
+                        'mediaUrl': completeImgDir, 
+                        'mediaUrlOnDb': uploadPath, 
+                        'mediaUrl_preview': previewCompleteImgDir,
+                        'mediaUrl_previewOnDb': previewUploadPath,
+                        // 'inesRate': inesRating,
+                        // 'darelRate': darelRating
+                      })
+                      .match({ 'puid': earlyPuid });
+                      setState(() {
+                        uploading = false;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Post with media upload success'),
+                          elevation: 20.0,
+                        ),
+                      );
+                      context.pushReplacement('/');
+                    } 
+                    else {
+                      File file = File(filePicked.files.single.path!);
+                      File postMediaAndroid = file;
+                      Future<Uint8List> bytes() async { return file.readAsBytes(); } 
+                      ImageFile input = ImageFile(
+                        rawBytes: await bytes(), 
+                        filePath: file.toString()
+                      );
+
+                      final String path = await supabase.storage.from('post_media').upload(
+                        uploadPath,
+                        postMediaAndroid,
+                        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                      );
+
+                      Configuration config = Configuration(
+                        outputType: ImageOutputType.webpThenJpg,
+                        useJpgPngNativeCompressor: false,
+                        quality: 25,
+                      );
+
+                      final param = ImageFileConfiguration(input: input, config: config);
+                      final compressedOutput = await compressor.compress(param);
+                      Future<File> compressedPreview() async {
+                        final tempDir = Directory.systemTemp;
+                        final file = await File('${tempDir.path}/$fileName').create();
+                        file.writeAsBytesSync(compressedOutput.rawBytes);
+                        return file;
+                      }
+                      final previewUploadPath = earlyPuid+'/preview/'+fileName;
+                      final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
+                      
+                      final String compressedPreviewPath = await supabase.storage.from('post_media').upload(
+                        previewUploadPath,
+                        await compressedPreview(),
+                        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                      );
+
+                        await supabase.from('posts')
+                        .update({
+                          'mediaUrl': completeImgDir, 
+                          'mediaUrlOnDb': uploadPath, 
+                          'mediaUrl_preview': previewCompleteImgDir,
+                          'mediaUrl_previewOnDb': previewUploadPath,
+                        })
+                        .match({ 'puid': earlyPuid });
+                    }
+                    final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);
+                    final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
+                    .insert({
+                      'lat': globalLat, 
+                      'long': globalLong, 
+                      'name': endpointData!['title'],
+                      'full_address': endpointData['address']['label']
+                    })
+                    .select();
+
+                    final List<Map<String, dynamic>> uploadReviewUID = await supabase.from('foodReviews')
+                    .insert({
+                      'puid': earlyPuid,
+                      'darelRate': darelRating,
+                      'inesRate': inesRating
+                    })
+                    .select();
+                    
+                    await supabase.from('posts')
+                    .update({
+                      'luid': uploadLocUID[0]['luid'],
+                      'ruid': uploadReviewUID[0]['ruid'],
+                    })
+                    .match({ 'puid': earlyPuid });
+                    clearGPSLoc();
+                    
+                    setState(() {
+                      uploading = false;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Food review upload success'),
+                        elevation: 20.0,
+                      ),
+                    );
+                    context.pushReplacement('/post/$earlyPuid');
+                  }
+                } 
+                // DISABLE UPLOAD IF NO MEDIA IN FOOD REVIEW MODE
+                else {
+                  setState(() {
+                    uploading = false;
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Food review mode requires photo before uploading!'),
+                      elevation: 20.0,
+                    ),
+                  );
+                }
+              }
+            
+            // DISABLE UPLOAD IF GPS NOT ENABLED IN FOOD REVIEW MODE
+            } else {
+              setState(() {
+                uploading = false;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Food review mode required Location to be turned on!'),
+                  elevation: 20.0,
+                ),
+              );
+            }
+          } 
+          
+          // NOT FOOD REVIEW MODE
+          else {
           if(embedLocation.value == true) {
             if(isGPSReady() == false) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -305,215 +574,236 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               });
             } else {
               if(mediaUploadMode) {
-            final List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
-            .insert({
-              'uuid': userData!['provider_id'], 
-              'cuid': selectedCategory.value,
-              'details': myController.text, 
-              'allowReply': allowThreadReply.value, 
-              'type': 'Diary'
-            })
-            .select();
-
-            if(captureMode) {
-              File postMediaAndroid = File(filePicked.path);
-              String? earlyPuid = earlyUploadPost[0]['puid'];
-              final uploadPath = earlyPuid!+'/'+filePicked.name;
-              final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
-
-              if(!kIsWeb) {
-                final String path = await supabase.storage.from('post_media').upload(
-                  uploadPath,
-                  postMediaAndroid,
-                  fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-                );
-                await supabase.from('posts')
-                .update({
-                  'mediaUrl': completeImgDir, 
-                  'mediaUrlOnDb': uploadPath, 
+                final List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
+                .insert({
+                  'uuid': userData!['provider_id'], 
+                  'cuid': selectedCategory.value,
+                  'details': myController.text, 
+                  'allowReply': allowThreadReply.value, 
+                  'type': 'Diary',
                 })
-                .match({ 'puid': earlyPuid });
-                setState(() {
-                  uploading = false;
-                });
-              }
+                .select();
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Post with media upload success'),
-                  elevation: 20.0,
-                ),
-              );
-               context.pushReplacement('/post/$earlyPuid');
-            } else {
-            PlatformFile file2 = filePicked.files.first;
-            Uint8List? postMedia = filePicked.files.first.bytes;
-            String fileName = file2.name;
+                if(captureMode) {
+                  File postMediaAndroid = File(filePicked.path);
+                  String? earlyPuid = earlyUploadPost[0]['puid'];
+                  final uploadPath = earlyPuid!+'/'+filePicked.name;
+                  final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
 
-            String? earlyPuid = earlyUploadPost[0]['puid'];
-            final uploadPath = earlyPuid!+'/'+fileName;
-            final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
-            
-            if(kIsWeb) {
-              final String path = await supabase.storage.from('post_media').uploadBinary(
-                uploadPath,
-                postMedia!,
-                fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-              );
-              ImageFile input = ImageFile(
-                rawBytes: postMedia, 
-                filePath: fileName,
-              );
-              Configuration config = Configuration(
-                outputType: ImageOutputType.webpThenJpg,
-                useJpgPngNativeCompressor: false,
-                quality: 25,
-              );
+                  if(!kIsWeb) {
+                    final String path = await supabase.storage.from('post_media').upload(
+                      uploadPath,
+                      postMediaAndroid,
+                      fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                    );
+                    
+                      await supabase.from('posts')
+                      .update({
+                        'mediaUrl': completeImgDir, 
+                        'mediaUrlOnDb': uploadPath, 
+                      })
+                      .match({ 'puid': earlyPuid });
+                      setState(() {
+                        uploading = false;
+                      });
+                    
+                     final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);
+                     final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
+                      .insert({
+                        'lat': globalLat, 
+                        'long': globalLong, 
+                        'name': endpointData!['title'],
+                        'full_address': endpointData['address']['label']
+                      })
+                      .select();
+                      await supabase.from('posts')
+                      .update({
+                        'luid': uploadLocUID[0]['luid']
+                      })
+                      .match({ 'puid': earlyPuid });
+                      clearGPSLoc();
+                  }
 
-              final param = ImageFileConfiguration(input: input, config: config);
-              final compressedOutput = await compressor.compress(param);
-              final previewUploadPath = earlyPuid!+'/preview/'+fileName;
-              final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
-              
-              final String compressedPreviewPath = await supabase.storage.from('post_media').uploadBinary(
-                previewUploadPath,
-                compressedOutput.rawBytes,
-                fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-              );
-              await supabase.from('posts')
-              .update({
-                'mediaUrl': completeImgDir, 
-                'mediaUrlOnDb': uploadPath, 
-                'mediaUrl_preview': previewCompleteImgDir,
-                'mediaUrl_previewOnDb': previewUploadPath,
-              })
-              .match({ 'puid': earlyPuid });
-              setState(() {
-                uploading = false;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Post with media upload success'),
-                  elevation: 20.0,
-                ),
-              );
-               context.pushReplacement('/');
-            } 
-            else {
-              File file = File(filePicked.files.single.path!);
-              File postMediaAndroid = file;
-              Future<Uint8List> bytes() async { return file.readAsBytes(); } 
-              ImageFile input = ImageFile(
-                rawBytes: await bytes(), 
-                filePath: file.toString()
-              );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Post with media upload success'),
+                      elevation: 20.0,
+                    ),
+                  );
+                  context.pushReplacement('/post/$earlyPuid');
+                } else {
+                  PlatformFile file2 = filePicked.files.first;
+                  Uint8List? postMedia = filePicked.files.first.bytes;
+                  String fileName = file2.name;
 
-              final String path = await supabase.storage.from('post_media').upload(
-                uploadPath,
-                postMediaAndroid,
-                fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-              );
+                  String? earlyPuid = earlyUploadPost[0]['puid'];
+                  final uploadPath = earlyPuid!+'/'+fileName;
+                  final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+                  
+                  if(kIsWeb) {
+                    final String path = await supabase.storage.from('post_media').uploadBinary(
+                      uploadPath,
+                      postMedia!,
+                      fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                    );
+                    ImageFile input = ImageFile(
+                      rawBytes: postMedia, 
+                      filePath: fileName,
+                    );
+                    Configuration config = Configuration(
+                      outputType: ImageOutputType.webpThenJpg,
+                      useJpgPngNativeCompressor: false,
+                      quality: 25,
+                    );
 
-              Configuration config = Configuration(
-                outputType: ImageOutputType.webpThenJpg,
-                useJpgPngNativeCompressor: false,
-                quality: 25,
-              );
+                    final param = ImageFileConfiguration(input: input, config: config);
+                    final compressedOutput = await compressor.compress(param);
+                    final previewUploadPath = earlyPuid!+'/preview/'+fileName;
+                    final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
+                    
+                    final String compressedPreviewPath = await supabase.storage.from('post_media').uploadBinary(
+                      previewUploadPath,
+                      compressedOutput.rawBytes,
+                      fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                    );
+                    await supabase.from('posts')
+                    .update({
+                      'mediaUrl': completeImgDir, 
+                      'mediaUrlOnDb': uploadPath, 
+                      'mediaUrl_preview': previewCompleteImgDir,
+                      'mediaUrl_previewOnDb': previewUploadPath,
+                    })
+                    .match({ 'puid': earlyPuid });
+                    setState(() {
+                      uploading = false;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Post with media upload success'),
+                        elevation: 20.0,
+                      ),
+                    );
+                    context.pushReplacement('/');
+                  } 
+                  else {
+                    File file = File(filePicked.files.single.path!);
+                    File postMediaAndroid = file;
+                    Future<Uint8List> bytes() async { return file.readAsBytes(); } 
+                    ImageFile input = ImageFile(
+                      rawBytes: await bytes(), 
+                      filePath: file.toString()
+                    );
 
-              final param = ImageFileConfiguration(input: input, config: config);
-              final compressedOutput = await compressor.compress(param);
-              Future<File> compressedPreview() async {
-                final tempDir = Directory.systemTemp;
-                final file = await File('${tempDir.path}/$fileName').create();
-                file.writeAsBytesSync(compressedOutput.rawBytes);
-                return file;
-              }
-              final previewUploadPath = earlyPuid+'/preview/'+fileName;
-              final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
-              
-              final String compressedPreviewPath = await supabase.storage.from('post_media').upload(
-                previewUploadPath,
-                await compressedPreview(),
-                fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-              );
-              await supabase.from('posts')
-              .update({
-                'mediaUrl': completeImgDir, 
-                'mediaUrlOnDb': uploadPath, 
-                'mediaUrl_preview': previewCompleteImgDir,
-                'mediaUrl_previewOnDb': previewUploadPath,
-              })
-              .match({ 'puid': earlyPuid });
+                    final String path = await supabase.storage.from('post_media').upload(
+                      uploadPath,
+                      postMediaAndroid,
+                      fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                    );
 
-              // if(isGPSReady()) {
+                    Configuration config = Configuration(
+                      outputType: ImageOutputType.webpThenJpg,
+                      useJpgPngNativeCompressor: false,
+                      quality: 25,
+                    );
+
+                    final param = ImageFileConfiguration(input: input, config: config);
+                    final compressedOutput = await compressor.compress(param);
+                    Future<File> compressedPreview() async {
+                      final tempDir = Directory.systemTemp;
+                      final file = await File('${tempDir.path}/$fileName').create();
+                      file.writeAsBytesSync(compressedOutput.rawBytes);
+                      return file;
+                    }
+                    final previewUploadPath = earlyPuid+'/preview/'+fileName;
+                    final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
+                    
+                    final String compressedPreviewPath = await supabase.storage.from('post_media').upload(
+                      previewUploadPath,
+                      await compressedPreview(),
+                      fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                    );
+
+                    
+                      await supabase.from('posts')
+                      .update({
+                        'mediaUrl': completeImgDir, 
+                        'mediaUrlOnDb': uploadPath, 
+                        'mediaUrl_preview': previewCompleteImgDir,
+                        'mediaUrl_previewOnDb': previewUploadPath,
+                      })
+                      .match({ 'puid': earlyPuid });
+
+                    
+                    final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);
+                    final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
+                    .insert({
+                      'lat': globalLat, 
+                      'long': globalLong, 
+                      'name': endpointData!['title'],
+                      'full_address': endpointData['address']['label']
+                    })
+                    .select();
+                    await supabase.from('posts')
+                    .update({
+                      'luid': uploadLocUID[0]['luid']
+                    })
+                    .match({ 'puid': earlyPuid });
+                    clearGPSLoc();
+                    
+
+                    setState(() {
+                      uploading = false;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Post with media upload success'),
+                        elevation: 20.0,
+                      ),
+                    );
+                    context.pushReplacement('/post/$earlyPuid');
+                  }
+                }
+              } else {
+                var link = await supabase
+                .from('posts')
+                .insert({
+                  'uuid': userData!['provider_id'], 
+                  'cuid': selectedCategory.value,
+                  'details': myController.text, 
+                  'allowReply': allowThreadReply.value, 
+                  'type': 'Diary'
+                })
+                .select();
+                String puid = link[0]['puid'];
+
+                final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);
                 final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
                 .insert({
-                  'puid': earlyPuid,
                   'lat': globalLat, 
                   'long': globalLong, 
-                  // 'name': 'Diary'
+                  'name': endpointData!['title'],
+                  'full_address': endpointData['address']['label']
                 })
                 .select();
                 await supabase.from('posts')
                 .update({
                   'luid': uploadLocUID[0]['luid']
                 })
-                .match({ 'puid': earlyPuid });
+                .match({ 'puid': puid });
                 clearGPSLoc();
-              // }
 
-              setState(() {
-                uploading = false;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Post with media upload success'),
-                  elevation: 20.0,
-                ),
-              );
-              context.pushReplacement('/post/$earlyPuid');
-            }
-            }
-          } else {
-            var link = await supabase
-            .from('posts')
-            .insert({
-              'uuid': userData!['provider_id'], 
-              'cuid': selectedCategory.value,
-              'details': myController.text, 
-              'allowReply': allowThreadReply.value, 
-              'type': 'Diary'
-            })
-            .select();
-            String puid = link[0]['puid'];
-            // if(isGPSReady()) {
-              final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
-              .insert({
-                'puid': puid,
-                'lat': globalLat, 
-                'long': globalLong, 
-                // 'name': 'Diary'
-              })
-              .select();
-              await supabase.from('posts')
-              .update({
-                'luid': uploadLocUID[0]['luid']
-              })
-              .match({ 'puid': puid });
-              clearGPSLoc();
-            // }
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Post uploaded!'),
-                elevation: 20.0,
-              ),
-            );
-            setState(() {
-                uploading = false;
-              });
-           
-            context.pushReplacement('/post/$puid');
-          }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Post uploaded!'),
+                    elevation: 20.0,
+                  ),
+                );
+                setState(() {
+                    uploading = false;
+                  });
+              
+                context.pushReplacement('/post/$puid');
+              }
             }
           } else {
             if(mediaUploadMode) {
@@ -668,7 +958,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               context.pushReplacement('/post/$earlyPuid');
             }
             }
-          } else {
+            } else {
             var link = await supabase
             .from('posts')
             .insert({
@@ -691,6 +981,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               });
            
             context.pushReplacement('/post/$puid');
+            }
           }
           }
         } else {
@@ -767,13 +1058,71 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       return File(filePicked.path);
     } else {
       if(kIsWeb) {
-        // print(filePicked);
-        // Uint8List fileBytes = filePicked.files.first.bytes;
         return File(filePicked.files.first.bytes!);
       } else {
         return File(filePicked.files.single.path!);
       }
     }
+  }
+
+  double inesRating = 0.0;
+  double darelRating = 0.0;
+  Widget showFoodReviewUI() {
+    return Column(
+      children: [
+        if (userData!['provider_id'] == '110611428741214053827' || userData!['provider_id'] == '112416715810346894995') Column(
+          children: [
+            Text(darelRating.toString()),
+            PannableRatingBar(
+              rate: darelRating,
+              items: List.generate(5, (index) =>
+                const RatingWidget(
+                  selectedColor: Colors.yellow,
+                  unSelectedColor: Colors.grey,
+                  child: Icon(
+                    Icons.star,
+                    size: 48,
+                  ),
+                )),
+              onChanged: (value) { // the rating value is updated on tap or drag.
+                setState(() {
+                  darelRating = value;
+                });
+              },
+            ),
+          ],
+        ) else if (userData!['provider_id'] == '103226649477885875796' || userData!['provider_id'] == '109587676420726193785' || userData!['provider_id'] == '117026477282809025732') 
+        Column(
+          children: [
+            Text(inesRating.toString()),
+            PannableRatingBar(
+              rate: inesRating,
+              items: List.generate(5, (index) =>
+                const RatingWidget(
+                  selectedColor: Colors.yellow,
+                  unSelectedColor: Colors.grey,
+                  child: Icon(
+                    Icons.star,
+                    size: 48,
+                  ),
+                )),
+              onChanged: (value) { // the rating value is updated on tap or drag.
+                setState(() {
+                  inesRating = value;
+                });
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+  
+  @override
+  void dispose() {
+    myController.dispose();
+    clearGPSLoc();
+    super.dispose();
   }
 
   @override
@@ -790,7 +1139,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             children: <Widget>[
               if(!uploading) Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-               children: [
+              children: [
                   DropdownButton<String>(
                     hint: Text('Select your category'),
                     disabledHint: Text('Loading'),
@@ -804,7 +1153,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       return DropdownMenuItem<String>(
                         onTap: () {
                           selectedCatName = index['name'];
-                          print('`${index['name']}`');
                         },
                         value: index['cuid'] as String,
                         child: Text(index['name']),
@@ -819,8 +1167,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                     },
                     child: const Text('Upload'),
                   ),
-               ],
-             ),
+                ],
+              ),
               TextField(
                 readOnly: uploading,
                 autofocus: true,
@@ -831,6 +1179,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   hintText: 'Whats on your mind today?',
                 ),
               ),
+              if(isFoodReviewMode() && !uploading) showFoodReviewUI(),
               if(!kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.file(preview())),
               if(kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.memory(webPreview)),
               if (!uploading) Padding(
@@ -848,7 +1197,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                           },
                           child: Icon(Icons.photo_size_select_actual_rounded),
                         ),
-                         if(!kIsWeb && Platform.isAndroid) ElevatedButton(
+                        if(!kIsWeb && Platform.isAndroid) ElevatedButton(
                           onPressed: () {
                             if (_formKey.currentState!.validate()) {
                               capturePicture();
@@ -856,42 +1205,53 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                           },
                           child: Icon(Icons.camera_alt_outlined),
                         ),
+                        Row(
+                          children: [
+                            if(allowThreadReply.value == true) ElevatedButton(
+                              onPressed: () => setState(() {
+                                  allowThreadReply.value = false;
+                              }), 
+                              child: Icon(Icons.comment)
+                            ) else ElevatedButton(
+                              onPressed: () => setState(() {
+                                  allowThreadReply.value = true;
+                              }), 
+                              child: Icon(Icons.comments_disabled)
+                              )
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            if(embedLocation.value == true) 
+                              ElevatedButton(
+                                onPressed: () => setState(() {
+                                  embedLocation.value = false;
+                                }), 
+                                child: ValueListenableBuilder(
+                                valueListenable: nowGPSReady, 
+                                builder: (context, value, child) {
+                                  if(isGPSReady() == true) {
+                                    return Row(
+                                      children: [
+                                        Icon(Icons.near_me),
+                                        // Text(" Ready")
+                                      ],
+                                    );
+                                  }
+                                  return Icon(Icons.location_searching);
+                              }))
+                            else ElevatedButton(
+                              onPressed: () => setState(() {
+                                embedLocation.value = true;
+                              }), 
+                              child: Icon(Icons.near_me_disabled)
+                            ), 
+                          ],
+                        ),                     
                       ],
                     ),
-                    
                   ],
                 ),
-              ),
-              if (!uploading) Column(
-                children: [
-                  Row(
-                    children: [
-                      Text("Threads"),
-                      Switch(
-                        value: allowThreadReply.value!, 
-                        onChanged: (bool allowThreadReplyChange) {
-                          setState(() {
-                            allowThreadReply.value = allowThreadReplyChange;
-                          });
-                        }
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Text("Location"),
-                      Switch(
-                        value: embedLocation.value!, 
-                        onChanged: (bool embedLocationChange) {
-                          setState(() {
-                            embedLocation.value = embedLocationChange;
-                          });
-                        }
-                      ),
-                    ],
-                  ),
-                  // ElevatedButton(onPressed: getCurrentLocation, child: Text("Get loc"))
-                ],
               ),
               if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
             ],
@@ -899,6 +1259,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
         )),
     );
   }
+
 }
 
 class CreateThread extends StatefulWidget {

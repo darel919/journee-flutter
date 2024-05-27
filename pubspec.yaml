@@ -51,6 +51,8 @@ dependencies:
   image_compression_flutter: ^1.0.4
   shared_preferences: ^2.2.2
   geolocator: ^12.0.0
+  flutter_pannable_rating_bar: ^2.7.2+1
+  dio: ^5.4.3+1
 
 dev_dependencies:
 

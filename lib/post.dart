@@ -1,5 +1,7 @@
 // ignore_for_file: prefer_const_constructors, unused_local_variable, unnecessary_new, unused_element, prefer_const_literals_to_create_immutables, avoid_print, unused_import, use_build_context_synchronously, no_logic_in_create_state, unnecessary_null_comparison, prefer_typing_uninitialized_variables, prefer_interpolation_to_compose_strings
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:journee/modify.dart';
@@ -8,6 +10,7 @@ import 'package:journee/threads.dart';
 import 'package:journee/user_posts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:url_launcher/url_launcher.dart';
 
 
 class ViewPostRoute extends StatefulWidget {
@@ -26,7 +29,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
 
   late final _future = supabase
     .from('posts')
-    .select('''*, users(*), threads ( * ), categories ( * )''')
+    .select('''*, users(*), threads ( * ), categories ( * ), locations (*)''')
     .eq('puid', puid!)
     .order('created_at',  ascending: false);
 
@@ -45,6 +48,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
     }
   }
   late Map<String, dynamic> fetchedData = {};
+  late Map<String, dynamic> reviewData = {};
  
   Future<void> _deletePost() async {
     try {
@@ -91,8 +95,15 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   late final userData = user?.userMetadata!;
   String? postuuid;
   String? postpuid;
+  String? postluid;
+  String? postcatid;
   bool allowThread = true;
-  
+  bool isLocationAttached() {
+    if(postluid == '' || postluid == null) {
+      return false;
+    } 
+    return true;
+  }
   bool isAdmin(){
     if(postuuid == userData!['provider_id']) {
       return true;
@@ -101,12 +112,56 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
     }
     return false;
   }
+  bool isFoodReview() {
+    if(postcatid == '368d3855-965d-4f13-b741-7975bbac80bf') {
+      fetchRating();
+      return true;
+    } 
+    return false;
+  }
+  void goLocation(Lat, Long) async {
+    Uri uri = Uri.parse('geo:$Lat,$Long?q=$Lat,$Long');
+    
+    final fallbackUri = Uri(
+      scheme: "https",
+      host: "maps.google.com",
+      queryParameters: {'q': '$Lat, $Long'},
+    );
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        await launchUrl(fallbackUri);
+      }
+    } catch(e) {
+        await launchUrl(fallbackUri);
+        print("Can't launch maps. $e");
+    }
+  }
+  
+  Future<void> fetchRating() async {
+    var res = await supabase
+    .from('foodReviews')
+    .select('*')
+    .eq('ruid', fetchedData['ruid']!);
+    reviewData = res[0];
+    var darelRate = reviewData['darelRate'];
+    var inesRate = reviewData['inesRate'];
+    var ratingCalculation = darelRate + inesRate;
+    print(ratingCalculation);
+    var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+    // setState(() {
+      calcRating.value = clampedRating.toString();
+    // });
+  }
+  ValueNotifier<String?> calcRating = ValueNotifier<String?>('0');
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
       onPopInvoked: (didPop) {
-        context.pushReplacement('/');
+        // context.pushReplacement('/');
       },
       child: Scaffold(
         appBar: AppBar(
@@ -136,10 +191,13 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
         
             final post = snapshot.data![0];
             fetchedData = post;
+            print(post);
             final user = post['users'];
             final threads = post['threads'];
             postuuid = post['uuid'];
             postpuid = post['puid'];
+            postluid = post['luid'];
+            postcatid = post['cuid'];
             allowThread = post['allowReply'];
             DateTime myDateTime = DateTime.parse(post['created_at']);
             
@@ -156,22 +214,64 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                           shrinkWrap: true,
                           children: <Widget>[
                             ListTile(
-                              onTap:() {
-                                if(isAdmin()) {
-                                  context.go('/account');
-                                } else {
-                                  context.push('/user/$postuuid/false');
-                                }
-                              },
                               contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
                               leading: ClipRRect(
                                 borderRadius: BorderRadius.circular(48.0),
                                 child: Image.network(user!['avatar_url']
                                 )
                               ),
-                              title: Row(
+                              title: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(user['name']),
+                                  TextButton(
+                                    style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      overlayColor: Colors.transparent,
+                                      foregroundColor: Colors.white,
+                                      // tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      splashFactory: NoSplash.splashFactory,
+                                      alignment: isLocationAttached() ? Alignment.bottomLeft : Alignment.centerLeft
+                                    ),
+                                    child: Text(user['name']), 
+                                    onPressed: () {
+                                      if(isAdmin()) {
+                                        context.go('/account');
+                                      } else {
+                                        context.push('/user/$postuuid/false');
+                                      }
+                                    }
+                                  ),
+                                  if(isLocationAttached()) TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      overlayColor: Colors.transparent,
+                                      foregroundColor: Colors.white,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      splashFactory: NoSplash.splashFactory,
+                                      alignment: Alignment.topLeft
+                                    ),
+                                    onPressed: () => goLocation(post['locations']['lat'], post['locations']['long']), 
+                                    label: post['locations']['name'] != null ? Text(post['locations']['name'], overflow: TextOverflow.ellipsis) : Text('Location name unavailable', overflow: TextOverflow.ellipsis), 
+                                    icon: Icon(Icons.location_pin),
+                                  ),
+                                  if(isFoodReview()) TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      overlayColor: Colors.transparent,
+                                      foregroundColor: Colors.white,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      splashFactory: NoSplash.splashFactory,
+                                      alignment: Alignment.topLeft
+                                    ),
+                                    onPressed: () => context.push('/category/368d3855-965d-4f13-b741-7975bbac80bf'), 
+                                    label: ValueListenableBuilder(valueListenable: calcRating, builder: (context, value, child) {
+                                      if(calcRating.value! == '0') {
+                                        Text('Loading...');
+                                      } return Text(calcRating.value!);
+                                    }),
+                                    icon: Icon(Icons.star),
+                                  )
                                 ],
                               ),
                               trailing: Text(timeago.format(myDateTime, locale: 'en'))

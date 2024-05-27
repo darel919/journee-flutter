@@ -45,6 +45,7 @@ class _AccountPageState extends State<AccountPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         // title: Text('Profile'),
         actions: [
           PopupMenuButton<int>(
@@ -56,35 +57,7 @@ class _AccountPageState extends State<AccountPage> {
           )
         ],
       ),
-      body: Column(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 0, 16),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(48.0),
-                  child: 
-                    Image.network(userData!['avatar_url']
-                  )
-                ),
-              ),
-              ListTile(
-                title: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(userData!['name'], style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                    Text(userData!['provider_id'], style: TextStyle(fontSize: 12))
-                  ],
-                ),
-                trailing: userPostSearchMode(userData!['provider_id'], userData!['name']),
-              ),
-            ],
-          ),
-          Expanded(child: UserPageRoute(uuid: userData!['provider_id'], isself: 'true'))
-          ],
-        )
+      body: Expanded(child: UserPageRoute(uuid: userData!['provider_id'], isself: 'true'))
     );
   }
 }
