@@ -84,10 +84,9 @@ class NavigatorRoutes {
                 ),
               ),
               GoRoute(
-                path: 'user/:uuid/:isself',
+                path: 'user/:uuid',
                 builder: (context, state) => UserPageRoute(
                   uuid: state.pathParameters['uuid'], 
-                  isself: state.pathParameters['isself']
                 ),
               ),
               GoRoute(

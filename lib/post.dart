@@ -402,7 +402,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                         if(isAdmin()) {
                                           context.go('/account');
                                         } else {
-                                          context.push('/user/$postuuid/false');
+                                          context.push('/user/$postuuid');
                                         }
                                       }
                                     ),

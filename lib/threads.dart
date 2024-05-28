@@ -249,7 +249,7 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
                           
                           return ListTile(
                             onTap: () {
-                              context.go('/user/$userid/false');
+                              context.go('/user/$userid');
                               // Navigator.push(context, new MaterialPageRoute(builder: (context) => new UserPageRoute(uuid: new Uuid(threadAuthor['uuid']))));
                             },
                             contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),

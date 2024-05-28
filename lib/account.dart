@@ -57,7 +57,7 @@ class _AccountPageState extends State<AccountPage> {
           )
         ],
       ),
-      body: Expanded(child: UserPageRoute(uuid: userData!['provider_id'], isself: 'true'))
+      body: UserPageRoute(uuid: userData!['provider_id'])
     );
   }
 }
