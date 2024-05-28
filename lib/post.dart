@@ -1,8 +1,10 @@
 // ignore_for_file: prefer_const_constructors, unused_local_variable, unnecessary_new, unused_element, prefer_const_literals_to_create_immutables, avoid_print, unused_import, use_build_context_synchronously, no_logic_in_create_state, unnecessary_null_comparison, prefer_typing_uninitialized_variables, prefer_interpolation_to_compose_strings
 
 import 'dart:io';
+// import 'dart:nativewrappers/_internal/vm/lib/core_patch.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_pannable_rating_bar/flutter_pannable_rating_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:journee/modify.dart';
 import 'package:journee/home.dart';
@@ -26,6 +28,11 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   final supabase = Supabase.instance.client;
 
   _ViewPostRouteState({Key? key, required this.puid});
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
   late final _future = supabase
     .from('posts')
@@ -140,22 +147,163 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
     }
   }
   
+  // RATING SYSTEM
+  double darelRating = 0.0;
+  double inesRating = 0.0;
+  double newinesRating = 0.0;
+  double newdarelRating = 0.0;
   Future<void> fetchRating() async {
     var res = await supabase
     .from('foodReviews')
     .select('*')
     .eq('ruid', fetchedData['ruid']!);
     reviewData = res[0];
-    var darelRate = reviewData['darelRate'];
-    var inesRate = reviewData['inesRate'];
-    var ratingCalculation = darelRate + inesRate;
-    print(ratingCalculation);
-    var clampedRating = ratingCalculation.clamp(0.0, 5.0);
-    // setState(() {
+    darelRating = reviewData['darelRate'].toDouble();
+    inesRating = reviewData['inesRate'].toDouble();
+    if(inesRating == 0.0) {
+      var ratingCalculation = darelRating + inesRating;
+      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
       calcRating.value = clampedRating.toString();
-    // });
+      
+    } else if (darelRating == 0.0) {
+      var ratingCalculation = darelRating + inesRating;
+      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+      calcRating.value = clampedRating.toStringAsFixed(1);
+
+    } else {
+      // Calculate the combined rating and divide by 2 to normalize to a scale of 5
+      var ratingCalculation = (darelRating + inesRating) / 2;
+
+      // Clamp the normalized rating between 0.0 and 5.0
+      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+
+      // Set the calculated rating value
+      calcRating.value = clampedRating.toStringAsFixed(1);
+    }
   }
   ValueNotifier<String?> calcRating = ValueNotifier<String?>('0');
+  Future<void> updateRating(mode, rate) async {
+    if(mode == 'darel') {
+      await supabase.from('foodReviews')
+      .update({
+        'darelRate': newdarelRating,
+      })
+      .match({ 'ruid': fetchedData['ruid']});
+    } else {
+      await supabase.from('foodReviews')
+      .update({
+        'inesRating': newinesRating,
+      })
+      .match({ 'ruid': fetchedData['ruid']});
+    }
+    print("$mode rate update to $rate");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: Duration(seconds: 2),
+        content: Text('Updated rating to $rate'),
+        elevation: 20.0,
+      ),
+    );
+    Navigator.pop(context);
+    setState(() {
+      calcRating.value = '0';
+    });
+  }
+  Future<Future<Object?>> _showEditRateUI() async {
+    newdarelRating = darelRating;
+    newinesRating = inesRating;
+    return Navigator.of(context).push(PageRouteBuilder(
+    opaque: false, // Set to false so you can see the page behind the bottom sheet
+    pageBuilder: (BuildContext context, _, __) {
+      return editRateUI();
+    },
+    transitionsBuilder: (___, Animation<double> animation, ____, Widget child) {
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 1),
+          end: Offset.zero,
+        ).animate(animation),
+        child: child,
+      );
+    },
+  ));
+}
+  StatefulBuilder editRateUI() {
+  void closeBottomSheet() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context); // Close the bottom sheet
+    }
+  }
+  return StatefulBuilder(builder: (context, StateSetter setState) {
+      return GestureDetector(
+        onTap: closeBottomSheet,
+        child: Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (userData!['provider_id'] == '110611428741214053827' || userData!['provider_id'] == '112416715810346894995') Column(
+                    children: [
+                      inesRating == 0.0 ? Text("Ines hasn't given rating to this yet.") : Text('Ines rates this: '+newinesRating.toString()),
+                      Text('You rate: '+newdarelRating.toString()),
+                      PannableRatingBar(
+                        
+                        rate: newdarelRating,
+                        items: List.generate(5, (index) =>
+                          const RatingWidget(
+                            selectedColor: Colors.yellow,
+                            unSelectedColor: Colors.grey,
+                            child: Icon(
+                              Icons.star,
+                              size: 48,
+                            ),
+                          )),
+                        onChanged: (value) { // the rating value is updated on tap or drag.
+                          setState(() {
+                            newdarelRating = value;
+                          });
+                        },
+                        onCompleted:(value) {
+                            updateRating('darel', value);
+                        },
+                      ),
+                    ],
+                  ) else if (userData!['provider_id'] == '103226649477885875796' || userData!['provider_id'] == '109587676420726193785' || userData!['provider_id'] == '117026477282809025732') 
+                  Column(
+                    children: [
+                      darelRating == 0.0 ? Text("Darrell hasn't given rating to this yet.") : Text('Darrell rates this: '+newinesRating.toString()),
+                      Text('You rate: '+newinesRating.toString()),
+                      PannableRatingBar(
+                        rate: newinesRating,
+                        items: List.generate(5, (index) =>
+                          const RatingWidget(
+                            selectedColor: Colors.yellow,
+                            unSelectedColor: Colors.grey,
+                            child: Icon(
+                              Icons.star,
+                              size: 48,
+                            ),
+                          )),
+                        onChanged: (value) { // the rating value is updated on tap or drag.
+                          setState(() {
+                            newinesRating = value;
+                          });
+                        },
+                        onCompleted:(value) {
+                            updateRating('ines', value);
+                        },
+                      ),
+                    ],
+                  ),
+                  if(inesRating > 0 && darelRating > 0)Text("End calculation: "+calcRating.value!.toString()),
+                  Text("Tap anywhere to close")
+                ],
+              ),
+            ),
+        ),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +325,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                     // Navigator.push(context, new MaterialPageRoute(builder: (context) => new EditDiary(puid: postpuid)))
                     }, value: 1, child: Text('Edit')
                   ),
-                  // PopupMenuItem<int>(value: 2, child: Text('Share')),
+                  if(isFoodReview()) PopupMenuItem<int>(onTap:() => _showEditRateUI(), value: 2, child: Text('Rating')),
                 ],
               )
           ],
@@ -188,10 +336,9 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
             if(!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
-        
             final post = snapshot.data![0];
             fetchedData = post;
-            print(post);
+            // print(post);
             final user = post['users'];
             final threads = post['threads'];
             postuuid = post['uuid'];
@@ -200,193 +347,221 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
             postcatid = post['cuid'];
             allowThread = post['allowReply'];
             DateTime myDateTime = DateTime.parse(post['created_at']);
+            String convertedDate() {
+              var fetchedDate = myDateTime.toLocal();
+              var hour = fetchedDate.hour.toString();
+              var minute = fetchedDate.minute.toString();
+              var date = fetchedDate.day.toString();
+              var month = fetchedDate.month.toString();
+              var year = fetchedDate.year.toString();
+
+              return hour+':'+minute+' '+date+'/'+month+'/'+year;
+            }
             
-            return Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ListView(
-                          physics: const NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          children: <Widget>[
-                            ListTile(
-                              contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
-                              leading: ClipRRect(
-                                borderRadius: BorderRadius.circular(48.0),
-                                child: Image.network(user!['avatar_url']
-                                )
-                              ),
-                              title: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  TextButton(
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      overlayColor: Colors.transparent,
-                                      foregroundColor: Colors.white,
-                                      // tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      splashFactory: NoSplash.splashFactory,
-                                      alignment: isLocationAttached() ? Alignment.bottomLeft : Alignment.centerLeft
-                                    ),
-                                    child: Text(user['name']), 
-                                    onPressed: () {
-                                      if(isAdmin()) {
-                                        context.go('/account');
-                                      } else {
-                                        context.push('/user/$postuuid/false');
-                                      }
-                                    }
-                                  ),
-                                  if(isLocationAttached()) TextButton.icon(
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      overlayColor: Colors.transparent,
-                                      foregroundColor: Colors.white,
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      splashFactory: NoSplash.splashFactory,
-                                      alignment: Alignment.topLeft
-                                    ),
-                                    onPressed: () => goLocation(post['locations']['lat'], post['locations']['long']), 
-                                    label: post['locations']['name'] != null ? Text(post['locations']['name'], overflow: TextOverflow.ellipsis) : Text('Location name unavailable', overflow: TextOverflow.ellipsis), 
-                                    icon: Icon(Icons.location_pin),
-                                  ),
-                                  if(isFoodReview()) TextButton.icon(
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      overlayColor: Colors.transparent,
-                                      foregroundColor: Colors.white,
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      splashFactory: NoSplash.splashFactory,
-                                      alignment: Alignment.topLeft
-                                    ),
-                                    onPressed: () => context.push('/category/368d3855-965d-4f13-b741-7975bbac80bf'), 
-                                    label: ValueListenableBuilder(valueListenable: calcRating, builder: (context, value, child) {
-                                      if(calcRating.value! == '0') {
-                                        Text('Loading...');
-                                      } return Text(calcRating.value!);
-                                    }),
-                                    icon: Icon(Icons.star),
+            return GestureDetector(
+              onLongPress: () {
+                
+              },
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          
+                          ListView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            children: <Widget>[
+                              ListTile(
+                                // contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(48.0),
+                                  child: isFoodReview() ? Image.network(user!['avatar_url'], width: 48, height: 48
+                                  ) : Image.network(user!['avatar_url'], width: 40, height: 40
                                   )
-                                ],
-                              ),
-                              trailing: Text(timeago.format(myDateTime, locale: 'en'))
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
-                                    child: Text(post['details'], style: TextStyle(height: 2.2)),
-                                  ),
-                                  if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
-                                    padding: const EdgeInsets.fromLTRB(0,0,0,20),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(post['mediaUrl'], 
-                                      // width: 400,
-                                      fit: BoxFit.cover,
-                                      loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                                        if (loadingProgress == null) return child; // If the image is fully loaded, return the child widget
-                                          return Center( // Otherwise, return a loading widget
-                                            child: CircularProgressIndicator( // You can use any widget you like, such as a Shimmer widget
-                                              value: loadingProgress.expectedTotalBytes != null
-                                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                                : null,
-                                            ),
-                                          );
-                                        },
+                                ),
+                                title: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    TextButton(
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        // overlayColor: Colors.transparent,
+                                        // foregroundColor: Colors.white,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        splashFactory: NoSplash.splashFactory,
+                                        minimumSize: Size(10, 10),
+                                        alignment: isLocationAttached() ? Alignment.bottomLeft : Alignment.centerLeft
                                       ),
+                                      child: Text(user['name'], style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), 
+                                      onPressed: () {
+                                        if(isAdmin()) {
+                                          context.go('/account');
+                                        } else {
+                                          context.push('/user/$postuuid/false');
+                                        }
+                                      }
                                     ),
-                                  ),
-                                  if(post['mediaUrl'] == null && post['mediaUrlOnDb'] != null) Row(
-                                    children: [
-                                      Icon(Icons.image_not_supported),
-                                      Text("This image can only be viewed on Journee Web.", style: TextStyle(fontWeight: FontWeight.bold),),
-                                    ],
-                                  )
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (threads.length > 0) Divider(),
-                        // if (threads.length > 0) Center(child: Text("Threads")),
-                        FutureBuilder<List<Map<String, dynamic>>>(
-                          future: _futureThread, 
-                          builder: (context, snapshot) {
-                            if(!snapshot.hasData) {
-                              return const Center(child: CircularProgressIndicator());
-                            }
-                        
-                            final threadContent = snapshot.data!;
-      
-                            return ListView.builder(
-                              physics: const NeverScrollableScrollPhysics(),
-                              shrinkWrap: true,
-                              itemCount: threads.length,
-                              itemBuilder: ((context, index) {
-                                final threadDetails = threadContent[index];
-                                final threadAuthor = threadDetails['users'];
-                                final tuid = threadDetails['tuid'];
-                                DateTime threadDateTime = DateTime.parse(threadDetails['created_at']);
-                                
-                                return ListTile(
-                                  onTap: () {
-                                    context.push('/thread/$tuid');
-                                  },
-                                  contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
-                                  isThreeLine: true,
-                                  leading: ClipRRect(
-                                    borderRadius: BorderRadius.circular(48.0),
-                                    child: Image.network(threadAuthor['avatar_url']
+                                    if(isLocationAttached()) TextButton.icon(
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        // overlayColor: Colors.transparent,
+                                        // foregroundColor: Colors.white,
+                                        // foregroundColor: Theme.of(context).primaryColor,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        splashFactory: NoSplash.splashFactory,
+                                        minimumSize: Size(10, 10)
+                                        // alignment: Alignment.topLeft
+                                      ),
+                                      onPressed: () => goLocation(post['locations']['lat'], post['locations']['long']), 
+                                      label: post['locations']['name'] != null ? Text(post['locations']['name'], overflow: TextOverflow.ellipsis) : Text('Location name unavailable', overflow: TextOverflow.ellipsis), 
+                                      // icon: Icon(Icons.location_pin),
+                                    ),
+                                    if(isFoodReview()) TextButton.icon(
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        // overlayColor: Colors.transparent,
+                                        // foregroundColor: Colors.white,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        splashFactory: NoSplash.splashFactory,
+                                        alignment: Alignment.topLeft,
+                                        minimumSize: Size(10, 10)
+                                      ),
+                                      onPressed: () => context.push('/category/368d3855-965d-4f13-b741-7975bbac80bf'), 
+                                      label: ValueListenableBuilder(valueListenable: calcRating, builder: (context, value, child) {
+                                        if(calcRating.value! == '0') {
+                                          Text('No rating yet');
+                                        } return Text(calcRating.value!);
+                                      }),
+                                      icon: Icon(Icons.star),
                                     )
-                                  ),
-                                  title: Text(threadAuthor['name'], style: TextStyle(fontSize: 16)),
-                                  trailing: Text(timeago.format(threadDateTime, locale: 'en_short')),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(threadDetails['details']),
-                                      if (threadDetails['mediaUrl']!= null && threadDetails['mediaUrl'].isNotEmpty) Padding(
-                                        padding: const EdgeInsets.fromLTRB(0,15,0,15),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: Image.network(threadDetails['mediaUrl'], 
-                                          // width: 400,
-                                          fit: BoxFit.cover,
-                                          loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                                            if (loadingProgress == null) return child; // If the image is fully loaded, return the child widget
-                                              return Center( // Otherwise, return a loading widget
-                                                child: CircularProgressIndicator( // You can use any widget you like, such as a Shimmer widget
-                                                  value: loadingProgress.expectedTotalBytes != null
-                                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                                    : null,
-                                                ),
-                                              );
-                                            },
-                                          ),
+                                  ],
+                                ),
+                                // trailing: Text(timeago.format(myDateTime, locale: 'en'))
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // if(isFoodReview()) showRatingUI(),
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+                                      child: Text(post['details'], style: TextStyle(height: 2.2)),
+                                    ),
+                                    if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
+                                      padding: const EdgeInsets.fromLTRB(0,0,0,20),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(post['mediaUrl'], 
+                                        // width: 400,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                                          if (loadingProgress == null) return child; // If the image is fully loaded, return the child widget
+                                            return Center( // Otherwise, return a loading widget
+                                              child: CircularProgressIndicator( // You can use any widget you like, such as a Shimmer widget
+                                                value: loadingProgress.expectedTotalBytes != null
+                                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                                  : null,
+                                              ),
+                                            );
+                                          },
                                         ),
                                       ),
-                                    ],
-                                  )
-                                );
-                              }),
-                            );
-                          }
-                        ),
-                      ],
+                                    ),
+                                    if(post['mediaUrl'] == null && post['mediaUrlOnDb'] != null) Row(
+                                      children: [
+                                        Icon(Icons.image_not_supported),
+                                        Text("This image can only be viewed on Journee Web.", style: TextStyle(fontWeight: FontWeight.bold),),
+                                      ],
+                                    ),
+                                    Row(
+                                      children: [
+                                        Text(convertedDate())
+                                    ]),
+                                    // Divider()
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          
+                          if (threads.length > 0) Divider(),
+                          // if (threads.length > 0) Center(child: Text("Threads")),
+                          FutureBuilder<List<Map<String, dynamic>>>(
+                            future: _futureThread, 
+                            builder: (context, snapshot) {
+                              if(!snapshot.hasData) {
+                                return const Center(child: CircularProgressIndicator());
+                              }
+                          
+                              final threadContent = snapshot.data!;
+                    
+                              return ListView.builder(
+                                physics: const NeverScrollableScrollPhysics(),
+                                shrinkWrap: true,
+                                itemCount: threads.length,
+                                itemBuilder: ((context, index) {
+                                  final threadDetails = threadContent[index];
+                                  final threadAuthor = threadDetails['users'];
+                                  final tuid = threadDetails['tuid'];
+                                  DateTime threadDateTime = DateTime.parse(threadDetails['created_at']);
+                                  
+                                  return ListTile(
+                                    onTap: () {
+                                      context.push('/thread/$tuid');
+                                    },
+                                    contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
+                                    isThreeLine: true,
+                                    leading: ClipRRect(
+                                      borderRadius: BorderRadius.circular(48.0),
+                                      child: Image.network(threadAuthor['avatar_url'], width: 32, height: 32
+                                      )
+                                    ),
+                                    title: Text(threadAuthor['name'], style: TextStyle(fontSize: 16)),
+                                    trailing: Text(timeago.format(threadDateTime, locale: 'en_short')),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(threadDetails['details']),
+                                        if (threadDetails['mediaUrl']!= null && threadDetails['mediaUrl'].isNotEmpty) Padding(
+                                          padding: const EdgeInsets.fromLTRB(0,15,0,15),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Image.network(threadDetails['mediaUrl'], 
+                                            // width: 400,
+                                            fit: BoxFit.cover,
+                                            loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                                              if (loadingProgress == null) return child; // If the image is fully loaded, return the child widget
+                                                return Center( // Otherwise, return a loading widget
+                                                  child: CircularProgressIndicator( // You can use any widget you like, such as a Shimmer widget
+                                                    value: loadingProgress.expectedTotalBytes != null
+                                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                                      : null,
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  );
+                                }),
+                              );
+                            }
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                CreateThread(puid: postpuid, allowThread: allowThread),
-              ],
+                  CreateThread(puid: postpuid, allowThread: allowThread),
+                ],
+              ),
             );
           },
         )
@@ -417,12 +592,13 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                   child: Text('Delete', style: TextStyle(color: Colors.white),),
                   onPressed: () {
                     _deletePost();
+                    Navigator.pop(context);
                   },
                 ),
                 TextButton(
                   child: Text('Cancel'),
                   onPressed: () {
-                    context.pop();
+                    Navigator.pop(context);
                   },
                 ),
               ],

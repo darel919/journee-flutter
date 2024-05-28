@@ -1,6 +1,5 @@
 // ignore_for_file: avoid_print, prefer_const_constructors, no_logic_in_create_state, camel_case_types
 
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:dio/dio.dart';
 

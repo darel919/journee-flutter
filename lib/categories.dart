@@ -122,11 +122,12 @@ class CategoriesViewPage extends StatefulWidget {
 }
 
 class _CategoriesViewPageState extends State<CategoriesViewPage> {
+  final supabase = Supabase.instance.client;
   final String? cuid;
 
   _CategoriesViewPageState({required this.cuid});
 
-  late final _futureCatView = Supabase.instance.client
+  late final _futureCatView = supabase
   .from('posts')
   .select('''*, users(*), threads ( * ), categories ( * ), locations(*)''')
   .eq('cuid', cuid!)
@@ -134,6 +135,41 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
   
   ValueNotifier<String> catName = ValueNotifier<String>('');
   String? catDesc;
+  late List<Map<String, dynamic>> fetchedData = [];
+
+  Future<String> fetchRating(ruid) async {
+    double darelRating = 0.0;
+    double inesRating = 0.0;
+    Map<String, dynamic> reviewData = {};
+    var res = await supabase
+    .from('foodReviews')
+    .select('*')
+    .eq('ruid', ruid);
+    reviewData = res[0];
+    darelRating = reviewData['darelRate'].toDouble();
+    inesRating = reviewData['inesRate'].toDouble();
+    
+    if(inesRating == 0.0) {
+      var ratingCalculation = darelRating + inesRating;
+      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+      return clampedRating.toString();
+      
+    } else if (darelRating == 0.0) {
+      var ratingCalculation = darelRating + inesRating;
+      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+      return clampedRating.toStringAsFixed(1);
+
+    } else {
+      // Calculate the combined rating and divide by 2 to normalize to a scale of 5
+      var ratingCalculation = (darelRating + inesRating) / 2;
+
+      // Clamp the normalized rating between 0.0 and 5.0
+      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+
+      // Set the calculated rating value
+      return clampedRating.toStringAsFixed(1);
+    }
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -152,6 +188,7 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
           }
           
           final posts = snapshot.data!;
+          fetchedData = posts;
           catDesc = posts[0]['categories']['desc'];
           final length = posts.length;
           
@@ -174,111 +211,114 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
                       final location = post['locations'];
                       final puid = post['puid'];
                       int threadLength = post['threads'].length;
-                      // int totalRating = 
-                      final special = post['type'];
                       DateTime myDateTime = DateTime.parse(post['created_at']);
                       catName.value = snapshot.data![0]['categories']['name'];
 
                       return ListTile(
+                        // dense: true,
                         onTap: () {
                           context.push('/post/$puid');
                         },
-                        contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+                        contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 5),
                         isThreeLine: true,
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(10.0),
-                          child: post['mediaUrl_preview'] != null ? 
-                            Image.network(
-                              post['mediaUrl_preview'], 
-                              height: 100.0,
-                              width: 100.0,
-                              fit:BoxFit.cover
-                            ) : 
-                            Image.network(
-                              post['mediaUrl'], 
-                              height: 100.0,
-                              width: 100.0,
-                              fit:BoxFit.cover
-                            )
-                        ),
-                        title: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        // leading: ClipRRect(
+                        //   borderRadius: BorderRadius.circular(50.0),
+                        //   child: Image.network(
+                        //       user['avatar_url'], 
+                        //       height: 40.0,
+                        //       width: 40.0,
+                        //       fit:BoxFit.cover
+                        //     )
+                        // ),
+                        title: Row(
                           children: [
-                            Row(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(0,0,4,0),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.location_on_outlined),
-                                      location['name'] == null ? Text('Loc Name Unavail') : Text(location['name'], maxLines:1, overflow: TextOverflow.ellipsis,),
-                                    ],
-                                  ),
-                                ),
-                                if(special == 'Special') Padding(
-                                  padding: const EdgeInsets.fromLTRB(5,0,0,0),
-                                  child: Icon(Icons.star_border_outlined),
-                                )
-                              ],
-                            ),
-                          ],
-                        ),
-                        trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
-                            if(post['mediaUrl_preview'] != null) Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.0),
-                                child: Image.network(post['mediaUrl_preview'], width: 400)),
-                            ),
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
-                                    padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
-                                    child: Icon(Icons.image_outlined, size: 22),
-                                  ),
-                                  if(post['allowReply']) Padding(
-                                    padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.chat_bubble_outline, size: 20),
-                                        if(threadLength > 0) Padding(
-                                          padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                          child: Text('$threadLength'),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if(!post['allowReply']) Padding(
-                                    padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        // Icon(Icons.comments_disabled_outlined, size: 20),
-                                        if(threadLength > 0) Padding(
-                                          padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                          child: Text('$threadLength'),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.star),
-                                      Text('Star')
-                                    ],
-                                  )
-                                ],
+                              padding: const EdgeInsets.fromLTRB(8,0,8,0),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(50.0),
+                                child: Image.network(
+                                  user['avatar_url'], 
+                                  height: 40.0,
+                                  width: 40.0,
+                                  fit:BoxFit.cover
+                                )
                               ),
-                            )
+                            ),
+                            Text(user['name']),
                           ],
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.fromLTRB(0,8,0,8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                               location['name'] == null ? Text('Loc Name Unavail') : Padding(
+                                 padding: const EdgeInsets.fromLTRB(8,0,8,0),
+                                 child: Text(location['name'], overflow: TextOverflow.ellipsis,),
+                               ),
+                              if(post['mediaUrl_preview'] != null) Padding(
+                                padding: const EdgeInsets.fromLTRB(0 ,8, 0, 8),
+                                child: Image.network(post['mediaUrl_preview'], width: 400),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(8,0,8,0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(post['details'], maxLines: 1, style: TextStyle(height: 3, fontWeight: FontWeight.bold)),
+                                    Text(timeago.format(myDateTime, locale: 'en')),
+                                  ],
+                                ),
+                              ),
+                              
+                              Divider(),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
+                                    //   padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
+                                    //   child: Icon(Icons.image_outlined, size: 22),
+                                    // ),
+                                    if(post['allowReply']) Padding(
+                                      padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.chat_bubble_outline, size: 20),
+                                          if(threadLength > 0) Padding(
+                                            padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                            child: Text('$threadLength'),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if(!post['allowReply']) Padding(
+                                      padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          // Icon(Icons.comments_disabled_outlined, size: 20),
+                                          if(threadLength > 0) Padding(
+                                            padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                            child: Text('$threadLength'),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Row(
+                                    //   children: [
+                                    //     Icon(Icons.star),
+                                    //     Text(fetchRating(post['ruid']))
+                                    //   ],
+                                    // ),
+  
+                                  ],
+                                ),
+                              )
+                            ],
+                          ),
                         ),
                       );
                       }

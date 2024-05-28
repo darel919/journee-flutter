@@ -90,11 +90,11 @@ class _UserPageRouteState extends State<UserPageRoute> {
                             onTap: () {
                                 context.push('/post/$puid');
                             },
-                            contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
+                            contentPadding: EdgeInsets.fromLTRB(8, 5, 8, 5),
                             isThreeLine: true,
                             leading: ClipRRect(
                               borderRadius: BorderRadius.circular(48.0),
-                              child: Image.network(user['avatar_url']
+                              child: Image.network(user['avatar_url'], width: 32, height: 32
                               )
                             ),
                             title: Row(
@@ -116,17 +116,20 @@ class _UserPageRouteState extends State<UserPageRoute> {
                                 )
                               ],
                             ),
-                            trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
+                            // trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
+                                
                                 if(post['mediaUrl_preview'] != null) Padding(
                                   padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(8.0),
                                     child: Image.network(post['mediaUrl_preview'], width: 400)),
                                 ),
+                                Text(post['details'], maxLines: 2, style: TextStyle(fontSize: 17, height: 2), overflow: TextOverflow.ellipsis),
+                                Text(timeago.format(myDateTime, locale: 'EN',), style: TextStyle(fontSize: 12, height: 1)),
+                                // Divider(),
                                 Padding(
                                   padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
                                   child: Row(
