@@ -2016,85 +2016,88 @@ class _EditDiaryState extends State<EditDiary> {
         ],
       )) : Form(
         key: _formKey,
-        child: Flexible(
-          fit: FlexFit.loose,
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(15.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  if(mediaUrl != null && !uploading) Flexible(fit: FlexFit.loose, child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.network(mediaUrl!))),
-                  if (!uploading) Padding(
-                    padding: const EdgeInsets.fromLTRB(0,16,0,8),
-                    child: TextField(
-                      readOnly: uploading,
-                      autofocus: true,
-                      canRequestFocus: true,
-                      controller: myController,
-                      keyboardType: TextInputType.multiline,
-                      maxLines: null,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Whats on your mind today?',
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(15.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      if(mediaUrl != null && !uploading) Flexible(fit: FlexFit.loose, child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.network(mediaUrl!))),
+                      if (!uploading) Padding(
+                        padding: const EdgeInsets.fromLTRB(0,16,0,8),
+                        child: TextField(
+                          readOnly: uploading,
+                          autofocus: true,
+                          canRequestFocus: true,
+                          controller: myController,
+                          keyboardType: TextInputType.multiline,
+                          maxLines: null,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'Whats on your mind today?',
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  if (!uploading) Divider(),
-                  if (!uploading) Text("Post controls"),
-                  if (!uploading) Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: Column(
-                      // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Row(
-                        //   children: [
-                        //     ElevatedButton(
-                        //       onPressed: () {
-                        //         if (_formKey.currentState!.validate()) {
-                        //           // Process data.
-                        //           pickPicture();
-                        //         }
-                        //       },
-                        //       child: Icon(Icons.photo_size_select_actual_rounded),
-                        //     ),
-                        //      if(Platform.isAndroid) ElevatedButton(
-                        //       onPressed: () {
-                        //         if (_formKey.currentState!.validate()) {
-                        //           // Process data.
-                        //           capturePicture();
-                        //         }
-                        //       },
-                        //       child: Icon(Icons.camera_alt_outlined),
-                        //     ),
-                        //   ],
-                        // ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      if (!uploading) Divider(),
+                      if (!uploading) Text("Post controls"),
+                      if (!uploading) Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: Column(
+                          // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
+                            // Row(
+                            //   children: [
+                            //     ElevatedButton(
+                            //       onPressed: () {
+                            //         if (_formKey.currentState!.validate()) {
+                            //           // Process data.
+                            //           pickPicture();
+                            //         }
+                            //       },
+                            //       child: Icon(Icons.photo_size_select_actual_rounded),
+                            //     ),
+                            //      if(Platform.isAndroid) ElevatedButton(
+                            //       onPressed: () {
+                            //         if (_formKey.currentState!.validate()) {
+                            //           // Process data.
+                            //           capturePicture();
+                            //         }
+                            //       },
+                            //       child: Icon(Icons.camera_alt_outlined),
+                            //     ),
+                            //   ],
+                            // ),
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text("Turn on commenting"),
+                                Row(
+                                  children: [
+                                    Text("Turn on commenting"),
+                                  ],
+                                ), 
+                                Switch(
+                                  value: allowThreadReply, 
+                                  onChanged: (bool allowThreadReplyChange) {
+                                    setState(() {
+                                      allowThreadReply = allowThreadReplyChange;
+                                    });
+                                  }
+                                ),
                               ],
-                            ), 
-                            Switch(
-                              value: allowThreadReply, 
-                              onChanged: (bool allowThreadReplyChange) {
-                                setState(() {
-                                  allowThreadReply = allowThreadReplyChange;
-                                });
-                              }
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
+                    ],
                   ),
-                  if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         )),
     );
   }
