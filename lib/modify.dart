@@ -2,6 +2,7 @@
 
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -26,6 +27,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final myController = TextEditingController();
+  final textController = TextEditingController();
   final supabase = Supabase.instance.client;
   late final User? user = supabase.auth.currentUser;
   late final userData = user?.userMetadata!;
@@ -38,6 +40,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   ValueNotifier<bool?> allowThreadReply = ValueNotifier<bool?>(true);
   ValueNotifier<bool?> embedLocation = ValueNotifier<bool?>(false);
   ValueNotifier<bool?> nowGPSReady = ValueNotifier<bool?>(false);
+  ValueNotifier<bool?> isCustomDate = ValueNotifier<bool?>(false);
   String? earlyPuid; 
   String? globalLat = '';
   String? globalLong = '';
@@ -295,6 +298,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   Future<void> upload() async {  
     try {
       if(!uploading) {
+        // CONTINUE UPLOAD IF THERES TEXT
         if(myController.text.isNotEmpty) {
           setState(() {
             uploading = true;
@@ -319,19 +323,11 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               else {
                 // CONTINUE UPLOAD IF MEDIA ATTACHED IN FOOD REVIEW MODE
                 if(mediaUploadMode) {
-                  final List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
-                  .insert({
-                    'uuid': userData!['provider_id'], 
-                    'cuid': selectedCategory.value,
-                    'details': myController.text, 
-                    'allowReply': allowThreadReply.value, 
-                    'type': 'Diary',
-                  })
-                  .select();
+                  String? earlyUploadPost = await earlyUploader();
 
                   if(captureMode) {
                     File postMediaAndroid = File(filePicked.path);
-                    String? earlyPuid = earlyUploadPost[0]['puid'];
+                    String? earlyPuid = earlyUploadPost;
                     final uploadPath = earlyPuid!+'/'+filePicked.name;
                     final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
 
@@ -349,21 +345,14 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       })
                       .match({ 'puid': earlyPuid });
                       
-                      List<Map<String, dynamic>> uploadLocUID = await locationsUploader();
-
-                      final List<Map<String, dynamic>> uploadReviewUID = await supabase.from('foodReviews')
-                      .insert({
-                        'puid': earlyPuid,
-                        'darelRate': darelRating,
-                        'inesRate': inesRating
-                      })
-                      .select();
+                      String? uploadLocUID = await locationsUploader();
+                      String? uploadReviewUID = await reviewsUploader(earlyPuid);
 
                       // UPDATE CREATED LOCATION UNIQUE ID AND REVIEW UNIQUE ID
                       await supabase.from('posts')
                       .update({
-                        'luid': uploadLocUID[0]['luid'],
-                        'ruid': uploadReviewUID[0]['ruid'],
+                        'luid': uploadLocUID,
+                        'ruid': uploadReviewUID,
                       })
                       .match({ 'puid': earlyPuid });
                       clearGPSLoc();
@@ -386,7 +375,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                     Uint8List? postMedia = filePicked.files.first.bytes;
                     String fileName = file2.name;
 
-                    String? earlyPuid = earlyUploadPost[0]['puid'];
+                    String? earlyPuid = earlyUploadPost;
                     final uploadPath = earlyPuid!+'/'+fileName;
                     final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
                     
@@ -483,20 +472,13 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                         .match({ 'puid': earlyPuid });
                     }
                     
-                    List<Map<String, dynamic>> uploadLocUID = await locationsUploader();
-
-                    final List<Map<String, dynamic>> uploadReviewUID = await supabase.from('foodReviews')
-                    .insert({
-                      'puid': earlyPuid,
-                      'darelRate': darelRating,
-                      'inesRate': inesRating
-                    })
-                    .select();
+                    String? uploadLocUID = await locationsUploader();
+                    String? uploadReviewUID = await reviewsUploader(earlyPuid);
                     
                     await supabase.from('posts')
                     .update({
-                      'luid': uploadLocUID[0]['luid'],
-                      'ruid': uploadReviewUID[0]['ruid'],
+                      'luid': uploadLocUID,
+                      'ruid': uploadReviewUID,
                     })
                     .match({ 'puid': earlyPuid });
                     clearGPSLoc();
@@ -526,20 +508,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   );
                 }
               }
-            
-            // DISABLE UPLOAD IF GPS NOT ENABLED IN FOOD REVIEW MODE
-            // } 
-            // else {
-            //   setState(() {
-            //     uploading = false;
-            //   });
-            //   ScaffoldMessenger.of(context).showSnackBar(
-            //     SnackBar(
-            //       content: Text('Food review mode require Location to be turned on!'),
-            //       elevation: 20.0,
-            //     ),
-            //   );
-            // }
           } 
           
           // NOT FOOD REVIEW MODE
@@ -562,19 +530,11 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             else {
               // UPLOAD FOR MEDIA MODE
               if(mediaUploadMode) {
-                final List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
-                .insert({
-                  'uuid': userData!['provider_id'], 
-                  'cuid': selectedCategory.value,
-                  'details': myController.text, 
-                  'allowReply': allowThreadReply.value, 
-                  'type': 'Diary',
-                })
-                .select();
+                String? earlyUploadPost = await earlyUploader();
 
                 if(captureMode) {
                   File postMediaAndroid = File(filePicked.path);
-                  String? earlyPuid = earlyUploadPost[0]['puid'];
+                  String? earlyPuid = earlyUploadPost;
                   final uploadPath = earlyPuid!+'/'+filePicked.name;
                   final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
 
@@ -585,24 +545,24 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
                     );
                     
-                      await supabase.from('posts')
-                      .update({
-                        'mediaUrl': completeImgDir, 
-                        'mediaUrlOnDb': uploadPath, 
-                      })
-                      .match({ 'puid': earlyPuid });
-                      setState(() {
-                        uploading = false;
-                      });
-                    
-                      List<Map<String, dynamic>> uploadLocUID = await locationsUploader();
+                    await supabase.from('posts')
+                    .update({
+                      'mediaUrl': completeImgDir, 
+                      'mediaUrlOnDb': uploadPath, 
+                    })
+                    .match({ 'puid': earlyPuid });
+                    setState(() {
+                      uploading = false;
+                    });
+                  
+                    String? uploadLocUID = await locationsUploader();
 
-                      await supabase.from('posts')
-                      .update({
-                        'luid': uploadLocUID[0]['luid']
-                      })
-                      .match({ 'puid': earlyPuid });
-                      clearGPSLoc();
+                    await supabase.from('posts')
+                    .update({
+                      'luid': uploadLocUID
+                    })
+                    .match({ 'puid': earlyPuid });
+                    clearGPSLoc();
                   }
 
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -617,7 +577,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   Uint8List? postMedia = filePicked.files.first.bytes;
                   String fileName = file2.name;
 
-                  String? earlyPuid = earlyUploadPost[0]['puid'];
+                  String? earlyPuid = earlyUploadPost;
                   final uploadPath = earlyPuid!+'/'+fileName;
                   final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
                   
@@ -657,10 +617,10 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                     })
                     .match({ 'puid': earlyPuid });
 
-                     List<Map<String, dynamic>> uploadLocUID = await locationsUploader();
+                    String? uploadLocUID = await locationsUploader();
                      await supabase.from('posts')
                     .update({
-                      'luid': uploadLocUID[0]['luid']
+                      'luid': uploadLocUID
                     })
                     .match({ 'puid': earlyPuid });
                     clearGPSLoc();
@@ -725,11 +685,11 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       .match({ 'puid': earlyPuid });
 
                     
-                     List<Map<String, dynamic>> uploadLocUID = await locationsUploader();
+                     String? uploadLocUID = await locationsUploader();
 
                     await supabase.from('posts')
                     .update({
-                      'luid': uploadLocUID[0]['luid']
+                      'luid': uploadLocUID
                     })
                     .match({ 'puid': earlyPuid });
                     clearGPSLoc();
@@ -750,25 +710,17 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               } 
               // UPLOAD FOR NON-MEDIA MODE
               else {
-                var link = await supabase
-                .from('posts')
-                .insert({
-                  'uuid': userData!['provider_id'], 
-                  'cuid': selectedCategory.value,
-                  'details': myController.text, 
-                  'allowReply': allowThreadReply.value, 
-                  'type': 'Diary'
-                })
-                .select();
-                String puid = link[0]['puid'];
+                String? earlyUploadPost = await earlyUploader();
                 
-                List<Map<String, dynamic>> uploadLocUID = await locationsUploader();
+                String? puid = earlyUploadPost;
+                
+                String? uploadLocUID = await locationsUploader();
 
                 await supabase.from('posts')
                 .update({
-                  'luid': uploadLocUID[0]['luid']
+                  'luid': uploadLocUID
                 })
-                .match({ 'puid': puid });
+                .match({ 'puid': puid! });
                 clearGPSLoc();
 
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -788,19 +740,11 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
           // UPLOAD WITHOUT GPS
           else {
             if(mediaUploadMode) {
-            final List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
-            .insert({
-              'uuid': userData!['provider_id'], 
-              'cuid': selectedCategory.value,
-              'details': myController.text, 
-              'allowReply': allowThreadReply.value, 
-              'type': 'Diary'
-            })
-            .select();
+             String? earlyUploadPost = await earlyUploader();
 
             if(captureMode) {
               File postMediaAndroid = File(filePicked.path);
-              String? earlyPuid = earlyUploadPost[0]['puid'];
+              String? earlyPuid = earlyUploadPost;
               final uploadPath = earlyPuid!+'/'+filePicked.name;
               final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
 
@@ -833,7 +777,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             Uint8List? postMedia = filePicked.files.first.bytes;
             String fileName = file2.name;
 
-            String? earlyPuid = earlyUploadPost[0]['puid'];
+            String? earlyPuid = earlyUploadPost;
             final uploadPath = earlyPuid!+'/'+fileName;
             final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
             
@@ -940,17 +884,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             }
             }
             } else {
-            var link = await supabase
-            .from('posts')
-            .insert({
-              'uuid': userData!['provider_id'], 
-              'cuid': selectedCategory.value,
-              'details': myController.text, 
-              'allowReply': allowThreadReply.value, 
-              'type': 'Diary'
-            })
-            .select();
-            String puid = link[0]['puid'];
+            String? earlyUploadPost = await earlyUploader();
+            String? puid = earlyUploadPost;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Post uploaded!'),
@@ -998,10 +933,35 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> locationsUploader() async {
+  Future<String?> earlyUploader() async {
+    List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
+    .insert({
+      'uuid': userData!['provider_id'], 
+      'cuid': selectedCategory.value,
+      'details': myController.text, 
+      'allowReply': allowThreadReply.value, 
+      'type': 'Diary',
+      'created_at': postDateTime!.toIso8601String()
+    })
+    .select();
+    return earlyUploadPost[0]['puid'];
+  }
+
+  Future<String?> reviewsUploader(String earlyPuid) async {
+    List<Map<String, dynamic>> uploadReviewUID = await supabase.from('foodReviews')
+    .insert({
+      'puid': earlyPuid,
+      'darelRate': darelRating,
+      'inesRate': inesRating
+    })
+    .select();
+    return uploadReviewUID[0]['ruid'];
+  }
+
+  Future<String?> locationsUploader() async {
     final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);  
     if(preferredLoc!.isEmpty) {
-      final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
+      final List<Map<String, dynamic>> uploadLocUIDGen = await supabase.from('locations')
       .insert({
         'lat': globalLat, 
         'long': globalLong, 
@@ -1009,20 +969,13 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
         'full_address': endpointData['address']['label']
       })
       .select();
-      return uploadLocUID;
+      return uploadLocUIDGen[0]['luid'];
     } else {
-      final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
-      .insert({
-        'lat': preferredLoc!['lat'], 
-        'long': preferredLoc!['long'], 
-        'name': preferredLoc!['name'],
-        'full_address': preferredLoc!['full_address']
-      })
-      .select();
-      return uploadLocUID;
+      return preferredLoc!['luid'];
     }
   }
 
+  // IMAGE PICKER AND PREVIEW 
   Future<void> pickPicture() async {
     await dotenv.load(fileName: 'lib/.env');
     
@@ -1044,7 +997,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       );
     }
   }
-
   Future<void> capturePicture() async {
      if(Platform.isAndroid) {
       final ImagePicker _picker = ImagePicker();
@@ -1062,7 +1014,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       );
      }
   }
-  
   File preview() {
     if(captureMode) {
       return File(filePicked.path);
@@ -1075,6 +1026,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     }
   }
 
+  // FOOD RATING SYSTEM
   Future<void> fetchAllLocation() async {
     var loc = await supabase
     .from('locations')
@@ -1138,7 +1090,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   @override
   void dispose() {
     myController.dispose();
-    clearGPSLoc();
+    // clearGPSLoc();
     super.dispose();
   }
 
@@ -1161,7 +1113,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       }
     );
   }
-    StatefulBuilder bottomSheetLocationSearchUI() {
+  StatefulBuilder bottomSheetLocationSearchUI() {
     return StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
           return Scaffold(
@@ -1174,6 +1126,27 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
         }
       );
   }
+  
+  // DATE PICKER
+  void _showCalendarDialog(Widget child) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (BuildContext context) => Container(
+        height: 216,
+        padding: const EdgeInsets.only(top: 6.0),
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        child: SafeArea(
+          top: false,
+          child: child,
+        ),
+      ),
+    );
+  }
+  DateTime? postDateTime = DateTime.now();
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1189,7 +1162,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.all(15.0),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
@@ -1197,46 +1170,51 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       if(kIsWeb) if(filePicked != null && !uploading) Flexible(fit: FlexFit.loose, child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.memory(webPreview, height: 200))),
 
                       if(isFoodReviewMode() && !uploading) showFoodReviewUI(),
-                      if(!uploading)TextField(
-                        readOnly: uploading,
-                        autofocus: true,
-                        canRequestFocus: true,
-                        controller: myController,
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: 'Whats on your mind today?',
+                      if(!uploading)Padding(
+                        padding: const EdgeInsets.fromLTRB(0,16,0,0),
+                        child: TextField(
+                          readOnly: uploading,
+                          minLines: 5,
+                          autofocus: true,
+                          canRequestFocus: true,
+                          controller: myController,
+                          keyboardType: TextInputType.multiline,
+                          maxLines: null,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'Whats on your mind today?',
+                          ),
                         ),
                       ),
-                      
+                      Divider(),
                       if(!uploading) SingleChildScrollView(
                         child: Column(
                           children: [ 
-                            //  Category field select
-                             TextButton(
+                            // Category field select
+                            TextButton(
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 splashFactory: NoSplash.splashFactory,
                                 enableFeedback: false,
                               ),
-                              onPressed: () => {
-                                // if (_formKey.currentState!.validate()) {
-                                //   pickPicture()
-                                // }
-                              },
+                              onPressed: () => {},
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [ 
                                   Row(
                                     children: [
                                       Icon(Icons.category_outlined),
-                                      Text("Category"),
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(8,0,0,0),
+                                        child: Text("Category"),
+                                      ),
                                     ],
                                   ), 
                                   // Icon(Icons.keyboard_arrow_right)
                                   DropdownButtonHideUnderline(
                                     child: DropdownButton<String>(
-                                      
+                                      isDense: true,
                                       hint: Text('Select your category'),
                                       disabledHint: Text('Loading'),
                                       value: selectedCategory.value,
@@ -1279,7 +1257,11 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                                   Row(
                                     children: [
                                       Icon(Icons.photo),
-                                      mediaUploadMode ? Text("Change photo") : Text("Attach photo"),
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(8,0,0,0),
+                                        child: mediaUploadMode ? Text("Change photo") : Text("Attach photo"),
+                                      ),
+                                      
                                     ],
                                   ), 
                                   Icon(Icons.keyboard_arrow_right)
@@ -1306,7 +1288,11 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                                   Row(
                                     children: [
                                       Icon(Icons.camera_alt_outlined),
-                                      mediaUploadMode ? Text("Take another photo") : Text("Take a photo"),
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(8,0,0,0),
+                                        child: mediaUploadMode ? Text("Take another photo") : Text("Take a photo"),
+                                      ),
+                                      
                                     ],
                                   ), 
                                   Icon(Icons.keyboard_arrow_right)
@@ -1315,6 +1301,66 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                             ),
                             if(!kIsWeb && Platform.isAndroid)Divider(),
                             
+                             // Upload date controls
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                splashFactory: NoSplash.splashFactory,
+                              ),
+                              onPressed: () => {
+                                _showCalendarDialog(
+                                  CupertinoDatePicker(
+                                    initialDateTime: DateTime.now(),
+                                    minimumDate: DateTime(DateTime.now().year),
+                                    maximumDate: DateTime.now(),
+                                    mode: CupertinoDatePickerMode.dateAndTime,
+                                    use24hFormat: true,
+                                    onDateTimeChanged: (DateTime newTime) {
+                                      setState(() {
+                                        isCustomDate.value = true;
+                                        postDateTime = newTime;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [ 
+                                  Row(
+                                    children: [
+                                      Icon(Icons.calendar_month_outlined),
+                                      ValueListenableBuilder(valueListenable: isCustomDate, builder: (context, value, child) {
+                                        if(isCustomDate.value == true) {
+                                          return Padding(
+                                            padding: const EdgeInsets.fromLTRB(8,0,0,0),
+                                            child: Text('Upload set to')
+                                          );
+                                          
+                                        } else {
+                                          return Padding(
+                                            padding: const EdgeInsets.fromLTRB(8,0,0,0),
+                                            child: Text('Upload date')
+                                          );
+                                        }
+                                      })
+                                      // customDate() ? Text("Set date") 
+                                      // mediaUploadMode ? Text("Change photo") : Text("Attach photo"),
+                                    ],
+                                  ), 
+                                 Text(
+                                    '${postDateTime!.day}/${postDateTime!.month}',
+                                    style: const TextStyle(
+                                      fontSize: 22.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            Divider(),
+
                             // Location controls
                             if(embedLocation.value == true) TextButton(
                               style: TextButton.styleFrom(
@@ -1324,8 +1370,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                               ),
                               onPressed: () => {
                                 if(preferredLoc!.isNotEmpty) setState(() {
-                                  preferredLoc = {};
-                                  
+                                  // showLocationEditDialog(context);
                                 }),
                                 // if(preferredLoc!.isEmpty) bottomSheetLocationSearch()
                               },
@@ -1336,17 +1381,27 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(Icons.location_on_outlined),
-                                      if(preferredLoc!.isEmpty) ValueListenableBuilder(valueListenable: nowGPSReady, builder: (context, value, child) {
-                                        if(isGPSReady()) {
-                                          return Text("Current location ($globalLat, $globalLong)");
-                                        } 
-                                          return Text("Searching for location");
-                                      }),
-                                      if(preferredLoc!.isNotEmpty) ConstrainedBox(constraints: BoxConstraints(maxWidth: 250), child: Text(preferredLoc!['name'], overflow: TextOverflow.ellipsis, softWrap: false))
+                                      if(preferredLoc!.isEmpty) Padding(
+                                        padding: const EdgeInsets.fromLTRB(8,0,0,0),
+                                        child: ValueListenableBuilder(valueListenable: nowGPSReady, builder: (context, value, child) {
+                                          if(isGPSReady()) {
+                                            return Text("Current location ($globalLat, $globalLong)");
+                                          } 
+                                            return Text("Searching for location");
+                                        }),
+                                      ),
+                                      if(preferredLoc!.isNotEmpty) Padding(
+                                        padding: const EdgeInsets.fromLTRB(8,0,0,0),
+                                        child: ConstrainedBox(constraints: BoxConstraints(maxWidth: 250), child: Text(preferredLoc!['name'], overflow: TextOverflow.ellipsis, softWrap: false)),
+                                      )
                                     ],
                                   ), 
                                   if(preferredLoc!.isEmpty) Icon(Icons.keyboard_arrow_right),
-                                  if(preferredLoc!.isNotEmpty) Icon(Icons.close)
+                                  if(preferredLoc!.isNotEmpty) GestureDetector(onTap:() => {
+                                    setState(() {
+                                      preferredLoc = {};
+                                    })
+                                  },child: Icon(Icons.close))
                                 ],
                               ),
                             ),
@@ -1369,10 +1424,16 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(Icons.location_on_outlined),
-                                      if(preferredLoc!.isEmpty) ValueListenableBuilder(valueListenable: nowGPSReady, builder: (context, value, child) {
-                                          return Text("Device location disabled");
-                                      }),
-                                      if(preferredLoc!.isNotEmpty) ConstrainedBox(constraints: BoxConstraints(maxWidth: 250), child: Text(preferredLoc!['name'], overflow: TextOverflow.ellipsis, softWrap: false))
+                                      if(preferredLoc!.isEmpty) Padding(
+                                        padding: const EdgeInsets.fromLTRB(8,0,0,0),
+                                        child: ValueListenableBuilder(valueListenable: nowGPSReady, builder: (context, value, child) {
+                                            return Text("Device location disabled");
+                                        }),
+                                      ),
+                                      if(preferredLoc!.isNotEmpty) Padding(
+                                        padding: const EdgeInsets.fromLTRB(8,0,0,0),
+                                        child: ConstrainedBox(constraints: BoxConstraints(maxWidth: 250), child: Text(preferredLoc!['name'], overflow: TextOverflow.ellipsis, softWrap: false)),
+                                      )
                                     ],
                                   ), 
                                   if(preferredLoc!.isNotEmpty) Icon(Icons.close)
@@ -1408,6 +1469,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                                         } else {
                                           setState(() {
                                             preferredLoc = foodLocations[index];
+                                            print(preferredLoc);
                                             globalLat = foodLocations[index]['lat'];
                                             globalLong = foodLocations[index]['long'];
                                             nowGPSReady.value = true;
@@ -1419,7 +1481,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                                 }
                               ),
                             ),
-                            
                             
                             Divider(),
                             
@@ -1441,6 +1502,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                                 // Icon(Icons.keyboard_arrow_right)
                               ],
                             ),
+
                             //  LOCATION SETTING
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1781,6 +1843,8 @@ class _CreateThreadState extends State<CreateThread> {
                         autofocus: true,
                         canRequestFocus: true,
                         controller: myController,
+                        keyboardType: TextInputType.multiline,
+                        maxLines: null,
                         decoration: const InputDecoration(
                           border: InputBorder.none,
                           hintText: 'Whats on your mind today?',
@@ -1928,7 +1992,21 @@ class _EditDiaryState extends State<EditDiary> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Edit Diary")),
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text("Edit info"), 
+        // leading: Center(child: Text('Cancel')),
+        actions: <Widget> [
+          TextButton(
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                  upload();
+              }
+            },
+            child: const Text('Done'),
+          ),
+        ]
+      ),
       body: loading ? Center(child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -1938,75 +2016,84 @@ class _EditDiaryState extends State<EditDiary> {
         ],
       )) : Form(
         key: _formKey,
-        child: Padding(
-          padding: const EdgeInsets.all(15.0),
-          child: Column(
-            children: <Widget>[
-
-              TextField(
-                readOnly: uploading,
-                autofocus: true,
-                canRequestFocus: true,
-                controller: myController,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'Whats on your mind today?',
-                ),
-              ),
-              if(mediaUrl != null && !uploading) Expanded(child: Image.network(mediaUrl!)),
-              if (!uploading) Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Row(
-                    //   children: [
-                    //     ElevatedButton(
-                    //       onPressed: () {
-                    //         if (_formKey.currentState!.validate()) {
-                    //           // Process data.
-                    //           pickPicture();
-                    //         }
-                    //       },
-                    //       child: Icon(Icons.photo_size_select_actual_rounded),
-                    //     ),
-                    //      if(Platform.isAndroid) ElevatedButton(
-                    //       onPressed: () {
-                    //         if (_formKey.currentState!.validate()) {
-                    //           // Process data.
-                    //           capturePicture();
-                    //         }
-                    //       },
-                    //       child: Icon(Icons.camera_alt_outlined),
-                    //     ),
-                    //   ],
-                    // ),
-                    Row(
+        child: Flexible(
+          fit: FlexFit.loose,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(15.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  if(mediaUrl != null && !uploading) Flexible(fit: FlexFit.loose, child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.network(mediaUrl!))),
+                  if (!uploading) Padding(
+                    padding: const EdgeInsets.fromLTRB(0,16,0,8),
+                    child: TextField(
+                      readOnly: uploading,
+                      autofocus: true,
+                      canRequestFocus: true,
+                      controller: myController,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: null,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Whats on your mind today?',
+                      ),
+                    ),
+                  ),
+                  if (!uploading) Divider(),
+                  if (!uploading) Text("Post controls"),
+                  if (!uploading) Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: Column(
+                      // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("Threads"),
-                        Switch(
-                          value: allowThreadReply, 
-                          onChanged: (bool allowThreadReplyChange) {
-                            setState(() {
-                              allowThreadReply = allowThreadReplyChange;
-                            });
-                          }
+                        // Row(
+                        //   children: [
+                        //     ElevatedButton(
+                        //       onPressed: () {
+                        //         if (_formKey.currentState!.validate()) {
+                        //           // Process data.
+                        //           pickPicture();
+                        //         }
+                        //       },
+                        //       child: Icon(Icons.photo_size_select_actual_rounded),
+                        //     ),
+                        //      if(Platform.isAndroid) ElevatedButton(
+                        //       onPressed: () {
+                        //         if (_formKey.currentState!.validate()) {
+                        //           // Process data.
+                        //           capturePicture();
+                        //         }
+                        //       },
+                        //       child: Icon(Icons.camera_alt_outlined),
+                        //     ),
+                        //   ],
+                        // ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Text("Turn on commenting"),
+                              ],
+                            ), 
+                            Switch(
+                              value: allowThreadReply, 
+                              onChanged: (bool allowThreadReplyChange) {
+                                setState(() {
+                                  allowThreadReply = allowThreadReplyChange;
+                                });
+                              }
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                            upload();
-                        }
-                      },
-                      child: const Text('Save and Upload'),
-                    ),
-                  ],
-                ),
+                  ),
+                  if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
+                ],
               ),
-              if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
-            ],
+            ),
           ),
         )),
     );

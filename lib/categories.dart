@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors, prefer_interpolation_to_compose_strings, no_logic_in_create_state, avoid_print, unnecessary_null_comparison, prefer_const_literals_to_create_immutables
+// ignore_for_file: prefer_const_constructors, prefer_interpolation_to_compose_strings, no_logic_in_create_state, avoid_print, unnecessary_null_comparison, prefer_const_literals_to_create_immutables, dead_code
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -188,7 +188,7 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
             catDesc = posts[0]['categories']['desc'];
             final length = posts.length;
             catName.value = snapshot.data![0]['categories']['name'];
-            
+                                   
             Widget categoryViewUI() {
             // FOOD REVIEW CATEGORY VIEW
             if(posts[0]['cuid'] == '368d3855-965d-4f13-b741-7975bbac80bf' && posts.isNotEmpty) {
@@ -205,14 +205,14 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
                         final puid = post['puid'];
                         DateTime myDateTime = DateTime.parse(post['created_at']);
                         catName.value = snapshot.data![0]['categories']['name'];
-
+                        // bool readMore = false;
+                        ValueNotifier<bool?> readMore = ValueNotifier<bool?>(false);
                         return ListTile(
                           // dense: true,
-                          onTap: () {
-                            context.push('/post/$puid');
-                          },
+                          // onTap: () {
+                          //   context.push('/post/$puid');
+                          // },
                           contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 5),
-                          isThreeLine: true,
                           title: Row(
                             children: [
                               Padding(
@@ -231,25 +231,28 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(user['name']),
-                                  location['name'] == null ? Text('Loc Name Unavail') : ConstrainedBox(constraints: BoxConstraints(maxWidth: 275), child: Text(location['name'], overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12),)),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.star),
-                                      FutureBuilder<String>(
-                                        future: fetchRating(post['ruid']), // your async function call
-                                        builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-                                          if (snapshot.connectionState == ConnectionState.done) {
-                                            if (snapshot.hasError) {
-                                              return Text('Error: ${snapshot.error}');
-                                            } else if (snapshot.hasData) {
-                                              return Text(snapshot.data!); // display the data
+                                  location == null ? Text('Loc Unavail') : ConstrainedBox(constraints: BoxConstraints(maxWidth: 275), child: Text(location['name'], overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12),)),
+                                  GestureDetector(
+                                    onTap: () => context.push('/post/$puid'),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.star),
+                                        FutureBuilder<String>(
+                                          future: fetchRating(post['ruid']), // your async function call
+                                          builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                                            if (snapshot.connectionState == ConnectionState.done) {
+                                              if (snapshot.hasError) {
+                                                return Text('Error: ${snapshot.error}');
+                                              } else if (snapshot.hasData) {
+                                                return Text(snapshot.data!); // display the data
+                                              }
                                             }
-                                          }
-                                          // By default, show a loading spinner
-                                          return Text('Loading star...');
-                                        },
-                                      ),
-                                    ],
+                                            // By default, show a loading spinner
+                                            return Text('Loading star...');
+                                          },
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -260,26 +263,57 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if(post['mediaUrl_preview'] != null) Padding(
-                                  padding: const EdgeInsets.fromLTRB(0 ,8, 0, 8),
-                                  child: Image.network(post['mediaUrl_preview'], width: 400),
+                                if(post['mediaUrl_preview'] != null) GestureDetector(
+                                  onTap: () {
+                                    context.push('/post/$puid');
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(0 ,8, 0, 0),
+                                    child: Image.network(post['mediaUrl_preview'], width: 400),
+                                  ),
                                 ),
-                                if(post['mediaUrl_preview'] == null) Padding(
-                                  padding: const EdgeInsets.fromLTRB(0 ,8, 0, 8),
-                                  child: Image.network(post['mediaUrl']),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(10,0,10,0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(post['details'], maxLines: 1, style: TextStyle(height: 3, fontWeight: FontWeight.w600, fontSize: 16)),
-                                      Text(timeago.format(myDateTime, locale: 'en')),
-                                    ],
+                                if(post['mediaUrl_preview'] == null) GestureDetector(
+                                  onTap: () {
+                                    context.push('/post/$puid');
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(0 ,8, 0, 0),
+                                    child: Image.network(post['mediaUrl']),
                                   ),
                                 ),
                                 
-                                Divider(),
+                                // FOOD CAPTION
+                                GestureDetector(
+                                  onTap: () => readMore.value = true,
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(15,24,15,10),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        ValueListenableBuilder(valueListenable: readMore, builder: (context, value, child) {
+                                          if(readMore.value == true) {
+                                            return Text(post['details']);
+                                          } else {
+                                            return Text(post['details'], maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14));
+                                          }
+                                        }),                                        
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(0,16,0,0),
+                                          child: Text(
+                                            timeago.format(myDateTime, locale: 'en'),
+                                            style: TextStyle(
+                                              color: Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.white.withOpacity(0.5)
+                                                : Colors.black.withOpacity(0.5),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                
+                                // Divider(),
                                 // Padding(
                                 //   padding: const EdgeInsets.fromLTRB(10, 5, 10, 0),
                                 //   child: Row(

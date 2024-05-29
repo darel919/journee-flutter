@@ -271,7 +271,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                   ) else if (userData!['provider_id'] == '103226649477885875796' || userData!['provider_id'] == '109587676420726193785' || userData!['provider_id'] == '117026477282809025732') 
                   Column(
                     children: [
-                      darelRating == 0.0 ? Text("Darrell hasn't given rating to this yet.") : Text('Darrell rates this: '+newinesRating.toString()),
+                      darelRating == 0.0 ? Text("Darrell hasn't given rating to this yet.") : Text('Darrell rates this: '+newdarelRating.toString()),
                       Text('You rate: '+newinesRating.toString()),
                       PannableRatingBar(
                         rate: newinesRating,
@@ -430,7 +430,8 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                         alignment: Alignment.topLeft,
                                         minimumSize: Size(10, 10)
                                       ),
-                                      onPressed: () => context.push('/category/368d3855-965d-4f13-b741-7975bbac80bf'), 
+                                      onPressed: () => _showEditRateUI(),
+                                      // onPressed: () => context.push('/category/368d3855-965d-4f13-b741-7975bbac80bf'), 
                                       label: ValueListenableBuilder(valueListenable: calcRating, builder: (context, value, child) {
                                         if(calcRating.value! == '0') {
                                           Text('No rating yet');
@@ -448,10 +449,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     // if(isFoodReview()) showRatingUI(),
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
-                                      child: Text(post['details'], style: TextStyle(height: 2.2)),
-                                    ),
+                                   
                                     if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
                                       padding: const EdgeInsets.fromLTRB(0,0,0,20),
                                       child: ClipRRect(
@@ -478,11 +476,21 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                         Text("This image can only be viewed on Journee Web.", style: TextStyle(fontWeight: FontWeight.bold),),
                                       ],
                                     ),
-                                    Row(
-                                      children: [
-                                        Text(convertedDate())
-                                    ]),
-                                    // Divider()
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+                                      child: Text(post['details']),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(0,16,0,0),
+                                      child: Text(
+                                        convertedDate()+' – '+(timeago.format(myDateTime, locale: 'en')),
+                                        style: TextStyle(
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.white.withOpacity(0.5)
+                                            : Colors.black.withOpacity(0.5),
+                                        ),
+                                      ),
+                                    ),                        // Divider()
                                   ],
                                 ),
                               ),
