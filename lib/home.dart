@@ -112,7 +112,6 @@ class _HomePostViewState extends State<HomePostView> {
                           itemCount: posts.length,
                           itemBuilder: ((context, index) {
                             final post = posts[index];
-                            // print(post);
                             final user = post['users'];
                             final thread = post['threads'];
                             final category = post['categories'];
@@ -212,7 +211,7 @@ class _HomePostViewState extends State<HomePostView> {
                     ),
                   ),
                 ),
-              CategoriesViewPage(cuid: '368d3855-965d-4f13-b741-7975bbac80bf'),
+              CategoriesViewPage(cuid: '368d3855-965d-4f13-b741-7975bbac80bf', home: true),
               CategoriesPage()
               ]
             ),

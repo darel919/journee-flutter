@@ -80,7 +80,8 @@ class NavigatorRoutes {
               GoRoute(
                 path: 'category/:cuid',
                 builder: (context, state) => CategoriesViewPage(
-                  cuid: state.pathParameters['cuid']
+                  cuid: state.pathParameters['cuid'],
+                  home: false
                 ),
               ),
               GoRoute(
@@ -132,7 +133,20 @@ class MyApp extends StatelessWidget {
           brightness: brightness1
         ),
         useMaterial3: true,
-        textTheme: GoogleFonts.ralewayTextTheme(baseTheme.textTheme)
+        textTheme: GoogleFonts.ralewayTextTheme(baseTheme.textTheme),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: brightness1 == Brightness.dark
+          ? Colors.white // White text color for dark mode
+          : Colors.black, // This sets the text color for TextButtons
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(style: TextButton.styleFrom(
+            foregroundColor: brightness1 == Brightness.dark
+          ? Colors.white // White text color for dark mode
+          : Colors.black, // This sets the text color for TextButtons
+          ),
+        )
       );
   }
   final _appRouter = NavigatorRoutes();

@@ -115,17 +115,19 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
 class CategoriesViewPage extends StatefulWidget {
   final String? cuid;
-  const CategoriesViewPage({super.key, required this.cuid});
+  final bool? home;
+  const CategoriesViewPage({super.key, required this.cuid, required this.home});
 
   @override
-  State<CategoriesViewPage> createState() => _CategoriesViewPageState(cuid: cuid);
+  State<CategoriesViewPage> createState() => _CategoriesViewPageState(cuid: cuid, home: home);
 }
 
 class _CategoriesViewPageState extends State<CategoriesViewPage> {
   final supabase = Supabase.instance.client;
   final String? cuid;
+  final bool? home;
 
-  _CategoriesViewPageState({required this.cuid});
+  _CategoriesViewPageState({required this.cuid, required this.home});
 
   late final _futureCatView = supabase
   .from('posts')
@@ -170,7 +172,9 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
       return clampedRating.toStringAsFixed(1);
     }
   }
-  
+  Future<void> refreshPage() async{
+    context.pushReplacement('/category/$cuid');
+  }
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
@@ -178,6 +182,8 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
         builder: (context, snapshot) {
           if(snapshot.connectionState == ConnectionState.done) {
             final posts = snapshot.data!;
+            // print(posts);
+            if(snapshot.data!.isNotEmpty) {
             fetchedData = posts;
             catDesc = posts[0]['categories']['desc'];
             final length = posts.length;
@@ -185,7 +191,7 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
             
             Widget categoryViewUI() {
             // FOOD REVIEW CATEGORY VIEW
-            if(posts[0]['cuid'] == '368d3855-965d-4f13-b741-7975bbac80bf') {
+            if(posts[0]['cuid'] == '368d3855-965d-4f13-b741-7975bbac80bf' && posts.isNotEmpty) {
               return Column(
                 children: [
                   Expanded(
@@ -197,7 +203,6 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
                         final user = post['users'];
                         final location = post['locations'];
                         final puid = post['puid'];
-                        int threadLength = post['threads'].length;
                         DateTime myDateTime = DateTime.parse(post['created_at']);
                         catName.value = snapshot.data![0]['categories']['name'];
 
@@ -259,8 +264,12 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
                                   padding: const EdgeInsets.fromLTRB(0 ,8, 0, 8),
                                   child: Image.network(post['mediaUrl_preview'], width: 400),
                                 ),
+                                if(post['mediaUrl_preview'] == null) Padding(
+                                  padding: const EdgeInsets.fromLTRB(0 ,8, 0, 8),
+                                  child: Image.network(post['mediaUrl']),
+                                ),
                                 Padding(
-                                  padding: const EdgeInsets.fromLTRB(8,0,8,0),
+                                  padding: const EdgeInsets.fromLTRB(10,0,10,0),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -271,40 +280,40 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
                                 ),
                                 
                                 Divider(),
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      if(post['allowReply']) Padding(
-                                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.chat_bubble_outline, size: 20),
-                                            if(threadLength > 0) Padding(
-                                              padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                              child: Text('$threadLength'),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      if(!post['allowReply']) Padding(
-                                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.center,
-                                          children: [
-                                            // Icon(Icons.comments_disabled_outlined, size: 20),
-                                            if(threadLength > 0) Padding(
-                                              padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                              child: Text('$threadLength'),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
+                                // Padding(
+                                //   padding: const EdgeInsets.fromLTRB(10, 5, 10, 0),
+                                //   child: Row(
+                                //     crossAxisAlignment: CrossAxisAlignment.center,
+                                //     children: [
+                                //       if(post['allowReply']) Padding(
+                                //         padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                //         child: Row(
+                                //           crossAxisAlignment: CrossAxisAlignment.center,
+                                //           children: [
+                                //             Icon(Icons.chat_bubble_outline, size: 20),
+                                //             if(threadLength > 0) Padding(
+                                //               padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                //               child: Text('$threadLength'),
+                                //             ),
+                                //           ],
+                                //         ),
+                                //       ),
+                                //       if(!post['allowReply']) Padding(
+                                //         padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                //         child: Row(
+                                //           crossAxisAlignment: CrossAxisAlignment.center,
+                                //           children: [
+                                //             // Icon(Icons.comments_disabled_outlined, size: 20),
+                                //             if(threadLength > 0) Padding(
+                                //               padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                //               child: Text('$threadLength'),
+                                //             ),
+                                //           ],
+                                //         ),
+                                //       ),
+                                //     ],
+                                //   ),
+                                // )
                               ],
                             ),
                           ),
@@ -426,13 +435,27 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
               
             }
             
-            return Scaffold(
+            if(home == true) {
+              return Scaffold(
+                // appBar: AppBar(
+                //   // title: Text(catName.value),
+                //   actions: <Widget> [categorySearchMode(cuid!, catName.value)],
+                // ),
+                body: RefreshIndicator(
+                  onRefresh: () => refreshPage(),
+                  child: categoryViewUI())
+              );
+            } return Scaffold(
               appBar: AppBar(
                 title: Text(catName.value),
                 actions: <Widget> [categorySearchMode(cuid!, catName.value)],
               ),
-              body: categoryViewUI()
+              body: RefreshIndicator(
+                onRefresh: () => refreshPage(),
+                child: categoryViewUI())
             );
+            }
+            return Center(child: Text("There are no food reviews!"));
           }
           return const Center(child: CircularProgressIndicator());
         }

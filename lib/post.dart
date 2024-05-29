@@ -370,7 +370,6 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          
                           ListView(
                             physics: const NeverScrollableScrollPhysics(),
                             shrinkWrap: true,

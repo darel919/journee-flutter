@@ -1183,261 +1183,292 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       body: Form(
         key: _formKey,
         child: Column(
-          mainAxisSize: MainAxisSize.max,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(15.0),
-                child: Column(
-                  children: <Widget>[
-                    if(!uploading) Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                        DropdownButton<String>(
-                          hint: Text('Select your category'),
-                          disabledHint: Text('Loading'),
-                          value: selectedCategory.value,
-                          onChanged: (newValue) {
-                            setState(() {
-                              selectedCategory.value = newValue; 
-                            });
-                          },
-                          items: categories.map((index) {
-                            return DropdownMenuItem<String>(
-                              onTap: () {
-                                selectedCatName = index['name'];
-                              },
-                              value: index['cuid'] as String,
-                              child: Text(index['name']),
-                            );
-                          }).toList(),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(15.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      if(!kIsWeb) if(filePicked != null && !uploading) Flexible(fit: FlexFit.loose, child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(preview(), height: 200))),
+                      if(kIsWeb) if(filePicked != null && !uploading) Flexible(fit: FlexFit.loose, child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.memory(webPreview, height: 200))),
+
+                      if(isFoodReviewMode() && !uploading) showFoodReviewUI(),
+                      if(!uploading)TextField(
+                        readOnly: uploading,
+                        autofocus: true,
+                        canRequestFocus: true,
+                        controller: myController,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Whats on your mind today?',
                         ),
-                        // ElevatedButton(
-                        //   onPressed: () {
-                        //     if (_formKey.currentState!.validate()) {
-                        //         upload();
-                        //     }
-                        //   },
-                        //   child: const Text('Upload'),
-                        // ),
-                      ],
-                    ),
-                    if(!uploading)TextField(
-                      readOnly: uploading,
-                      autofocus: true,
-                      canRequestFocus: true,
-                      controller: myController,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Whats on your mind today?',
                       ),
-                    ),
-                    if(isFoodReviewMode() && !uploading) showFoodReviewUI(),
-                    if(!kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.file(preview())),
-                    if(kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.memory(webPreview)),
-                    if (!uploading) Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              if(!kIsWeb && Platform.isAndroid) ElevatedButton(
-                                onPressed: () {
-                                  if (_formKey.currentState!.validate()) {
-                                    capturePicture();
-                                  }
-                                },
-                                child: Icon(Icons.camera_alt_outlined),
-                              ),                    
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    if(!uploading) SingleChildScrollView(
-                      child: Column(
-                        children: [ 
-                          // Attachment media controls
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              splashFactory: NoSplash.splashFactory,
-                            ),
-                            onPressed: () => {
-                              if (_formKey.currentState!.validate()) {
-                                pickPicture()
-                              }
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [ 
-                                Row(
-                                  children: [
-                                    Icon(Icons.photo),
-                                    mediaUploadMode ? Text("Change photo") : Text("Attach photo"),
-                                  ],
-                                ), 
-                                Icon(Icons.keyboard_arrow_right)
-                              ],
-                            ),
-                          ),
-                          Divider(),
-                          
-                          // Location controls
-                          if(embedLocation.value == true) TextButton(
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              splashFactory: NoSplash.splashFactory,
-                            ),
-                            onPressed: () => {
-                              if(preferredLoc!.isNotEmpty) setState(() {
-                                preferredLoc = {};
-                                
-                              }),
-                              // if(preferredLoc!.isEmpty) bottomSheetLocationSearch()
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [ 
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.location_on_outlined),
-                                    if(preferredLoc!.isEmpty) ValueListenableBuilder(valueListenable: nowGPSReady, builder: (context, value, child) {
-                                      if(isGPSReady()) {
-                                        return Text("Current location ($globalLat, $globalLong)");
-                                      } 
-                                        return Text("Searching for location");
-                                    }),
-                                    if(preferredLoc!.isNotEmpty) ConstrainedBox(constraints: BoxConstraints(maxWidth: 250), child: Text(preferredLoc!['name'], overflow: TextOverflow.ellipsis, softWrap: false))
-                                  ],
-                                ), 
-                                if(preferredLoc!.isEmpty) Icon(Icons.keyboard_arrow_right),
-                                if(preferredLoc!.isNotEmpty) Icon(Icons.close)
-                              ],
-                            ),
-                          ),
-                          if(embedLocation.value == false) TextButton(
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              splashFactory: NoSplash.splashFactory,
-                            ),
-                            onPressed: () => {
-                              if(preferredLoc!.isNotEmpty) setState(() {
-                                preferredLoc = {};
-                                clearGPSLoc();
-                              }),
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [ 
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.location_on_outlined),
-                                    if(preferredLoc!.isEmpty) ValueListenableBuilder(valueListenable: nowGPSReady, builder: (context, value, child) {
-                                        return Text("Device location disabled");
-                                    }),
-                                    if(preferredLoc!.isNotEmpty) ConstrainedBox(constraints: BoxConstraints(maxWidth: 250), child: Text(preferredLoc!['name'], overflow: TextOverflow.ellipsis, softWrap: false))
-                                  ],
-                                ), 
-                                if(preferredLoc!.isNotEmpty) Icon(Icons.close)
-                              ],
-                            ),
-                          ),
-                          if(preferredLoc!.isEmpty) SizedBox(
-                            height: 48,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: foodLocations.length, 
-                              itemBuilder: (context, index) {
-                                return Padding(
-                                  padding: const EdgeInsets.all(7),
-                                  child: OutlinedButton(
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.all(7),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(7))),
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    child: Text(foodLocations[index]['name'], style: TextStyle(height: 1), maxLines:1, overflow: TextOverflow.ellipsis,),
-                                    onPressed: () => {
-                                      if(foodLocations[index]['lat'].isEmpty) {
-                                        clearGPSLoc(),
-                                        preferredLoc = {},
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Unable to choose this place as location. Please try again!'),
-                                            elevation: 20.0,
-                                          ),
-                                        ),
-                                        if(embedLocation.value == true) checkDeviceLocation(),
-                                      } else {
+                      
+                      if(!uploading) SingleChildScrollView(
+                        child: Column(
+                          children: [ 
+                            //  Category field select
+                             TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                splashFactory: NoSplash.splashFactory,
+                                enableFeedback: false,
+                              ),
+                              onPressed: () => {
+                                // if (_formKey.currentState!.validate()) {
+                                //   pickPicture()
+                                // }
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [ 
+                                  Row(
+                                    children: [
+                                      Icon(Icons.category_outlined),
+                                      Text("Category"),
+                                    ],
+                                  ), 
+                                  // Icon(Icons.keyboard_arrow_right)
+                                  DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      
+                                      hint: Text('Select your category'),
+                                      disabledHint: Text('Loading'),
+                                      value: selectedCategory.value,
+                                      onChanged: (newValue) {
                                         setState(() {
-                                          preferredLoc = foodLocations[index];
-                                          globalLat = foodLocations[index]['lat'];
-                                          globalLong = foodLocations[index]['long'];
-                                          nowGPSReady.value = true;
-                                        })
-                                      }
-                                    },
+                                          selectedCategory.value = newValue; 
+                                        });
+                                      },
+                                      items: categories.map((index) {
+                                        return DropdownMenuItem<String>(
+                                          onTap: () {
+                                            selectedCatName = index['name'];
+                                          },
+                                          value: index['cuid'] as String,
+                                          child: Text(index['name']),
+                                        );
+                                      }).toList(),
+                                    ),
                                   ),
-                                );
-                              }
+                                ],
+                              ),
                             ),
-                          ),
-                          
-                          
-                          Divider(),
-                          
-                          // Comment controls
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [ 
-                              Row(
-                                children: [
-                                  Text("Turn on commenting"),
+                            Divider(),
+                            
+                            // Attachment media controls
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                splashFactory: NoSplash.splashFactory,
+                              ),
+                              onPressed: () => {
+                                if (_formKey.currentState!.validate()) {
+                                  pickPicture()
+                                }
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [ 
+                                  Row(
+                                    children: [
+                                      Icon(Icons.photo),
+                                      mediaUploadMode ? Text("Change photo") : Text("Attach photo"),
+                                    ],
+                                  ), 
+                                  Icon(Icons.keyboard_arrow_right)
                                 ],
-                              ), 
-                              Switch(
-                                value: allowThreadReply.value!, 
-                                onChanged: (value) => setState(() {
-                                  allowThreadReply.value = value;
-                                })
-                              )
-                              // Icon(Icons.keyboard_arrow_right)
-                            ],
-                          ),
-                          //  LOCATION SETTING
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [ 
-                              Row(
-                                children: [
-                                  Text("Enable location"),
+                              ),
+                            ),
+                            Divider(),
+                
+                            // Take picture controls
+                            if(!kIsWeb && Platform.isAndroid)TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                splashFactory: NoSplash.splashFactory,
+                              ),
+                              onPressed: () => {
+                                if (_formKey.currentState!.validate()) {
+                                  capturePicture()
+                                }
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [ 
+                                  Row(
+                                    children: [
+                                      Icon(Icons.camera_alt_outlined),
+                                      mediaUploadMode ? Text("Take another photo") : Text("Take a photo"),
+                                    ],
+                                  ), 
+                                  Icon(Icons.keyboard_arrow_right)
                                 ],
-                              ), 
-                              Switch(
-                                value: embedLocation.value!, 
-                                onChanged: (value) => setState(() {
-                                  embedLocation.value = value;
-                                })
-                              )
-                              // Icon(Icons.keyboard_arrow_right)
-                            ],
-                          ),
-                        ],
+                              ),
+                            ),
+                            if(!kIsWeb && Platform.isAndroid)Divider(),
+                            
+                            // Location controls
+                            if(embedLocation.value == true) TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                splashFactory: NoSplash.splashFactory,
+                              ),
+                              onPressed: () => {
+                                if(preferredLoc!.isNotEmpty) setState(() {
+                                  preferredLoc = {};
+                                  
+                                }),
+                                // if(preferredLoc!.isEmpty) bottomSheetLocationSearch()
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [ 
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.location_on_outlined),
+                                      if(preferredLoc!.isEmpty) ValueListenableBuilder(valueListenable: nowGPSReady, builder: (context, value, child) {
+                                        if(isGPSReady()) {
+                                          return Text("Current location ($globalLat, $globalLong)");
+                                        } 
+                                          return Text("Searching for location");
+                                      }),
+                                      if(preferredLoc!.isNotEmpty) ConstrainedBox(constraints: BoxConstraints(maxWidth: 250), child: Text(preferredLoc!['name'], overflow: TextOverflow.ellipsis, softWrap: false))
+                                    ],
+                                  ), 
+                                  if(preferredLoc!.isEmpty) Icon(Icons.keyboard_arrow_right),
+                                  if(preferredLoc!.isNotEmpty) Icon(Icons.close)
+                                ],
+                              ),
+                            ),
+                            if(embedLocation.value == false) TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                splashFactory: NoSplash.splashFactory,
+                              ),
+                              onPressed: () => {
+                                if(preferredLoc!.isNotEmpty) setState(() {
+                                  preferredLoc = {};
+                                  clearGPSLoc();
+                                }),
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [ 
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.location_on_outlined),
+                                      if(preferredLoc!.isEmpty) ValueListenableBuilder(valueListenable: nowGPSReady, builder: (context, value, child) {
+                                          return Text("Device location disabled");
+                                      }),
+                                      if(preferredLoc!.isNotEmpty) ConstrainedBox(constraints: BoxConstraints(maxWidth: 250), child: Text(preferredLoc!['name'], overflow: TextOverflow.ellipsis, softWrap: false))
+                                    ],
+                                  ), 
+                                  if(preferredLoc!.isNotEmpty) Icon(Icons.close)
+                                ],
+                              ),
+                            ),
+                            if(preferredLoc!.isEmpty && foodLocations.isNotEmpty) SizedBox(
+                              height: 48,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: foodLocations.length, 
+                                itemBuilder: (context, index) {
+                                  return Padding(
+                                    padding: const EdgeInsets.all(7),
+                                    child: OutlinedButton(
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.all(7),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(7))),
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: ConstrainedBox(constraints: BoxConstraints(maxWidth:100), child: Text(foodLocations[index]['name'], style: TextStyle(height: 1), maxLines:1, overflow: TextOverflow.ellipsis,)),
+                                      onPressed: () => {
+                                        if(foodLocations[index]['lat'].isEmpty) {
+                                          clearGPSLoc(),
+                                          preferredLoc = {},
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Unable to choose this place as location. Please try again!'),
+                                              elevation: 20.0,
+                                            ),
+                                          ),
+                                          if(embedLocation.value == true) checkDeviceLocation(),
+                                        } else {
+                                          setState(() {
+                                            preferredLoc = foodLocations[index];
+                                            globalLat = foodLocations[index]['lat'];
+                                            globalLong = foodLocations[index]['long'];
+                                            nowGPSReady.value = true;
+                                          })
+                                        }
+                                      },
+                                    ),
+                                  );
+                                }
+                              ),
+                            ),
+                            
+                            
+                            Divider(),
+                            
+                            // Comment controls
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [ 
+                                Row(
+                                  children: [
+                                    Text("Turn on commenting"),
+                                  ],
+                                ), 
+                                Switch(
+                                  value: allowThreadReply.value!, 
+                                  onChanged: (value) => setState(() {
+                                    allowThreadReply.value = value;
+                                  })
+                                )
+                                // Icon(Icons.keyboard_arrow_right)
+                              ],
+                            ),
+                            //  LOCATION SETTING
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [ 
+                                Row(
+                                  children: [
+                                    Text("Enable location"),
+                                  ],
+                                ), 
+                                Switch(
+                                  value: embedLocation.value!, 
+                                  onChanged: (value) => setState(() {
+                                    embedLocation.value = value;
+                                  })
+                                )
+                                // Icon(Icons.keyboard_arrow_right)
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
-                  ],
+                      if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
+                    ],
+                  ),
                 ),
               ),
             ),
-            if(!uploading) Container(
+            if(!uploading) SizedBox(
               width: 300,
               // color: Colors.black,
               child: ElevatedButton(
