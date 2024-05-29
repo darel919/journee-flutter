@@ -21,7 +21,7 @@ class _UserPageRouteState extends State<UserPageRoute> {
   final String? uuid;
   final supabase = Supabase.instance.client;
 
-  _UserPageRouteState({Key? key, required this.uuid});
+  _UserPageRouteState({required this.uuid});
 
    late final _future = supabase
       .from('posts')
@@ -34,7 +34,6 @@ class _UserPageRouteState extends State<UserPageRoute> {
 
   bool isself() {
     if(userData['provider_id'] == uuid!) {
-      print("Viewing self");
       return true;
     } return false;
   }
@@ -147,7 +146,7 @@ class _UserPageRouteState extends State<UserPageRoute> {
                                   child: Image.network(post['mediaUrl_preview'], width: 400)),
                               ),
                               Text(post['details'], maxLines: 2, style: TextStyle(fontSize: 17, height: 2), overflow: TextOverflow.ellipsis),
-                              Text(timeago.format(myDateTime, locale: 'EN',), style: TextStyle(fontSize: 12, height: 1)),
+                              Text(timeago.format(myDateTime, locale: 'en',), style: TextStyle(fontSize: 12, height: 1)),
                               // Divider(),
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),

@@ -1,4 +1,4 @@
-// ignore_for_file: unused_import, prefer_const_constructors, avoid_print, unused_local_variable, no_leading_underscores_for_local_identifiers
+// ignore_for_file: unused_import, prefer_const_constructors, avoid_print, unused_local_variable, no_leading_underscores_for_local_identifiers, camel_case_types
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -142,6 +142,62 @@ Widget userPostSearchMode(String uuid, String userName) {
         return _lastOptions;
       },
   );
+}
+
+class locationSearchMode extends StatefulWidget {
+  const locationSearchMode({super.key});
+
+  @override
+  State<locationSearchMode> createState() => _locationSearchModeState();
+}
+
+class _locationSearchModeState extends State<locationSearchMode> {
+  String? _searchingWithQuery;
+  late Iterable<Widget> _lastOptions = <Widget>[];
+  @override 
+  void initState() {
+    super.initState();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return SearchAnchor(
+      viewHintText: 'Search',
+      builder: (context, controller) {
+        return IconButton(
+          icon: const Icon(Icons.search),
+          onPressed: () {
+            controller.openView();
+          },
+        );
+      },
+      suggestionsBuilder: (BuildContext context, controller) async {
+        _searchingWithQuery = controller.text;
+       final data = await supabase
+       .rpc('search_posts_and_threads', params: {'keyword': '$_searchingWithQuery' });
+       
+        if (_searchingWithQuery != controller.text) {
+          return _lastOptions;
+        }
+
+        _lastOptions = List<ListTile>.generate(data.length, (int index) {
+          print(data);
+          final String item = data[index]['details'];
+          // final String date = data[index]['created_at'];
+          // final String puid = data[index]['puid'];
+          // DateTime myDateTime = DateTime.parse(date);
+          return ListTile(
+            onTap: () {
+              // context.go('/post/$puid');
+            },
+            title: Text(item, maxLines: 2),
+            // trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
+          );
+        });
+
+        return _lastOptions;
+      },
+    );
+  }
 }
 
 class SearchPage extends StatefulWidget {

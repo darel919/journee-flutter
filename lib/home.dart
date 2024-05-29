@@ -53,6 +53,7 @@ class _HomePostViewState extends State<HomePostView> {
   final _future = Supabase.instance.client
     .from('posts')
     .select('''*, users(*), threads ( * ), categories ( * )''')
+    .neq('cuid', '368d3855-965d-4f13-b741-7975bbac80bf')
     .order('created_at',  ascending: false);
   
   Future<void> _refresh() async {
@@ -62,7 +63,7 @@ class _HomePostViewState extends State<HomePostView> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
           appBar: AppBar(
             primary: true,
@@ -72,6 +73,9 @@ class _HomePostViewState extends State<HomePostView> {
             tabs: [ 
               Tab( 
                 text: "All", 
+              ), 
+              Tab( 
+                text: "Food Reviews", 
               ), 
               Tab( 
                 text: "Categories", 
@@ -108,6 +112,7 @@ class _HomePostViewState extends State<HomePostView> {
                           itemCount: posts.length,
                           itemBuilder: ((context, index) {
                             final post = posts[index];
+                            // print(post);
                             final user = post['users'];
                             final thread = post['threads'];
                             final category = post['categories'];
@@ -159,7 +164,7 @@ class _HomePostViewState extends State<HomePostView> {
                                       child: Image.network(post['mediaUrl_preview'], width: 400)),
                                   ),
                                   Text(post['details'], maxLines: 2, style: TextStyle(fontSize: 17, height: 2), overflow: TextOverflow.ellipsis),
-                                  Text(timeago.format(myDateTime, locale: 'EN',), style: TextStyle(fontSize: 12, height: 1)),
+                                  Text(timeago.format(myDateTime, locale: 'en',), style: TextStyle(fontSize: 12, height: 1)),
                                   Padding(
                                     padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
                                     child: Row(
@@ -206,7 +211,8 @@ class _HomePostViewState extends State<HomePostView> {
                       },
                     ),
                   ),
-                ), 
+                ),
+              CategoriesViewPage(cuid: '368d3855-965d-4f13-b741-7975bbac80bf'),
               CategoriesPage()
               ]
             ),

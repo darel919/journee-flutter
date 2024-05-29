@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:journee/heregeolocation.dart';
+import 'package:journee/search.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -29,6 +30,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   late final User? user = supabase.auth.currentUser;
   late final userData = user?.userMetadata!;
   late List<Map<String, dynamic>> categories = [];
+  late List<Map<String, dynamic>> foodLocations = [];
   ValueNotifier<String?> selectedCategory = ValueNotifier<String?>(null);
   String? selectedCatName;
   bool mediaUploadMode = false;
@@ -39,6 +41,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   String? earlyPuid; 
   String? globalLat = '';
   String? globalLong = '';
+  Map<String, dynamic>? preferredLoc = {};
   var filePicked;
   bool captureMode = false;
   late Uint8List webPreview = filePicked.files.first.bytes!;
@@ -54,6 +57,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       createNewCategory(input);
     });
     fetchCategory();
+    checkDeviceLocation();
+    fetchAllLocation();
   }
 
   void showCategoryCreateDialog(BuildContext context, Function callback) {
@@ -256,24 +261,23 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     );
     globalLat = position.latitude.toString();
     globalLong = position.longitude.toString();
-    nowGPSReady.value = true;
-    // ScaffoldMessenger.of(context).showSnackBar(
-    //   SnackBar(
-    //     content: Text('Location acquired! '+globalLat!+globalLong!),
-    //     elevation: 20.0,
-    //   ),
-    // );
+    setState(() {
+      nowGPSReady.value = true;
+    });
   }
   
   Future<void> clearGPSLoc() async {
     globalLat = '';
     globalLong = '';
-    nowGPSReady.value = false;
+    setState(() {
+      nowGPSReady.value = false;
+    });
   }
   
   bool isGPSReady() {
     if(globalLat == '' && globalLong == '') {
       nowGPSReady.value = false;
+      print(globalLat);
       return false;
     } else {
       nowGPSReady.value = true;
@@ -298,7 +302,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
           // CHECK IF IN FOOD REVIEW MODE
           if(isFoodReviewMode()) {
-            if(embedLocation.value == true) {
+            // if(embedLocation.value == true || isGPSReady()) {
               // DISABLE UPLOAD IF GPS NOT READY IN FOOD REVIEW MODE
               if(isGPSReady() == false) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -344,21 +348,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                         'mediaUrlOnDb': uploadPath,
                       })
                       .match({ 'puid': earlyPuid });
-                      // setState(() {
-                      //   uploading = false;
-                      // });
                       
-                      final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);
-                      // print(endpointData);
-                      
-                      final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
-                      .insert({
-                        'lat': globalLat, 
-                        'long': globalLong, 
-                        'name': endpointData!['title'],
-                        'full_address': endpointData['address']['label']
-                      })
-                      .select();
+                      List<Map<String, dynamic>> uploadLocUID = await locationsUploader();
 
                       final List<Map<String, dynamic>> uploadReviewUID = await supabase.from('foodReviews')
                       .insert({
@@ -417,7 +408,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
                       final param = ImageFileConfiguration(input: input, config: config);
                       final compressedOutput = await compressor.compress(param);
-                      final previewUploadPath = earlyPuid!+'/preview/'+fileName;
+                      final previewUploadPath = earlyPuid+'/preview/'+fileName;
                       final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
                       
                       final String compressedPreviewPath = await supabase.storage.from('post_media').uploadBinary(
@@ -431,8 +422,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                         'mediaUrlOnDb': uploadPath, 
                         'mediaUrl_preview': previewCompleteImgDir,
                         'mediaUrl_previewOnDb': previewUploadPath,
-                        // 'inesRate': inesRating,
-                        // 'darelRate': darelRating
                       })
                       .match({ 'puid': earlyPuid });
                       setState(() {
@@ -493,15 +482,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                         })
                         .match({ 'puid': earlyPuid });
                     }
-                    final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);
-                    final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
-                    .insert({
-                      'lat': globalLat, 
-                      'long': globalLong, 
-                      'name': endpointData!['title'],
-                      'full_address': endpointData['address']['label']
-                    })
-                    .select();
+                    
+                    List<Map<String, dynamic>> uploadLocUID = await locationsUploader();
 
                     final List<Map<String, dynamic>> uploadReviewUID = await supabase.from('foodReviews')
                     .insert({
@@ -546,22 +528,25 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               }
             
             // DISABLE UPLOAD IF GPS NOT ENABLED IN FOOD REVIEW MODE
-            } else {
-              setState(() {
-                uploading = false;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Food review mode required Location to be turned on!'),
-                  elevation: 20.0,
-                ),
-              );
-            }
+            // } 
+            // else {
+            //   setState(() {
+            //     uploading = false;
+            //   });
+            //   ScaffoldMessenger.of(context).showSnackBar(
+            //     SnackBar(
+            //       content: Text('Food review mode require Location to be turned on!'),
+            //       elevation: 20.0,
+            //     ),
+            //   );
+            // }
           } 
           
           // NOT FOOD REVIEW MODE
           else {
+          // UPLOAD WITH GPS
           if(embedLocation.value == true) {
+            // DISABLE UPLOAD IF GPS NOT READY
             if(isGPSReady() == false) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -572,7 +557,10 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               setState(() {
                 uploading = false;
               });
-            } else {
+            } 
+            // CONTINUE UPLOAD WHEN GPS READY
+            else {
+              // UPLOAD FOR MEDIA MODE
               if(mediaUploadMode) {
                 final List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
                 .insert({
@@ -607,15 +595,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                         uploading = false;
                       });
                     
-                     final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);
-                     final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
-                      .insert({
-                        'lat': globalLat, 
-                        'long': globalLong, 
-                        'name': endpointData!['title'],
-                        'full_address': endpointData['address']['label']
-                      })
-                      .select();
+                      List<Map<String, dynamic>> uploadLocUID = await locationsUploader();
+
                       await supabase.from('posts')
                       .update({
                         'luid': uploadLocUID[0]['luid']
@@ -658,7 +639,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
                     final param = ImageFileConfiguration(input: input, config: config);
                     final compressedOutput = await compressor.compress(param);
-                    final previewUploadPath = earlyPuid!+'/preview/'+fileName;
+                    final previewUploadPath = earlyPuid+'/preview/'+fileName;
                     final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
                     
                     final String compressedPreviewPath = await supabase.storage.from('post_media').uploadBinary(
@@ -666,6 +647,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       compressedOutput.rawBytes,
                       fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
                     );
+                    
                     await supabase.from('posts')
                     .update({
                       'mediaUrl': completeImgDir, 
@@ -674,6 +656,15 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       'mediaUrl_previewOnDb': previewUploadPath,
                     })
                     .match({ 'puid': earlyPuid });
+
+                     List<Map<String, dynamic>> uploadLocUID = await locationsUploader();
+                     await supabase.from('posts')
+                    .update({
+                      'luid': uploadLocUID[0]['luid']
+                    })
+                    .match({ 'puid': earlyPuid });
+                    clearGPSLoc();
+
                     setState(() {
                       uploading = false;
                     });
@@ -734,15 +725,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       .match({ 'puid': earlyPuid });
 
                     
-                    final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);
-                    final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
-                    .insert({
-                      'lat': globalLat, 
-                      'long': globalLong, 
-                      'name': endpointData!['title'],
-                      'full_address': endpointData['address']['label']
-                    })
-                    .select();
+                     List<Map<String, dynamic>> uploadLocUID = await locationsUploader();
+
                     await supabase.from('posts')
                     .update({
                       'luid': uploadLocUID[0]['luid']
@@ -763,7 +747,9 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                     context.pushReplacement('/post/$earlyPuid');
                   }
                 }
-              } else {
+              } 
+              // UPLOAD FOR NON-MEDIA MODE
+              else {
                 var link = await supabase
                 .from('posts')
                 .insert({
@@ -775,16 +761,9 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                 })
                 .select();
                 String puid = link[0]['puid'];
+                
+                List<Map<String, dynamic>> uploadLocUID = await locationsUploader();
 
-                final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);
-                final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
-                .insert({
-                  'lat': globalLat, 
-                  'long': globalLong, 
-                  'name': endpointData!['title'],
-                  'full_address': endpointData['address']['label']
-                })
-                .select();
                 await supabase.from('posts')
                 .update({
                   'luid': uploadLocUID[0]['luid']
@@ -805,7 +784,9 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                 context.pushReplacement('/post/$puid');
               }
             }
-          } else {
+          } 
+          // UPLOAD WITHOUT GPS
+          else {
             if(mediaUploadMode) {
             final List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
             .insert({
@@ -874,7 +855,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
               final param = ImageFileConfiguration(input: input, config: config);
               final compressedOutput = await compressor.compress(param);
-              final previewUploadPath = earlyPuid!+'/preview/'+fileName;
+              final previewUploadPath = earlyPuid+'/preview/'+fileName;
               final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
               
               final String compressedPreviewPath = await supabase.storage.from('post_media').uploadBinary(
@@ -984,7 +965,9 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             }
           }
           }
-        } else {
+        } 
+        // DISABLE UPLOAD IF NO INPUT TEXT
+        else {
           ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Please input text before uploading!'),
@@ -992,7 +975,9 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               ),
             );
         }
-      } else {
+      } 
+      // DISABLE UPLOAD BUTTON WHILE UPLOADING
+      else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Please wait! Post is uploading!'),
@@ -1010,6 +995,31 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
           elevation: 20.0,
         ),
       );
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> locationsUploader() async {
+    final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);  
+    if(preferredLoc!.isEmpty) {
+      final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
+      .insert({
+        'lat': globalLat, 
+        'long': globalLong, 
+        'name': endpointData!['title'],
+        'full_address': endpointData['address']['label']
+      })
+      .select();
+      return uploadLocUID;
+    } else {
+      final List<Map<String, dynamic>> uploadLocUID = await supabase.from('locations')
+      .insert({
+        'lat': preferredLoc!['lat'], 
+        'long': preferredLoc!['long'], 
+        'name': preferredLoc!['name'],
+        'full_address': preferredLoc!['full_address']
+      })
+      .select();
+      return uploadLocUID;
     }
   }
 
@@ -1065,6 +1075,13 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     }
   }
 
+  Future<void> fetchAllLocation() async {
+    var loc = await supabase
+    .from('locations')
+    .select();
+
+    foodLocations = loc;
+  }
   double inesRating = 0.0;
   double darelRating = 0.0;
   Widget showFoodReviewUI() {
@@ -1125,6 +1142,38 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     super.dispose();
   }
 
+  Future<void> bottomSheetLocationSearch() async {
+    return showModalBottomSheet<dynamic>(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
+      ),
+      clipBehavior: Clip.antiAliasWithSaveLayer,
+      // useRootNavigator: true,
+      useSafeArea: true,
+      enableDrag: !uploading,
+      isDismissible: false,
+      isScrollControlled: true,
+      context: context,
+      builder: (BuildContext context) {
+        return bottomSheetLocationSearchUI();
+      }
+    );
+  }
+    StatefulBuilder bottomSheetLocationSearchUI() {
+    return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: locationSearchMode()
+            ),
+          );
+        }
+      );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1133,130 +1182,276 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       ),
       body: Form(
         key: _formKey,
-        child: Padding(
-          padding: const EdgeInsets.all(15.0),
-          child: Column(
-            children: <Widget>[
-              if(!uploading) Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                  DropdownButton<String>(
-                    hint: Text('Select your category'),
-                    disabledHint: Text('Loading'),
-                    value: selectedCategory.value,
-                    onChanged: (newValue) {
-                      setState(() {
-                        selectedCategory.value = newValue; 
-                      });
-                    },
-                    items: categories.map((index) {
-                      return DropdownMenuItem<String>(
-                        onTap: () {
-                          selectedCatName = index['name'];
-                        },
-                        value: index['cuid'] as String,
-                        child: Text(index['name']),
-                      );
-                    }).toList(),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                          upload();
-                      }
-                    },
-                    child: const Text('Upload'),
-                  ),
-                ],
-              ),
-              TextField(
-                readOnly: uploading,
-                autofocus: true,
-                canRequestFocus: true,
-                controller: myController,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'Whats on your mind today?',
-                ),
-              ),
-              if(isFoodReviewMode() && !uploading) showFoodReviewUI(),
-              if(!kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.file(preview())),
-              if(kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.memory(webPreview)),
-              if (!uploading) Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              pickPicture();
-                            }
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(15.0),
+                child: Column(
+                  children: <Widget>[
+                    if(!uploading) Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                        DropdownButton<String>(
+                          hint: Text('Select your category'),
+                          disabledHint: Text('Loading'),
+                          value: selectedCategory.value,
+                          onChanged: (newValue) {
+                            setState(() {
+                              selectedCategory.value = newValue; 
+                            });
                           },
-                          child: Icon(Icons.photo_size_select_actual_rounded),
+                          items: categories.map((index) {
+                            return DropdownMenuItem<String>(
+                              onTap: () {
+                                selectedCatName = index['name'];
+                              },
+                              value: index['cuid'] as String,
+                              child: Text(index['name']),
+                            );
+                          }).toList(),
                         ),
-                        if(!kIsWeb && Platform.isAndroid) ElevatedButton(
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              capturePicture();
-                            }
-                          },
-                          child: Icon(Icons.camera_alt_outlined),
-                        ),
-                        Row(
-                          children: [
-                            if(allowThreadReply.value == true) ElevatedButton(
-                              onPressed: () => setState(() {
-                                  allowThreadReply.value = false;
-                              }), 
-                              child: Icon(Icons.comment)
-                            ) else ElevatedButton(
-                              onPressed: () => setState(() {
-                                  allowThreadReply.value = true;
-                              }), 
-                              child: Icon(Icons.comments_disabled)
-                              )
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            if(embedLocation.value == true) 
-                              ElevatedButton(
-                                onPressed: () => setState(() {
-                                  embedLocation.value = false;
-                                }), 
-                                child: ValueListenableBuilder(
-                                valueListenable: nowGPSReady, 
-                                builder: (context, value, child) {
-                                  if(isGPSReady() == true) {
-                                    return Row(
-                                      children: [
-                                        Icon(Icons.near_me),
-                                        // Text(" Ready")
-                                      ],
-                                    );
-                                  }
-                                  return Icon(Icons.location_searching);
-                              }))
-                            else ElevatedButton(
-                              onPressed: () => setState(() {
-                                embedLocation.value = true;
-                              }), 
-                              child: Icon(Icons.near_me_disabled)
-                            ), 
-                          ],
-                        ),                     
+                        // ElevatedButton(
+                        //   onPressed: () {
+                        //     if (_formKey.currentState!.validate()) {
+                        //         upload();
+                        //     }
+                        //   },
+                        //   child: const Text('Upload'),
+                        // ),
                       ],
                     ),
+                    if(!uploading)TextField(
+                      readOnly: uploading,
+                      autofocus: true,
+                      canRequestFocus: true,
+                      controller: myController,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Whats on your mind today?',
+                      ),
+                    ),
+                    if(isFoodReviewMode() && !uploading) showFoodReviewUI(),
+                    if(!kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.file(preview())),
+                    if(kIsWeb) if(filePicked != null && !uploading) Expanded(child: Image.memory(webPreview)),
+                    if (!uploading) Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              if(!kIsWeb && Platform.isAndroid) ElevatedButton(
+                                onPressed: () {
+                                  if (_formKey.currentState!.validate()) {
+                                    capturePicture();
+                                  }
+                                },
+                                child: Icon(Icons.camera_alt_outlined),
+                              ),                    
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if(!uploading) SingleChildScrollView(
+                      child: Column(
+                        children: [ 
+                          // Attachment media controls
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              splashFactory: NoSplash.splashFactory,
+                            ),
+                            onPressed: () => {
+                              if (_formKey.currentState!.validate()) {
+                                pickPicture()
+                              }
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [ 
+                                Row(
+                                  children: [
+                                    Icon(Icons.photo),
+                                    mediaUploadMode ? Text("Change photo") : Text("Attach photo"),
+                                  ],
+                                ), 
+                                Icon(Icons.keyboard_arrow_right)
+                              ],
+                            ),
+                          ),
+                          Divider(),
+                          
+                          // Location controls
+                          if(embedLocation.value == true) TextButton(
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              splashFactory: NoSplash.splashFactory,
+                            ),
+                            onPressed: () => {
+                              if(preferredLoc!.isNotEmpty) setState(() {
+                                preferredLoc = {};
+                                
+                              }),
+                              // if(preferredLoc!.isEmpty) bottomSheetLocationSearch()
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [ 
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.location_on_outlined),
+                                    if(preferredLoc!.isEmpty) ValueListenableBuilder(valueListenable: nowGPSReady, builder: (context, value, child) {
+                                      if(isGPSReady()) {
+                                        return Text("Current location ($globalLat, $globalLong)");
+                                      } 
+                                        return Text("Searching for location");
+                                    }),
+                                    if(preferredLoc!.isNotEmpty) ConstrainedBox(constraints: BoxConstraints(maxWidth: 250), child: Text(preferredLoc!['name'], overflow: TextOverflow.ellipsis, softWrap: false))
+                                  ],
+                                ), 
+                                if(preferredLoc!.isEmpty) Icon(Icons.keyboard_arrow_right),
+                                if(preferredLoc!.isNotEmpty) Icon(Icons.close)
+                              ],
+                            ),
+                          ),
+                          if(embedLocation.value == false) TextButton(
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              splashFactory: NoSplash.splashFactory,
+                            ),
+                            onPressed: () => {
+                              if(preferredLoc!.isNotEmpty) setState(() {
+                                preferredLoc = {};
+                                clearGPSLoc();
+                              }),
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [ 
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.location_on_outlined),
+                                    if(preferredLoc!.isEmpty) ValueListenableBuilder(valueListenable: nowGPSReady, builder: (context, value, child) {
+                                        return Text("Device location disabled");
+                                    }),
+                                    if(preferredLoc!.isNotEmpty) ConstrainedBox(constraints: BoxConstraints(maxWidth: 250), child: Text(preferredLoc!['name'], overflow: TextOverflow.ellipsis, softWrap: false))
+                                  ],
+                                ), 
+                                if(preferredLoc!.isNotEmpty) Icon(Icons.close)
+                              ],
+                            ),
+                          ),
+                          if(preferredLoc!.isEmpty) SizedBox(
+                            height: 48,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: foodLocations.length, 
+                              itemBuilder: (context, index) {
+                                return Padding(
+                                  padding: const EdgeInsets.all(7),
+                                  child: OutlinedButton(
+                                    style: TextButton.styleFrom(
+                                      padding: EdgeInsets.all(7),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(7))),
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: Text(foodLocations[index]['name'], style: TextStyle(height: 1), maxLines:1, overflow: TextOverflow.ellipsis,),
+                                    onPressed: () => {
+                                      if(foodLocations[index]['lat'].isEmpty) {
+                                        clearGPSLoc(),
+                                        preferredLoc = {},
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Unable to choose this place as location. Please try again!'),
+                                            elevation: 20.0,
+                                          ),
+                                        ),
+                                        if(embedLocation.value == true) checkDeviceLocation(),
+                                      } else {
+                                        setState(() {
+                                          preferredLoc = foodLocations[index];
+                                          globalLat = foodLocations[index]['lat'];
+                                          globalLong = foodLocations[index]['long'];
+                                          nowGPSReady.value = true;
+                                        })
+                                      }
+                                    },
+                                  ),
+                                );
+                              }
+                            ),
+                          ),
+                          
+                          
+                          Divider(),
+                          
+                          // Comment controls
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [ 
+                              Row(
+                                children: [
+                                  Text("Turn on commenting"),
+                                ],
+                              ), 
+                              Switch(
+                                value: allowThreadReply.value!, 
+                                onChanged: (value) => setState(() {
+                                  allowThreadReply.value = value;
+                                })
+                              )
+                              // Icon(Icons.keyboard_arrow_right)
+                            ],
+                          ),
+                          //  LOCATION SETTING
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [ 
+                              Row(
+                                children: [
+                                  Text("Enable location"),
+                                ],
+                              ), 
+                              Switch(
+                                value: embedLocation.value!, 
+                                onChanged: (value) => setState(() {
+                                  embedLocation.value = value;
+                                })
+                              )
+                              // Icon(Icons.keyboard_arrow_right)
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
                   ],
                 ),
               ),
-              if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
-            ],
-          ),
-        )),
+            ),
+            if(!uploading) Container(
+              width: 300,
+              // color: Colors.black,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                      upload();
+                  }
+                },
+                child: const Text('Upload'),
+              ),
+            ),
+          ],
+        )
+      ),
     );
   }
 

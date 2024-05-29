@@ -173,114 +173,218 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
   
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(catName.value),
-        actions: <Widget> [categorySearchMode(cuid!, catName.value)],
-      ),
-       body: FutureBuilder<List<Map<String, dynamic>>>(
+    return FutureBuilder<List<Map<String, dynamic>>>(
         future: _futureCatView,
         builder: (context, snapshot) {
-          if(!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          } else {
+          if(snapshot.connectionState == ConnectionState.done) {
+            final posts = snapshot.data!;
+            fetchedData = posts;
+            catDesc = posts[0]['categories']['desc'];
+            final length = posts.length;
             catName.value = snapshot.data![0]['categories']['name'];
-          }
-          
-          final posts = snapshot.data!;
-          fetchedData = posts;
-          catDesc = posts[0]['categories']['desc'];
-          final length = posts.length;
-          
-          // FOOD REVIEW CATEGORY VIEW
-          if(posts[0]['cuid'] == '368d3855-965d-4f13-b741-7975bbac80bf') {
-            return Column(
-              children: [
-                ListTile(
-                  title: Text(catName.value),
-                  subtitle: catDesc != null ? Text(catDesc!) : Text("No description available"),
-                  trailing: Text('$length posts'),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: posts.length,
-                    itemBuilder: ((context, index) {
+            
+            Widget categoryViewUI() {
+            // FOOD REVIEW CATEGORY VIEW
+            if(posts[0]['cuid'] == '368d3855-965d-4f13-b741-7975bbac80bf') {
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: posts.length,
+                      itemBuilder: ((context, index) {
 
-                      final post = posts[index];
-                      final user = post['users'];
-                      final location = post['locations'];
-                      final puid = post['puid'];
-                      int threadLength = post['threads'].length;
-                      DateTime myDateTime = DateTime.parse(post['created_at']);
-                      catName.value = snapshot.data![0]['categories']['name'];
+                        final post = posts[index];
+                        final user = post['users'];
+                        final location = post['locations'];
+                        final puid = post['puid'];
+                        int threadLength = post['threads'].length;
+                        DateTime myDateTime = DateTime.parse(post['created_at']);
+                        catName.value = snapshot.data![0]['categories']['name'];
 
-                      return ListTile(
-                        // dense: true,
-                        onTap: () {
-                          context.push('/post/$puid');
-                        },
-                        contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 5),
-                        isThreeLine: true,
-                        // leading: ClipRRect(
-                        //   borderRadius: BorderRadius.circular(50.0),
-                        //   child: Image.network(
-                        //       user['avatar_url'], 
-                        //       height: 40.0,
-                        //       width: 40.0,
-                        //       fit:BoxFit.cover
-                        //     )
-                        // ),
-                        title: Row(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(8,0,8,0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(50.0),
-                                child: Image.network(
-                                  user['avatar_url'], 
-                                  height: 40.0,
-                                  width: 40.0,
-                                  fit:BoxFit.cover
-                                )
-                              ),
-                            ),
-                            Text(user['name']),
-                          ],
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.fromLTRB(0,8,0,8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        return ListTile(
+                          // dense: true,
+                          onTap: () {
+                            context.push('/post/$puid');
+                          },
+                          contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 5),
+                          isThreeLine: true,
+                          title: Row(
                             children: [
-                               location['name'] == null ? Text('Loc Name Unavail') : Padding(
-                                 padding: const EdgeInsets.fromLTRB(8,0,8,0),
-                                 child: Text(location['name'], overflow: TextOverflow.ellipsis,),
-                               ),
-                              if(post['mediaUrl_preview'] != null) Padding(
-                                padding: const EdgeInsets.fromLTRB(0 ,8, 0, 8),
-                                child: Image.network(post['mediaUrl_preview'], width: 400),
-                              ),
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(8,0,8,0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(post['details'], maxLines: 1, style: TextStyle(height: 3, fontWeight: FontWeight.bold)),
-                                    Text(timeago.format(myDateTime, locale: 'en')),
-                                  ],
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(50.0),
+                                  child: Image.network(
+                                    user['avatar_url'], 
+                                    height: 40.0,
+                                    width: 40.0,
+                                    fit:BoxFit.cover
+                                  )
                                 ),
                               ),
-                              
-                              Divider(),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(user['name']),
+                                  location['name'] == null ? Text('Loc Name Unavail') : ConstrainedBox(constraints: BoxConstraints(maxWidth: 275), child: Text(location['name'], overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12),)),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.star),
+                                      FutureBuilder<String>(
+                                        future: fetchRating(post['ruid']), // your async function call
+                                        builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                                          if (snapshot.connectionState == ConnectionState.done) {
+                                            if (snapshot.hasError) {
+                                              return Text('Error: ${snapshot.error}');
+                                            } else if (snapshot.hasData) {
+                                              return Text(snapshot.data!); // display the data
+                                            }
+                                          }
+                                          // By default, show a loading spinner
+                                          return Text('Loading star...');
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.fromLTRB(0,8,0,8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if(post['mediaUrl_preview'] != null) Padding(
+                                  padding: const EdgeInsets.fromLTRB(0 ,8, 0, 8),
+                                  child: Image.network(post['mediaUrl_preview'], width: 400),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(8,0,8,0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(post['details'], maxLines: 1, style: TextStyle(height: 3, fontWeight: FontWeight.w600, fontSize: 16)),
+                                      Text(timeago.format(myDateTime, locale: 'en')),
+                                    ],
+                                  ),
+                                ),
+                                
+                                Divider(),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      if(post['allowReply']) Padding(
+                                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.chat_bubble_outline, size: 20),
+                                            if(threadLength > 0) Padding(
+                                              padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                              child: Text('$threadLength'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if(!post['allowReply']) Padding(
+                                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            // Icon(Icons.comments_disabled_outlined, size: 20),
+                                            if(threadLength > 0) Padding(
+                                              padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                              child: Text('$threadLength'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                        );
+                        }
+                      ),
+                    ),
+                  ),
+                ],
+              );
+              }
+
+              // NON FOOD REVIEW CATEGORY VIEW
+              return Column(
+                children: [
+                  ListTile(
+                    // title: Text(catName.value),
+                    subtitle: catDesc != null ? Text(catDesc!) : Text("No description available"),
+                    trailing: Text('$length posts'),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: posts.length,
+                      itemBuilder: ((context, index) {
+
+                        final post = posts[index];
+                        final user = post['users'];
+                        final puid = post['puid'];
+                        int threadLength = post['threads'].length;
+                        final special = post['type'];
+                        DateTime myDateTime = DateTime.parse(post['created_at']);
+                        catName.value = snapshot.data![0]['categories']['name'];
+
+                        return ListTile(
+                          onTap: () {
+                            context.push('/post/$puid');
+                          },
+                          contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+                          isThreeLine: true,
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(48.0),
+                            child: Image.network(user['avatar_url']
+                            )
+                          ),
+                          title: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(0,0,4,0),
+                                    child: Text(user['name']),
+                                  ),
+                                  if(special == 'Special') Padding(
+                                    padding: const EdgeInsets.fromLTRB(5,0,0,0),
+                                    child: Icon(Icons.star_border_outlined),
+                                  )
+                                ],
+                              ),
+                            ],
+                          ),
+                          trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
+                              if(post['mediaUrl_preview'] != null) Padding(
+                                padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  child: Image.network(post['mediaUrl_preview'], width: 400)),
+                              ),
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
                                 child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    // if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
-                                    //   padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
-                                    //   child: Icon(Icons.image_outlined, size: 22),
-                                    // ),
+                                    if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
+                                      padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
+                                      child: Icon(Icons.image_outlined, size: 22),
+                                    ),
                                     if(post['allowReply']) Padding(
                                       padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
                                       child: Row(
@@ -307,136 +411,31 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
                                         ],
                                       ),
                                     ),
-                                    // Row(
-                                    //   children: [
-                                    //     Icon(Icons.star),
-                                    //     Text(fetchRating(post['ruid']))
-                                    //   ],
-                                    // ),
-  
                                   ],
                                 ),
                               )
                             ],
                           ),
-                        ),
-                      );
-                      }
+                        );
+                        }
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              );
+              
+            }
+            
+            return Scaffold(
+              appBar: AppBar(
+                title: Text(catName.value),
+                actions: <Widget> [categorySearchMode(cuid!, catName.value)],
+              ),
+              body: categoryViewUI()
             );
           }
-
-          // NON FOOD REVIEW CATEGORY VIEW
-          return Column(
-            children: [
-              ListTile(
-                title: Text(catName.value),
-                subtitle: catDesc != null ? Text(catDesc!) : Text("No description available"),
-                trailing: Text('$length posts'),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: posts.length,
-                  itemBuilder: ((context, index) {
-
-                    final post = posts[index];
-                    final user = post['users'];
-                    final puid = post['puid'];
-                    int threadLength = post['threads'].length;
-                    final special = post['type'];
-                    DateTime myDateTime = DateTime.parse(post['created_at']);
-                    catName.value = snapshot.data![0]['categories']['name'];
-
-                    return ListTile(
-                      onTap: () {
-                        context.push('/post/$puid');
-                      },
-                      contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
-                      isThreeLine: true,
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(48.0),
-                        child: Image.network(user['avatar_url']
-                        )
-                      ),
-                      title: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(0,0,4,0),
-                                child: Text(user['name']),
-                              ),
-                              if(special == 'Special') Padding(
-                                padding: const EdgeInsets.fromLTRB(5,0,0,0),
-                                child: Icon(Icons.star_border_outlined),
-                              )
-                            ],
-                          ),
-                        ],
-                      ),
-                      trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
-                          if(post['mediaUrl_preview'] != null) Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8.0),
-                              child: Image.network(post['mediaUrl_preview'], width: 400)),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                            child: Row(
-                              children: [
-                                if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
-                                  padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
-                                  child: Icon(Icons.image_outlined, size: 22),
-                                ),
-                                if(post['allowReply']) Padding(
-                                  padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.chat_bubble_outline, size: 20),
-                                      if(threadLength > 0) Padding(
-                                        padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                        child: Text('$threadLength'),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if(!post['allowReply']) Padding(
-                                  padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      // Icon(Icons.comments_disabled_outlined, size: 20),
-                                      if(threadLength > 0) Padding(
-                                        padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                        child: Text('$threadLength'),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                    );
-                    }
-                  ),
-                ),
-              ),
-            ],
-          );
+          return const Center(child: CircularProgressIndicator());
         }
-      ),
-    );
+      );
   }
 }
