@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:journee/search.dart';
+import 'package:journee/threads.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -138,7 +139,6 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
   ValueNotifier<String> catName = ValueNotifier<String>('');
   String? catDesc;
   late List<Map<String, dynamic>> fetchedData = [];
-
   Future<String> fetchRating(ruid) async {
     double darelRating = 0.0;
     double inesRating = 0.0;
@@ -292,7 +292,7 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
                                       children: [
                                         ValueListenableBuilder(valueListenable: readMore, builder: (context, value, child) {
                                           if(readMore.value == true) {
-                                            return Text(post['details']);
+                                            return GestureDetector(onTap: () => ViewPostThreadBottomSheet(puid, context),child: Text(post['details']));
                                           } else {
                                             return Text(post['details'], maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14));
                                           }
@@ -471,10 +471,6 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
             
             if(home == true) {
               return Scaffold(
-                // appBar: AppBar(
-                //   // title: Text(catName.value),
-                //   actions: <Widget> [categorySearchMode(cuid!, catName.value)],
-                // ),
                 body: RefreshIndicator(
                   onRefresh: () => refreshPage(),
                   child: categoryViewUI())

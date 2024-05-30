@@ -289,3 +289,166 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
     );
   }
   }
+
+Widget PostThreadViewerComponent(puid, thinMode) {
+  final supabase = Supabase.instance.client;
+
+    late final futureThread = supabase
+    .from('threads')
+    .select('''*, users(*), threads ( * )''')
+    .eq('puid', puid)
+    .order('created_at',  ascending: true);
+
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: futureThread, 
+      builder: (context, snapshot) {
+        if(!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+    
+        final threadContent = snapshot.data!;
+
+        if(threadContent.isNotEmpty) {
+          return ListView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          itemCount: threadContent.length,
+          itemBuilder: ((context, index) {
+            final threadDetails = threadContent[index];
+            final threadAuthor = threadDetails['users'];
+            final tuid = threadDetails['tuid'];
+            DateTime threadDateTime = DateTime.parse(threadDetails['created_at']);
+            
+            if(thinMode) {
+              return ListTile(
+                onTap: () {
+                  context.push('/thread/$tuid');
+                },
+                contentPadding: EdgeInsets.fromLTRB(15, 0, 15, 0),
+                dense: true,
+                title: Row(
+                  children: [
+                    Text(threadAuthor['name'], style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8,0,4,0),
+                      child: Text(threadDetails['details'], overflow: TextOverflow.ellipsis,),
+                    ),
+                  ],
+                ),
+                trailing: Text(timeago.format(threadDateTime, locale: 'en_short')),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Text(threadDetails['details']),
+                    if (threadDetails['mediaUrl']!= null && threadDetails['mediaUrl'].isNotEmpty) Padding(
+                      padding: const EdgeInsets.fromLTRB(0,15,0,15),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(threadDetails['mediaUrl'], 
+                        // width: 400,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                          if (loadingProgress == null) return child; // If the image is fully loaded, return the child widget
+                            return Center( // Otherwise, return a loading widget
+                              child: CircularProgressIndicator( // You can use any widget you like, such as a Shimmer widget
+                                value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  : null,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              );
+            } return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text("Threads", style: TextStyle(fontWeight: FontWeight.bold),),
+                ),
+                Divider(),
+                ListTile(
+                  onTap: () {
+                    context.push('/thread/$tuid');
+                  },
+                  contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
+                  isThreeLine: true,
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(48.0),
+                    child: Image.network(threadAuthor['avatar_url'], width: 32, height: 32
+                    )
+                  ),
+                  title: Text(threadAuthor['name'], style: TextStyle(fontSize: 16)),
+                  trailing: Text(timeago.format(threadDateTime, locale: 'en_short')),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(threadDetails['details']),
+                      if (threadDetails['mediaUrl']!= null && threadDetails['mediaUrl'].isNotEmpty) Padding(
+                        padding: const EdgeInsets.fromLTRB(0,15,0,15),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(threadDetails['mediaUrl'], 
+                          // width: 400,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                            if (loadingProgress == null) return child; // If the image is fully loaded, return the child widget
+                              return Center( // Otherwise, return a loading widget
+                                child: CircularProgressIndicator( // You can use any widget you like, such as a Shimmer widget
+                                  value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                    : null,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                ),
+              ],
+            );
+          }),
+        );
+        } return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text("Threads", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            Divider(),
+            ListTile(
+              contentPadding: EdgeInsets.fromLTRB(15, 5, 15, 5),
+              title: Text("No replies on this thread"),
+            ),
+          ],
+        );
+      }
+    );
+  }
+
+Future<void> ViewPostThreadBottomSheet(puid, context) {
+  bool uploading = false;
+  return showModalBottomSheet<dynamic>(
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(20),
+      ),
+    ),
+    clipBehavior: Clip.antiAliasWithSaveLayer,
+    // useRootNavigator: true,
+    useSafeArea: true,
+    enableDrag: !uploading,
+    isDismissible: true,
+    isScrollControlled: true,
+    context: context,
+    builder: (BuildContext context) {
+      return PostThreadViewerComponent(puid, false);
+    }
+  );
+}
+

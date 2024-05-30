@@ -1173,6 +1173,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       if(!uploading)Padding(
                         padding: const EdgeInsets.fromLTRB(0,16,0,0),
                         child: TextField(
+                          autocorrect: false,
                           readOnly: uploading,
                           minLines: 5,
                           autofocus: true,
@@ -1187,6 +1188,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                         ),
                       ),
                       Divider(),
+                      
+                      // UPLOAD SETTINGS
                       if(!uploading) SingleChildScrollView(
                         child: Column(
                           children: [ 
@@ -1524,12 +1527,13 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                           ],
                         ),
                       ),
-                      if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
+                      
                     ],
                   ),
                 ),
               ),
             ),
+            if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
             if(!uploading) SizedBox(
               width: 300,
               // color: Colors.black,
@@ -1577,7 +1581,6 @@ class _CreateThreadState extends State<CreateThread> {
   bool captureMode = false;
   late Uint8List webPreview = filePicked.files.first.bytes!;
   
- 
   File preview() {
     if(captureMode) {
       return File(filePicked.path);
@@ -1788,7 +1791,7 @@ class _CreateThreadState extends State<CreateThread> {
     }
   }
 
-  Future<void> bottomSheet() async {
+  Future<void> bottomSheetThread() async {
     return showModalBottomSheet<dynamic>(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -1839,6 +1842,7 @@ class _CreateThreadState extends State<CreateThread> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16,0,0,8),
                       child: TextField(
+                        autocorrect: false,
                         readOnly: uploading,
                         autofocus: true,
                         canRequestFocus: true,
@@ -1917,7 +1921,7 @@ class _CreateThreadState extends State<CreateThread> {
         hintText: 'Reply to this thread',
       ),
       onTap: () {
-        bottomSheet();
+        bottomSheetThread();
       }) : TextField(
         readOnly: true,
         decoration: const InputDecoration(
