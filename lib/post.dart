@@ -201,13 +201,13 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
       });
     }
     void ignore() async {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          duration: Duration(seconds: 2),
-          content: Text('Rating not updated'),
-          elevation: 20.0,
-        ),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     duration: Duration(seconds: 2),
+      //     content: Text('Rating not updated'),
+      //     elevation: 20.0,
+      //   ),
+      // );
       Navigator.pop(context);
       setState(() {
         calcRating.value = '0';
@@ -406,150 +406,137 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
               onLongPress: () {
                 
               },
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ListView(
-                            physics: const NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            children: <Widget>[
-                              ListTile(
-                                // contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
-                                leading: ClipRRect(
-                                  borderRadius: BorderRadius.circular(48.0),
-                                  child: isFoodReview() ? Image.network(user!['avatar_url'], width: 48, height: 48
-                                  ) : Image.network(user!['avatar_url'], width: 40, height: 40
-                                  )
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ListView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      children: <Widget>[
+                        ListTile(
+                          // contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(48.0),
+                            child: isFoodReview() ? Image.network(user!['avatar_url'], width: 48, height: 48
+                            ) : Image.network(user!['avatar_url'], width: 40, height: 40
+                            )
+                          ),
+                          title: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  // overlayColor: Colors.transparent,
+                                  // foregroundColor: Colors.white,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  splashFactory: NoSplash.splashFactory,
+                                  minimumSize: Size(10, 10),
+                                  alignment: isLocationAttached() ? Alignment.bottomLeft : Alignment.centerLeft
                                 ),
-                                title: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    TextButton(
-                                      style: TextButton.styleFrom(
-                                        padding: EdgeInsets.zero,
-                                        // overlayColor: Colors.transparent,
-                                        // foregroundColor: Colors.white,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        splashFactory: NoSplash.splashFactory,
-                                        minimumSize: Size(10, 10),
-                                        alignment: isLocationAttached() ? Alignment.bottomLeft : Alignment.centerLeft
-                                      ),
-                                      child: Text(user['name'], style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), 
-                                      onPressed: () {
-                                        if(isAdmin()) {
-                                          context.go('/account');
-                                        } else {
-                                          context.push('/user/$postuuid');
-                                        }
-                                      }
-                                    ),
-                                    if(isLocationAttached()) TextButton.icon(
-                                      style: TextButton.styleFrom(
-                                        padding: EdgeInsets.zero,
-                                        // overlayColor: Colors.transparent,
-                                        // foregroundColor: Colors.white,
-                                        // foregroundColor: Theme.of(context).primaryColor,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        splashFactory: NoSplash.splashFactory,
-                                        minimumSize: Size(10, 10)
-                                        // alignment: Alignment.topLeft
-                                      ),
-                                      onPressed: () => goLocation(post['locations']['lat'], post['locations']['long']), 
-                                      label: post['locations']['name'] != null ? Text(post['locations']['name'], overflow: TextOverflow.ellipsis) : Text('Location name unavailable', overflow: TextOverflow.ellipsis), 
-                                      // icon: Icon(Icons.location_pin),
-                                    ),
-                                    if(isFoodReview()) TextButton.icon(
-                                      style: TextButton.styleFrom(
-                                        padding: EdgeInsets.zero,
-                                        // overlayColor: Colors.transparent,
-                                        // foregroundColor: Colors.white,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        splashFactory: NoSplash.splashFactory,
-                                        alignment: Alignment.topLeft,
-                                        minimumSize: Size(10, 10)
-                                      ),
-                                      onPressed: () => _showEditRateUI(),
-                                      // onPressed: () => context.push('/category/368d3855-965d-4f13-b741-7975bbac80bf'), 
-                                      label: ValueListenableBuilder(valueListenable: calcRating, builder: (context, value, child) {
-                                        if(calcRating.value! == '0') {
-                                          Text('No rating yet');
-                                        } return Text(calcRating.value!);
-                                      }),
-                                      icon: Icon(Icons.star),
-                                    )
-                                  ],
-                                ),
-                                // trailing: Text(timeago.format(myDateTime, locale: 'en'))
+                                child: Text(user['name'], style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), 
+                                onPressed: () {
+                                  if(isAdmin()) {
+                                    context.go('/account');
+                                  } else {
+                                    context.push('/user/$postuuid');
+                                  }
+                                }
                               ),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // if(isFoodReview()) showRatingUI(),
-                                   
-                                    if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
-                                      padding: const EdgeInsets.fromLTRB(0,0,0,20),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.network(post['mediaUrl'], 
-                                        // width: 400,
-                                        fit: BoxFit.cover,
-                                        loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                                          if (loadingProgress == null) return child; // If the image is fully loaded, return the child widget
-                                            return Center( // Otherwise, return a loading widget
-                                              child: CircularProgressIndicator( // You can use any widget you like, such as a Shimmer widget
-                                                value: loadingProgress.expectedTotalBytes != null
-                                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                                  : null,
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                    if(post['mediaUrl'] == null && post['mediaUrlOnDb'] != null) Row(
-                                      children: [
-                                        Icon(Icons.image_not_supported),
-                                        Text("This image can only be viewed on Journee Web.", style: TextStyle(fontWeight: FontWeight.bold),),
-                                      ],
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
-                                      child: Text(post['details']),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(0,16,0,0),
-                                      child: Text(
-                                        convertedDate()+' – '+(timeago.format(myDateTime, locale: 'en')),
-                                        style: TextStyle(
-                                          color: Theme.of(context).brightness == Brightness.dark
-                                            ? Colors.white.withOpacity(0.5)
-                                            : Colors.black.withOpacity(0.5),
-                                        ),
-                                      ),
-                                    ),                        // Divider()
-                                  ],
+                              if(isLocationAttached()) TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  // overlayColor: Colors.transparent,
+                                  // foregroundColor: Colors.white,
+                                  // foregroundColor: Theme.of(context).primaryColor,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  splashFactory: NoSplash.splashFactory,
+                                  minimumSize: Size(10, 10)
+                                  // alignment: Alignment.topLeft
                                 ),
+                                onPressed: () => goLocation(post['locations']['lat'], post['locations']['long']), 
+                                label: post['locations']['name'] != null ? Text(post['locations']['name'], overflow: TextOverflow.ellipsis) : Text('Location name unavailable', overflow: TextOverflow.ellipsis), 
+                                // icon: Icon(Icons.location_pin),
                               ),
+                              if(isFoodReview()) TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  // overlayColor: Colors.transparent,
+                                  // foregroundColor: Colors.white,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  splashFactory: NoSplash.splashFactory,
+                                  alignment: Alignment.topLeft,
+                                  minimumSize: Size(10, 10)
+                                ),
+                                onPressed: () => _showEditRateUI(),
+                                // onPressed: () => context.push('/category/368d3855-965d-4f13-b741-7975bbac80bf'), 
+                                label: ValueListenableBuilder(valueListenable: calcRating, builder: (context, value, child) {
+                                  if(calcRating.value! == '0') {
+                                    Text('No rating yet');
+                                  } return Text(calcRating.value!);
+                                }),
+                                icon: Icon(Icons.star),
+                              )
                             ],
                           ),
-                          
-                          if (threads.length > 0) Divider(),
-                          // if (threads.length > 0) Center(child: Text("Threads")),
-                          PostThreadViewerComponent(puid, true),
-                        ],
-                      ),
+                          // trailing: Text(timeago.format(myDateTime, locale: 'en'))
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // if(isFoodReview()) showRatingUI(),
+                             
+                              if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
+                                padding: const EdgeInsets.fromLTRB(0,0,0,20),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(post['mediaUrl'], 
+                                  // width: 400,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) => pictureLoadingScreen(context, child, loadingProgress)
+                                  ),
+                                ),
+                              ),
+                              if(post['mediaUrl'] == null && post['mediaUrlOnDb'] != null) Row(
+                                children: [
+                                  Icon(Icons.image_not_supported),
+                                  Text("This image can only be viewed on Journee Web.", style: TextStyle(fontWeight: FontWeight.bold),),
+                                ],
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+                                child: Text(post['details']),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(0,16,0,0),
+                                child: Text(
+                                  convertedDate()+' – '+(timeago.format(myDateTime, locale: 'en')),
+                                  style: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white.withOpacity(0.5)
+                                      : Colors.black.withOpacity(0.5),
+                                  ),
+                                ),
+                              ),                        // Divider()
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  CreateThread(puid: postpuid, allowThread: allowThread),
-                ],
+                    
+                    if (threads.length > 0) Divider(),
+                    // if (threads.length > 0) Center(child: Text("Threads")),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: PostThreadViewerComponent(puid, true),
+                    ),
+                  ],
+                ),
               ),
             );
           },

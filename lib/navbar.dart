@@ -11,10 +11,10 @@ class NavBar extends StatelessWidget {
     if (location == '/') {
       return 0;
     } 
-    if (location == '/search') {
+    if (location == '/create/diary') {
       return 1;
     }
-    if (location == '/account') {
+    if (location == '/search') {
       return 2;
     }
     return 0;
@@ -25,9 +25,9 @@ class NavBar extends StatelessWidget {
       case 0:
         GoRouter.of(context).replace('/');
       case 1:
-        GoRouter.of(context).replace('/search');
+        GoRouter.of(context).replace('/create/diary');
       case 2:
-        GoRouter.of(context).replace('/account');
+        GoRouter.of(context).replace('/search');
     }
   }
   static const List<NavigationDestination> navbarWidget = [
@@ -37,14 +37,14 @@ class NavBar extends StatelessWidget {
       label: 'Home',
     ),
      NavigationDestination(
+      icon: Icon(Icons.create_outlined),
+      selectedIcon: Icon(Icons.create_sharp),
+      label: 'Create',
+    ),
+    NavigationDestination(
       icon: Icon(Icons.search_outlined),
       selectedIcon: Icon(Icons.search_sharp),
       label: 'Search',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.account_circle_outlined),
-      selectedIcon: Icon(Icons.account_circle),
-      label: 'Profile',
     ),
   ];
   static const List<NavigationRailDestination> navbarWidgetWindows = [
@@ -54,14 +54,14 @@ class NavBar extends StatelessWidget {
       label: Text('Home'),
     ),
     NavigationRailDestination(
+      icon: Icon(Icons.create_outlined),
+      selectedIcon: Icon(Icons.create_sharp),
+      label: Text('Create'),
+    ),
+    NavigationRailDestination(
       icon: Icon(Icons.search_outlined),
       selectedIcon: Icon(Icons.search_sharp),
       label: Text('Search'),
-    ),
-    NavigationRailDestination(
-      icon: Icon(Icons.account_circle_outlined),
-      selectedIcon: Icon(Icons.account_circle),
-      label: Text('Profile'),
     ),
   ];
 

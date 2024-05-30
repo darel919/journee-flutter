@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:journee/categories.dart';
 import 'package:journee/search.dart';
+import 'package:journee/threads.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:upgrader/upgrader.dart';
@@ -49,7 +50,9 @@ class _HomePostViewState extends State<HomePostView> {
     }
     return true;
   }
-
+  final supabase = Supabase.instance.client;
+  late final User? user = supabase.auth.currentUser;
+  late final userData = user?.userMetadata!;
   final _future = Supabase.instance.client
     .from('posts')
     .select('''*, users(*), threads ( * ), categories ( * )''')
@@ -58,6 +61,19 @@ class _HomePostViewState extends State<HomePostView> {
   
   Future<void> _refresh() async {
     context.pushReplacement('/');
+  }
+  Widget AllPostView() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if(!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+          
+        final posts = snapshot.data!;
+        return NewPostView(posts, snapshot, false, true);
+      }
+    );  
   }
 
   @override
@@ -68,8 +84,17 @@ class _HomePostViewState extends State<HomePostView> {
           appBar: AppBar(
             primary: true,
             title: Text("Journee"),
+            actions: <Widget> [
+              GestureDetector(
+                onTap: () => context.replace('/account'),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(0,0,20,0), 
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(32.0),
+                    child: Image.network(userData!['avatar_url'], width: 32, height: 32))),
+              )
+              ],
             bottom: TabBar( 
-            // padding: EdgeInsets.all(0),
             tabs: [ 
               Tab( 
                 text: "All", 
@@ -85,12 +110,12 @@ class _HomePostViewState extends State<HomePostView> {
             automaticallyImplyLeading: false,
             // actions: <Widget> [searchMode()],
           ),        
-          floatingActionButton: FloatingActionButton(
-            child: const Icon(Icons.create_outlined),
-            onPressed: () {
-                context.push('/create/diary');
-              }
-          ),
+          // floatingActionButton: FloatingActionButton(
+          //   child: const Icon(Icons.create_outlined),
+          //   onPressed: () {
+          //       context.push('/create/diary');
+          //     }
+          // ),
           body: TabBarView(
             children: [
               UpgradeAlert(
@@ -99,116 +124,7 @@ class _HomePostViewState extends State<HomePostView> {
                 onUpdate: () => launchUpdateURL(), 
                 child: RefreshIndicator(
                     onRefresh: () => _refresh(),
-                    child: FutureBuilder<List<Map<String, dynamic>>>(
-                      future: _future,
-                      builder: (context, snapshot) {
-                        if(!snapshot.hasData) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-                          final posts = snapshot.data!;
-                          
-                          return ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount: posts.length,
-                          itemBuilder: ((context, index) {
-                            final post = posts[index];
-                            final user = post['users'];
-                            final thread = post['threads'];
-                            final category = post['categories'];
-                            final special = post['type'];
-                            final puid = post['puid'];
-                            int threadLength = post['threads'].length;
-                            DateTime myDateTime = DateTime.parse(post['created_at']);
-                
-                            return ListTile(
-                              onTap: () {
-                                  context.push('/post/$puid');
-                              },
-                              contentPadding: EdgeInsets.fromLTRB(8, 5, 8, 5),
-                              isThreeLine: true,
-                              leading: ClipRRect(
-                                borderRadius: BorderRadius.circular(48.0),
-                                child: Image.network(user['avatar_url'],
-                                width: 32,
-                                height: 32,
-                                )
-                              ),
-                              title: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(0,0,8,0),
-                                    child: Text(user['name'], style: TextStyle(fontSize: 16)),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
-                                    decoration: BoxDecoration(border: Border.all(color: MediaQuery.of(context).platformBrightness == Brightness.dark ? Colors.white : Colors.black),
-                                    borderRadius: BorderRadius.circular(4)),
-                                    child: Text(category['name'], style: TextStyle(fontSize: 9)),
-                                  ),
-                                  if(special == 'Special') Padding(
-                                    padding: const EdgeInsets.fromLTRB(5,0,0,0),
-                                    child: Icon(Icons.star_border_outlined),
-                                  )
-                                ],
-                              ),
-                              // trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if(post['mediaUrl_preview'] != null) Padding(
-                                    padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      child: Image.network(post['mediaUrl_preview'], width: 400)),
-                                  ),
-                                  Text(post['details'], maxLines: 2, style: TextStyle(fontSize: 17, height: 2), overflow: TextOverflow.ellipsis),
-                                  Text(timeago.format(myDateTime, locale: 'en',), style: TextStyle(fontSize: 12, height: 1)),
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                    child: Row(
-                                      children: [
-                                        
-                                        if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
-                                          padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
-                                          child: Icon(Icons.image_outlined, size: 22),
-                                        ),
-                                        if(post['allowReply']) Padding(
-                                          padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                          child: Row(
-                                            crossAxisAlignment: CrossAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.chat_bubble_outline, size: 20),
-                                              if(threadLength > 0) Padding(
-                                                padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                                child: Text('$threadLength'),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        if(!post['allowReply']) Padding(
-                                          padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                          child: Row(
-                                            crossAxisAlignment: CrossAxisAlignment.center,
-                                            children: [
-                                              // Icon(Icons.comments_disabled_outlined, size: 20),
-                                              if(threadLength > 0) Padding(
-                                                padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                                child: Text('$threadLength'),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                ],
-                              ),
-                            );
-                          }),
-                        );
-                      },
-                    ),
+                    child: AllPostView(),
                   ),
                 ),
               CategoriesViewPage(cuid: '368d3855-965d-4f13-b741-7975bbac80bf', home: true),
@@ -218,7 +134,369 @@ class _HomePostViewState extends State<HomePostView> {
           ),
     );
   }
+
+  
 }
+
+  Widget NewPostView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map<String, dynamic>>> snapshot, bool foodMode, bool scrollPhysics) {
+    final supabase = Supabase.instance.client;  
+    ValueNotifier<String> catName = ValueNotifier<String>('');
+    Future<String> fetchRating(ruid) async {
+      double darelRating = 0.0;
+      double inesRating = 0.0;
+      Map<String, dynamic> reviewData = {};
+      var res = await supabase
+      .from('foodReviews')
+      .select('*')
+      .eq('ruid', ruid);
+      reviewData = res[0];
+      darelRating = reviewData['darelRate'].toDouble();
+      inesRating = reviewData['inesRate'].toDouble();
+      
+      if(inesRating == 0.0) {
+        var ratingCalculation = darelRating + inesRating;
+        var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+        return clampedRating.toString();
+        
+      } else if (darelRating == 0.0) {
+        var ratingCalculation = darelRating + inesRating;
+        var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+        return clampedRating.toStringAsFixed(1);
+
+      } else {
+        // Calculate the combined rating and divide by 2 to normalize to a scale of 5
+        var ratingCalculation = (darelRating + inesRating) / 2;
+
+        // Clamp the normalized rating between 0.0 and 5.0
+        var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+
+        // Set the calculated rating value
+        return clampedRating.toStringAsFixed(1);
+      }
+    }
+    
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: posts.length,
+      physics: scrollPhysics ? AlwaysScrollableScrollPhysics() : NeverScrollableScrollPhysics(),
+      itemBuilder: ((context, index) {
+        
+        final post = posts[index];
+        final user = post['users'];
+        final location = post['locations'];
+        final puid = post['puid'];
+        final thread = post['threads'];
+        DateTime myDateTime = DateTime.parse(post['created_at']);
+        ValueNotifier<bool?> readMore = ValueNotifier<bool?>(false);
+        
+        if(foodMode) {
+          return ListTile(
+            contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 5),
+            title: Row(
+              children: [
+                // OWNER PHOTO
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8,0,8,0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(50.0),
+                    child: Image.network(
+                      user['avatar_url'], 
+                      height: 40.0,
+                      width: 40.0,
+                      fit:BoxFit.cover
+                    )
+                  ),
+                ),
+        
+                // POST METADATA
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(user['name']),
+                    location == null ? Text('Loc Unavail') : ConstrainedBox(constraints: BoxConstraints(maxWidth: 275), child: Text(location['name'], overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12),)),
+                    GestureDetector(
+                      onTap: () => context.push('/post/$puid'),
+                      child: Row(
+                        children: [
+                          Icon(Icons.star),
+                          FutureBuilder<String>(
+                            future: fetchRating(post['ruid']), // your async function call
+                            builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                              if (snapshot.connectionState == ConnectionState.done) {
+                                if (snapshot.hasError) {
+                                  return Text('Error: ${snapshot.error}');
+                                } else if (snapshot.hasData) {
+                                  return Text(snapshot.data!); // display the data
+                                }
+                              }
+                              // By default, show a loading spinner
+                              return Text('...');
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            subtitle: Padding(
+            padding: const EdgeInsets.fromLTRB(0,8,0,8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // IMAGE
+                GestureDetector(
+                  onTap: () {
+                    context.push('/post/$puid');
+                  },
+                  child: post['mediaUrl_preview'] != null ? Padding(
+                    padding: const EdgeInsets.fromLTRB(0 ,8, 0, 0),
+                    child: Image.network(post['mediaUrl_preview'], width: 400, loadingBuilder: (context, child, loadingProgress) => pictureLoadingScreen(context, child, loadingProgress)),
+                  ) : Padding(
+                    padding: const EdgeInsets.fromLTRB(0 ,8, 0, 0),
+                    child: Image.network(post['mediaUrl'], loadingBuilder: (context, child, loadingProgress) => pictureLoadingScreen(context, child, loadingProgress)),
+                  ),
+                ),
+              
+                // FOOD CAPTION
+                GestureDetector(
+                  onTap: () => readMore.value = true,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(15,24,15,10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ValueListenableBuilder(valueListenable: readMore, builder: (context, value, child) {
+                          if(readMore.value == true) {
+                            return GestureDetector(onTap: () => ViewPostThreadBottomSheet(puid, context),child: Text(post['details']));
+                          } else {
+                            return Text(post['details'], maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14));
+                          }
+                        }),                                        
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(0,16,0,0),
+                          child: Text(
+                            timeago.format(myDateTime, locale: 'en'),
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withOpacity(0.5)
+                                : Colors.black.withOpacity(0.5),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          );
+        } else {
+          return ListTile(
+            contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 5),
+            title: Row(
+              children: [
+                // OWNER PHOTO
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8,0,8,0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(32.0),
+                    child: Image.network(
+                      user['avatar_url'], 
+                      height: 32.0,
+                      width: 32.0,
+                      fit:BoxFit.cover
+                    )
+                  ),
+                ),
+        
+                // POST METADATA
+                location == null ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(user['name']),
+                    Text(post['categories']['name'], style: TextStyle(fontSize: 11))
+                  ],
+                ) : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(user['name']),
+                    ConstrainedBox(constraints: BoxConstraints(maxWidth: 275), child: Text(location['name'], overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12),)),
+                  ],
+                ),
+              ],
+            ),
+            subtitle: Padding(
+            padding: const EdgeInsets.fromLTRB(0,8,0,8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // IMAGE
+                if(post['mediaUrl'] != null) GestureDetector(
+                  onTap: () {
+                    context.push('/post/$puid');
+                  },
+                  child: post['mediaUrl_preview'] != null ? Padding(
+                    padding: const EdgeInsets.fromLTRB(0 ,8, 0, 0),
+                    child: Image.network(post['mediaUrl_preview'], width: 400, loadingBuilder: (context, child, loadingProgress) => pictureLoadingScreen(context, child, loadingProgress)),
+                  ) : Padding(
+                    padding: const EdgeInsets.fromLTRB(0 ,8, 0, 0),
+                    child: Image.network(post['mediaUrl'], loadingBuilder: (context, child, loadingProgress) => pictureLoadingScreen(context, child, loadingProgress)),
+                  ),
+                ),
+              
+                // CAPTION
+                GestureDetector(
+                  onTap: () => readMore.value = true,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(15,24,15,10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ValueListenableBuilder(valueListenable: readMore, builder: (context, value, child) {
+                          if(readMore.value == true) {
+                            return GestureDetector(onTap: () => ViewPostThreadBottomSheet(puid, context),child: Text(post['details']));
+                          } else {
+                            return Text(post['details'], maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14));
+                          }
+                        }),                                        
+                        if(thread.length>0) Padding(
+                          padding: const EdgeInsets.fromLTRB(0,8,0,8),
+                          child: PostThreadViewerComponent(puid, true),
+                        ),
+                        if(thread.length == 0) Padding(padding: EdgeInsets.fromLTRB(0, 16, 0, 16)),
+                        if(thread.length >3 )Padding(
+                          padding: const EdgeInsets.fromLTRB(0,16,0,0),
+                          child: Text(
+                            "View all threads",
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withOpacity(0.5)
+                                : Colors.black.withOpacity(0.5),
+                            ),
+                          ),
+                        ),
+                        Text(
+                          timeago.format(myDateTime, locale: 'en'),
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withOpacity(0.5)
+                              : Colors.black.withOpacity(0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            ),
+          );
+        }
+      }
+    ),
+  );
+  }
+
+  Widget OldPostView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map<String, dynamic>>> snapshot, bool scrollPhysics) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: scrollPhysics ? AlwaysScrollableScrollPhysics() : NeverScrollableScrollPhysics(),
+      itemCount: posts.length,
+      itemBuilder: ((context, index) {
+    
+        final post = posts[index];
+        final user = post['users'];
+        final puid = post['puid'];
+        int threadLength = post['threads'].length;
+        final special = post['type'];
+        DateTime myDateTime = DateTime.parse(post['created_at']);
+    
+        return ListTile(
+          onTap: () {
+            context.push('/post/$puid');
+          },
+          contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+          isThreeLine: true,
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(48.0),
+            child: Image.network(user['avatar_url']
+            )
+          ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0,0,4,0),
+                    child: Text(user['name']),
+                  ),
+                  if(special == 'Special') Padding(
+                    padding: const EdgeInsets.fromLTRB(5,0,0,0),
+                    child: Icon(Icons.star_border_outlined),
+                  )
+                ],
+              ),
+            ],
+          ),
+          trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
+              if(post['mediaUrl_preview'] != null) Padding(
+                padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8.0),
+                  child: Image.network(post['mediaUrl_preview'], width: 400)),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                child: Row(
+                  children: [
+                    if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
+                      child: Icon(Icons.image_outlined, size: 22),
+                    ),
+                    if(post['allowReply']) Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chat_bubble_outline, size: 20),
+                          if(threadLength > 0) Padding(
+                            padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                            child: Text('$threadLength'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if(!post['allowReply']) Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Icon(Icons.comments_disabled_outlined, size: 20),
+                          if(threadLength > 0) Padding(
+                            padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                            child: Text('$threadLength'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
+          );
+        }
+      ),
+    );
+  }
 
 // class HomePostViewGridMode extends StatefulWidget {
 //   const HomePostViewGridMode({super.key});
