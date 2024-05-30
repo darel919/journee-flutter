@@ -296,7 +296,9 @@ class _HomePostViewState extends State<HomePostView> {
         } else {
           return ListTile(
             contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 5),
-            title: Row(
+            title: GestureDetector(
+              onTap: () => context.push('/post/$puid'),
+              child: Row(
               children: [
                 // OWNER PHOTO
                 Padding(
@@ -327,6 +329,7 @@ class _HomePostViewState extends State<HomePostView> {
                   ],
                 ),
               ],
+            ),
             ),
             subtitle: Padding(
             padding: const EdgeInsets.fromLTRB(0,8,0,8),
