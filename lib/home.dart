@@ -138,13 +138,14 @@ class _HomePostViewState extends State<HomePostView> {
   
 }
 
-  Widget NewPostView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map<String, dynamic>>> snapshot, bool foodMode, bool scrollPhysics) {
-    final supabase = Supabase.instance.client;  
-    ValueNotifier<String> catName = ValueNotifier<String>('');
-    Future<String> fetchRating(ruid) async {
-      double darelRating = 0.0;
-      double inesRating = 0.0;
-      Map<String, dynamic> reviewData = {};
+Widget NewPostView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map<String, dynamic>>> snapshot, bool foodMode, bool scrollPhysics) {
+  final supabase = Supabase.instance.client;  
+  ValueNotifier<String> catName = ValueNotifier<String>('');
+  Future<String> fetchRating(ruid) async {
+    double darelRating = 0.0;
+    double inesRating = 0.0;
+    Map<String, dynamic> reviewData = {};
+    try {
       var res = await supabase
       .from('foodReviews')
       .select('*')
@@ -152,95 +153,100 @@ class _HomePostViewState extends State<HomePostView> {
       reviewData = res[0];
       darelRating = reviewData['darelRate'].toDouble();
       inesRating = reviewData['inesRate'].toDouble();
-      
-      if(inesRating == 0.0) {
-        var ratingCalculation = darelRating + inesRating;
-        var clampedRating = ratingCalculation.clamp(0.0, 5.0);
-        return clampedRating.toString();
-        
-      } else if (darelRating == 0.0) {
-        var ratingCalculation = darelRating + inesRating;
-        var clampedRating = ratingCalculation.clamp(0.0, 5.0);
-        return clampedRating.toStringAsFixed(1);
-
-      } else {
-        // Calculate the combined rating and divide by 2 to normalize to a scale of 5
-        var ratingCalculation = (darelRating + inesRating) / 2;
-
-        // Clamp the normalized rating between 0.0 and 5.0
-        var clampedRating = ratingCalculation.clamp(0.0, 5.0);
-
-        // Set the calculated rating value
-        return clampedRating.toStringAsFixed(1);
-      }
+    } catch (e) {
+      print(e);
     }
+
     
-    return ListView.builder(
-      shrinkWrap: true,
-      itemCount: posts.length,
-      physics: scrollPhysics ? AlwaysScrollableScrollPhysics() : NeverScrollableScrollPhysics(),
-      itemBuilder: ((context, index) {
-        
-        final post = posts[index];
-        final user = post['users'];
-        final location = post['locations'];
-        final puid = post['puid'];
-        final thread = post['threads'];
-        DateTime myDateTime = DateTime.parse(post['created_at']);
-        ValueNotifier<bool?> readMore = ValueNotifier<bool?>(false);
-        
-        if(foodMode) {
-          return ListTile(
-            contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 5),
-            title: Row(
-              children: [
-                // OWNER PHOTO
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8,0,8,0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(50.0),
-                    child: Image.network(
-                      user['avatar_url'], 
-                      height: 40.0,
-                      width: 40.0,
-                      fit:BoxFit.cover
-                    )
-                  ),
+    if(inesRating == 0.0) {
+      var ratingCalculation = darelRating + inesRating;
+      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+      return clampedRating.toString();
+      
+    } else if (darelRating == 0.0) {
+      var ratingCalculation = darelRating + inesRating;
+      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+      return clampedRating.toStringAsFixed(1);
+
+    } else {
+      // Calculate the combined rating and divide by 2 to normalize to a scale of 5
+      var ratingCalculation = (darelRating + inesRating) / 2;
+
+      // Clamp the normalized rating between 0.0 and 5.0
+      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+
+      // Set the calculated rating value
+      return clampedRating.toStringAsFixed(1);
+    }
+  }
+  
+  return ListView.builder(
+    shrinkWrap: true,
+    itemCount: posts.length,
+    physics: scrollPhysics ? AlwaysScrollableScrollPhysics() : NeverScrollableScrollPhysics(),
+    itemBuilder: ((context, index) {
+      
+      final post = posts[index];
+      final user = post['users'];
+      final location = post['locations'];
+      final puid = post['puid'];
+      final thread = post['threads'];
+      DateTime myDateTime = DateTime.parse(post['created_at']);
+      ValueNotifier<bool?> readMore = ValueNotifier<bool?>(false);
+      bool loading = false;
+
+      if(foodMode) {
+        return ListTile(
+          contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 5),
+          title: Row(
+            children: [
+              // OWNER PHOTO
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8,0,8,0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(50.0),
+                  child: Image.network(
+                    user['avatar_url'], 
+                    height: 40.0,
+                    width: 40.0,
+                    fit:BoxFit.cover
+                  )
                 ),
-        
-                // POST METADATA
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(user['name']),
-                    location == null ? Text('Loc Unavail') : ConstrainedBox(constraints: BoxConstraints(maxWidth: 275), child: Text(location['name'], overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12),)),
-                    GestureDetector(
-                      onTap: () => context.push('/post/$puid'),
-                      child: Row(
-                        children: [
-                          Icon(Icons.star),
-                          FutureBuilder<String>(
-                            future: fetchRating(post['ruid']), // your async function call
-                            builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-                              if (snapshot.connectionState == ConnectionState.done) {
-                                if (snapshot.hasError) {
-                                  return Text('Error: ${snapshot.error}');
-                                } else if (snapshot.hasData) {
-                                  return Text(snapshot.data!); // display the data
-                                }
+              ),
+      
+              // POST METADATA
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(user['name']),
+                  location == null ? Text('Loc Unavail') : ConstrainedBox(constraints: BoxConstraints(maxWidth: 275), child: Text(location['name'], overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12),)),
+                  GestureDetector(
+                    onTap: () => context.push('/post/$puid'),
+                    child: Row(
+                      children: [
+                        Icon(Icons.star),
+                        FutureBuilder<String>(
+                          future: fetchRating(post['ruid']), // your async function call
+                          builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                            if (snapshot.connectionState == ConnectionState.done) {
+                              if (snapshot.hasError) {
+                                return Text('Error: ${snapshot.error}');
+                              } else if (snapshot.hasData) {
+                                return Text(snapshot.data!); // display the data
                               }
-                              // By default, show a loading spinner
-                              return Text('...');
-                            },
-                          ),
-                        ],
-                      ),
+                            }
+                            // By default, show a loading spinner
+                            return Text('...');
+                          },
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ],
-            ),
-            subtitle: Padding(
+                  ),
+                ],
+              ),
+            ],
+          ),
+          subtitle: Padding(
             padding: const EdgeInsets.fromLTRB(0,8,0,8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,10 +258,10 @@ class _HomePostViewState extends State<HomePostView> {
                   },
                   child: post['mediaUrl_preview'] != null ? Padding(
                     padding: const EdgeInsets.fromLTRB(0 ,8, 0, 0),
-                    child: Image.network(post['mediaUrl_preview'], width: 400, loadingBuilder: (context, child, loadingProgress) => pictureLoadingScreen(context, child, loadingProgress)),
+                    child: PictureViewerWidget(post['mediaUrl_preview'], 400, 400, false),
                   ) : Padding(
                     padding: const EdgeInsets.fromLTRB(0 ,8, 0, 0),
-                    child: Image.network(post['mediaUrl'], loadingBuilder: (context, child, loadingProgress) => pictureLoadingScreen(context, child, loadingProgress)),
+                    child: PictureViewerWidget(post['mediaUrl'], 400, 400, false),
                   ),
                 ),
               
@@ -292,46 +298,46 @@ class _HomePostViewState extends State<HomePostView> {
               ],
             ),
           ),
-          );
-        } else {
-          return ListTile(
-            contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 5),
-            title: GestureDetector(
-              onTap: () => context.push('/post/$puid'),
-              child: Row(
-              children: [
-                // OWNER PHOTO
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8,0,8,0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(32.0),
-                    child: Image.network(
-                      user['avatar_url'], 
-                      height: 32.0,
-                      width: 32.0,
-                      fit:BoxFit.cover
-                    )
-                  ),
+        );
+      } else {
+        return ListTile(
+          contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 5),
+          title: GestureDetector(
+            onTap: () => context.push('/post/$puid'),
+            child: Row(
+            children: [
+              // OWNER PHOTO
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8,0,8,0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(32.0),
+                  child: Image.network(
+                    user['avatar_url'], 
+                    height: 32.0,
+                    width: 32.0,
+                    fit:BoxFit.cover
+                  )
                 ),
-        
-                // POST METADATA
-                location == null ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(user['name']),
-                    Text(post['categories']['name'], style: TextStyle(fontSize: 11))
-                  ],
-                ) : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(user['name']),
-                    ConstrainedBox(constraints: BoxConstraints(maxWidth: 275), child: Text(location['name'], overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12),)),
-                  ],
-                ),
-              ],
-            ),
-            ),
-            subtitle: Padding(
+              ),
+      
+              // POST METADATA
+              location == null ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(user['name']),
+                  Text(post['categories']['name'], style: TextStyle(fontSize: 11))
+                ],
+              ) : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(user['name']),
+                  ConstrainedBox(constraints: BoxConstraints(maxWidth: 275), child: Text(location['name'], overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12),)),
+                ],
+              ),
+            ],
+          ),
+          ),
+          subtitle: Padding(
             padding: const EdgeInsets.fromLTRB(0,8,0,8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,10 +349,10 @@ class _HomePostViewState extends State<HomePostView> {
                   },
                   child: post['mediaUrl_preview'] != null ? Padding(
                     padding: const EdgeInsets.fromLTRB(0 ,8, 0, 0),
-                    child: Image.network(post['mediaUrl_preview'], width: 400, loadingBuilder: (context, child, loadingProgress) => pictureLoadingScreen(context, child, loadingProgress)),
+                    child: PictureViewerWidget(post['mediaUrl_preview'],400,400, false),
                   ) : Padding(
                     padding: const EdgeInsets.fromLTRB(0 ,8, 0, 0),
-                    child: Image.network(post['mediaUrl'], loadingBuilder: (context, child, loadingProgress) => pictureLoadingScreen(context, child, loadingProgress)),
+                    child: PictureViewerWidget(post['mediaUrl'],400,400, false),
                   ),
                 ),
               
@@ -395,111 +401,162 @@ class _HomePostViewState extends State<HomePostView> {
                 ),
               ],
             ),
+          ),
+        );
+      }
+    }
+  ),
+);
+}
+
+Widget OldPostView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map<String, dynamic>>> snapshot, bool scrollPhysics) {
+  return ListView.builder(
+    shrinkWrap: true,
+    physics: scrollPhysics ? AlwaysScrollableScrollPhysics() : NeverScrollableScrollPhysics(),
+    itemCount: posts.length,
+    itemBuilder: ((context, index) {
+  
+      final post = posts[index];
+      final user = post['users'];
+      final puid = post['puid'];
+      int threadLength = post['threads'].length;
+      final special = post['type'];
+      DateTime myDateTime = DateTime.parse(post['created_at']);
+  
+      return ListTile(
+        onTap: () {
+          context.push('/post/$puid');
+        },
+        contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+        isThreeLine: true,
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(48.0),
+          child: Image.network(user['avatar_url']
+          )
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0,0,4,0),
+                  child: Text(user['name']),
+                ),
+                if(special == 'Special') Padding(
+                  padding: const EdgeInsets.fromLTRB(5,0,0,0),
+                  child: Icon(Icons.star_border_outlined),
+                )
+              ],
             ),
-          );
-        }
+          ],
+        ),
+        trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
+            if(post['mediaUrl_preview'] != null) Padding(
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8.0),
+                child: PictureViewerWidget(post['mediaUrl_preview'],400,400, false),),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+              child: Row(
+                children: [
+                  if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
+                    child: Icon(Icons.image_outlined, size: 22),
+                  ),
+                  if(post['allowReply']) Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat_bubble_outline, size: 20),
+                        if(threadLength > 0) Padding(
+                          padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                          child: Text('$threadLength'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if(!post['allowReply']) Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Icon(Icons.comments_disabled_outlined, size: 20),
+                        if(threadLength > 0) Padding(
+                          padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                          child: Text('$threadLength'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          ],
+        ),
+        );
       }
     ),
   );
-  }
+}
 
-  Widget OldPostView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map<String, dynamic>>> snapshot, bool scrollPhysics) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: scrollPhysics ? AlwaysScrollableScrollPhysics() : NeverScrollableScrollPhysics(),
-      itemCount: posts.length,
-      itemBuilder: ((context, index) {
-    
-        final post = posts[index];
-        final user = post['users'];
-        final puid = post['puid'];
-        int threadLength = post['threads'].length;
-        final special = post['type'];
-        DateTime myDateTime = DateTime.parse(post['created_at']);
-    
-        return ListTile(
-          onTap: () {
-            context.push('/post/$puid');
-          },
-          contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
-          isThreeLine: true,
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(48.0),
-            child: Image.network(user['avatar_url']
-            )
-          ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(0,0,4,0),
-                    child: Text(user['name']),
-                  ),
-                  if(special == 'Special') Padding(
-                    padding: const EdgeInsets.fromLTRB(5,0,0,0),
-                    child: Icon(Icons.star_border_outlined),
-                  )
-                ],
-              ),
-            ],
-          ),
-          trailing: Text(timeago.format(myDateTime, locale: 'en_short')),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
-              if(post['mediaUrl_preview'] != null) Padding(
-                padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: Image.network(post['mediaUrl_preview'], width: 400)),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                child: Row(
-                  children: [
-                    if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
-                      child: Icon(Icons.image_outlined, size: 22),
-                    ),
-                    if(post['allowReply']) Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Icon(Icons.chat_bubble_outline, size: 20),
-                          if(threadLength > 0) Padding(
-                            padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                            child: Text('$threadLength'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if(!post['allowReply']) Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Icon(Icons.comments_disabled_outlined, size: 20),
-                          if(threadLength > 0) Padding(
-                            padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                            child: Text('$threadLength'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            ],
-          ),
-          );
-        }
+Widget PictureViewerWidget(String getSource, double width, double height, bool fullView) {
+  return DecoratedBox(
+    decoration: BoxDecoration(
+      color: Colors.transparent,
+      border: Border.all(color: Colors.transparent),
+      // borderRadius: BorderRadius.circular(20),
+    ),
+    child: Image.network(
+      getSource, 
+      width: fullView ? null : width,
+      height: fullView ? null : height,
+      fit: BoxFit.cover,
+      frameBuilder: pictureFrameScreen,
+      loadingBuilder: (context, child, loadingProgress) => pictureLoadingScreen(context, child, loadingProgress, width, height, fullView),
+      errorBuilder: pictureErrorScreen,
+    ),
+  );
+}
+
+Widget pictureFrameScreen(context, child, frame, wasSynchronouslyLoaded) {
+  if (wasSynchronouslyLoaded) {
+    return child;
+  }
+  return AnimatedOpacity(
+    child: child,
+    opacity: frame == null ? 0 : 1,
+    duration: const Duration(seconds: 3),
+    curve: Curves.easeOut,
+  );
+}
+
+Widget pictureErrorScreen(context, exception, stackTrace) {
+  // Handle image loading failure (e.g., show an error message)
+  return Text('Failed to load image');
+}
+
+Widget pictureLoadingScreen(BuildContext context, Widget child, ImageChunkEvent? loadingProgress, double width, double height, bool fullView) {
+  if (loadingProgress == null) return child; // If the image is fully loaded, return the child widget
+    return SizedBox(
+      height: fullView ? null :height,
+      width: fullView ? null :width,
+      child: Center( // Otherwise, return a loading widget
+        child: CircularProgressIndicator( // You can use any widget you like, such as a Shimmer widget
+          value: loadingProgress.expectedTotalBytes != null
+            ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+            : null,
+        ),
       ),
     );
-  }
+}
 
 // class HomePostViewGridMode extends StatefulWidget {
 //   const HomePostViewGridMode({super.key});

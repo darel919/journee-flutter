@@ -46,7 +46,15 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   }
   late Map<String, dynamic> fetchedData = {};
   late Map<String, dynamic> reviewData = {};
- 
+  
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   // runFoodCheck();
+  //   // fetchRating();
+  // }
+
+
   Future<void> _deletePost() async {
     try {
       await supabase
@@ -94,6 +102,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   String? postpuid;
   String? postluid;
   String? postcatid;
+  String? postruid = '';
   bool allowThread = true;
   bool isLocationAttached() {
     if(postluid == '' || postluid == null) {
@@ -111,10 +120,24 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   }
   bool isFoodReview() {
     if(postcatid == '368d3855-965d-4f13-b741-7975bbac80bf') {
-      fetchRating();
       return true;
-    } 
-    return false;
+    } return false;
+  }
+
+  Future<void> createEmergencyRating() async {
+    if (_debounce2?.isActive ?? false) _debounce2?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 1000), () async {
+      print("missing ruid, creating emergency rate");
+      final String? ruid = await reviewsUploader(puid!,0, 0);
+      var newrateuid = await supabase.from('posts')
+      .update({
+        'ruid': ruid!,
+      })
+      .match({ 'puid': puid!})
+      .select();
+      postruid = newrateuid[0]['ruid'];
+      context.pushReplacement('/post/$puid');
+    });
   }
   void goLocation(Lat, Long) async {
     Uri uri = Uri.parse('geo:$Lat,$Long?q=$Lat,$Long');
@@ -143,32 +166,38 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   double newinesRating = 0.0;
   double newdarelRating = 0.0;
   Future<void> fetchRating() async {
-    var res = await supabase
-    .from('foodReviews')
-    .select('*')
-    .eq('ruid', fetchedData['ruid']!);
-    reviewData = res[0];
-    darelRating = reviewData['darelRate'].toDouble();
-    inesRating = reviewData['inesRate'].toDouble();
-    if(inesRating == 0.0) {
-      var ratingCalculation = darelRating + inesRating;
-      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
-      calcRating.value = clampedRating.toString();
-      
-    } else if (darelRating == 0.0) {
-      var ratingCalculation = darelRating + inesRating;
-      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
-      calcRating.value = clampedRating.toStringAsFixed(1);
+    try {
+      var res = await supabase
+      .from('foodReviews')
+      .select('*')
+      .eq('ruid', postruid!);
+      reviewData = res[0];
+      darelRating = reviewData['darelRate'].toDouble();
+      inesRating = reviewData['inesRate'].toDouble();
 
-    } else {
-      // Calculate the combined rating and divide by 2 to normalize to a scale of 5
-      var ratingCalculation = (darelRating + inesRating) / 2;
+      if(inesRating == 0.0) {
+        var ratingCalculation = darelRating + inesRating;
+        var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+        calcRating.value = clampedRating.toString();
+        
+      } else if (darelRating == 0.0) {
+        var ratingCalculation = darelRating + inesRating;
+        var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+        calcRating.value = clampedRating.toStringAsFixed(1);
 
-      // Clamp the normalized rating between 0.0 and 5.0
-      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+      } else {
+        // Calculate the combined rating and divide by 2 to normalize to a scale of 5
+        var ratingCalculation = (darelRating + inesRating) / 2;
 
-      // Set the calculated rating value
-      calcRating.value = clampedRating.toStringAsFixed(1);
+        // Clamp the normalized rating between 0.0 and 5.0
+        var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+
+        // Set the calculated rating value
+        calcRating.value = clampedRating.toStringAsFixed(1);
+      } 
+    } catch (e) {
+      print('Fail fetching! $e');
+      // await createEmergencyRating();
     }
   }
   ValueNotifier<String?> calcRating = ValueNotifier<String?>('0');
@@ -177,15 +206,15 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
       if(mode == 'darel') {
         await supabase.from('foodReviews')
         .update({
-          'darelRate': newdarelRating,
+          'darelRate': rate,
         })
-        .match({ 'ruid': fetchedData['ruid']});
+        .match({ 'ruid': postruid!});
       } else {
         await supabase.from('foodReviews')
         .update({
-          'inesRate': newinesRating,
+          'inesRate': rate,
         })
-        .match({ 'ruid': fetchedData['ruid']});
+        .match({ 'ruid': postruid!});
       }
       print("$mode rate update to $rate");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -201,20 +230,14 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
       });
     }
     void ignore() async {
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(
-      //     duration: Duration(seconds: 2),
-      //     content: Text('Rating not updated'),
-      //     elevation: 20.0,
-      //   ),
-      // );
       Navigator.pop(context);
       setState(() {
         calcRating.value = '0';
       });
     }
-    print('current $newdarelRating');
-    print('new $darelRating');
+    
+    print('old $darelRating');
+    print('updated $newdarelRating');
     
     if(mode == 'ines') {
       if(inesRating == newinesRating) {
@@ -337,6 +360,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   }
 
   Timer? _debounce;
+  Timer? _debounce2;
   @override
   void dispose() {
     _debounce?.cancel();
@@ -352,196 +376,180 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      onPopInvoked: (didPop) {
-        // context.pushReplacement('/');
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: true,
-          title: Text("Post"),
-          actions: <Widget> [
-            PopupMenuButton<int>(
-                onSelected: (item) => handleClick(item),
-                itemBuilder: (context) => [
-                  if(isAdmin()) PopupMenuItem<int>(onTap: () => _showMyDialog(context), value: 0, child: Text('Delete')),
-                  if(isAdmin()) PopupMenuItem<int>(onTap: () => {
-                     context.push('/post/$postpuid/edit')
-                    // Navigator.push(context, new MaterialPageRoute(builder: (context) => new EditDiary(puid: postpuid)))
-                    }, value: 1, child: Text('Edit')
-                  ),
-                  if(isFoodReview()) PopupMenuItem<int>(onTap:() => _showEditRateUI(), value: 2, child: Text('Rating')),
-                ],
-              )
-          ],
-        ),
-        body: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _future,
-          builder: (context, snapshot) {
-            if(!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final post = snapshot.data![0];
-            fetchedData = post;
-            final user = post['users'];
-            final threads = post['threads'];
-            postuuid = post['uuid'];
-            postpuid = post['puid'];
-            postluid = post['luid'];
-            postcatid = post['cuid'];
-            allowThread = post['allowReply'];
-            DateTime myDateTime = DateTime.parse(post['created_at']);
-            String convertedDate() {
-              var fetchedDate = myDateTime.toLocal();
-              var hour = fetchedDate.hour.toString();
-              var minute = fetchedDate.minute.toString();
-              var date = fetchedDate.day.toString();
-              var month = fetchedDate.month.toString();
-              var year = fetchedDate.year.toString();
-
-              return hour+':'+minute+' '+date+'/'+month+'/'+year;
-            }
-            
-            return GestureDetector(
-              onLongPress: () {
-                
-              },
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ListView(
-                      physics: const NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      children: <Widget>[
-                        ListTile(
-                          // contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
-                          leading: ClipRRect(
-                            borderRadius: BorderRadius.circular(48.0),
-                            child: isFoodReview() ? Image.network(user!['avatar_url'], width: 48, height: 48
-                            ) : Image.network(user!['avatar_url'], width: 40, height: 40
-                            )
-                          ),
-                          title: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              TextButton(
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  // overlayColor: Colors.transparent,
-                                  // foregroundColor: Colors.white,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  splashFactory: NoSplash.splashFactory,
-                                  minimumSize: Size(10, 10),
-                                  alignment: isLocationAttached() ? Alignment.bottomLeft : Alignment.centerLeft
-                                ),
-                                child: Text(user['name'], style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), 
-                                onPressed: () {
-                                  if(isAdmin()) {
-                                    context.go('/account');
-                                  } else {
-                                    context.push('/user/$postuuid');
-                                  }
-                                }
-                              ),
-                              if(isLocationAttached()) TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  // overlayColor: Colors.transparent,
-                                  // foregroundColor: Colors.white,
-                                  // foregroundColor: Theme.of(context).primaryColor,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  splashFactory: NoSplash.splashFactory,
-                                  minimumSize: Size(10, 10)
-                                  // alignment: Alignment.topLeft
-                                ),
-                                onPressed: () => goLocation(post['locations']['lat'], post['locations']['long']), 
-                                label: post['locations']['name'] != null ? Text(post['locations']['name'], overflow: TextOverflow.ellipsis) : Text('Location name unavailable', overflow: TextOverflow.ellipsis), 
-                                // icon: Icon(Icons.location_pin),
-                              ),
-                              if(isFoodReview()) TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  // overlayColor: Colors.transparent,
-                                  // foregroundColor: Colors.white,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  splashFactory: NoSplash.splashFactory,
-                                  alignment: Alignment.topLeft,
-                                  minimumSize: Size(10, 10)
-                                ),
-                                onPressed: () => _showEditRateUI(),
-                                // onPressed: () => context.push('/category/368d3855-965d-4f13-b741-7975bbac80bf'), 
-                                label: ValueListenableBuilder(valueListenable: calcRating, builder: (context, value, child) {
-                                  if(calcRating.value! == '0') {
-                                    Text('No rating yet');
-                                  } return Text(calcRating.value!);
-                                }),
-                                icon: Icon(Icons.star),
-                              )
-                            ],
-                          ),
-                          // trailing: Text(timeago.format(myDateTime, locale: 'en'))
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // if(isFoodReview()) showRatingUI(),
-                             
-                              if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
-                                padding: const EdgeInsets.fromLTRB(0,0,0,20),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(post['mediaUrl'], 
-                                  // width: 400,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder: (context, child, loadingProgress) => pictureLoadingScreen(context, child, loadingProgress)
-                                  ),
-                                ),
-                              ),
-                              if(post['mediaUrl'] == null && post['mediaUrlOnDb'] != null) Row(
-                                children: [
-                                  Icon(Icons.image_not_supported),
-                                  Text("This image can only be viewed on Journee Web.", style: TextStyle(fontWeight: FontWeight.bold),),
-                                ],
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
-                                child: Text(post['details']),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(0,16,0,0),
-                                child: Text(
-                                  convertedDate()+' – '+(timeago.format(myDateTime, locale: 'en')),
-                                  style: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white.withOpacity(0.5)
-                                      : Colors.black.withOpacity(0.5),
-                                  ),
-                                ),
-                              ),                        // Divider()
-                            ],
-                          ),
-                        ),
-                      ],
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if(!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final post = snapshot.data![0];
+        fetchedData = post;
+        postruid = post['ruid'];
+        final user = post['users'];
+        final threads = post['threads'];
+        postuuid = post['uuid'];
+        postpuid = post['puid'];
+        postluid = post['luid'];
+        postcatid = post['cuid'];
+        allowThread = post['allowReply'];
+        DateTime myDateTime = DateTime.parse(post['created_at']);
+        if(post['ruid'] != null) fetchRating();
+        if(post['ruid'] == null) createEmergencyRating();
+        String convertedDate() {
+          var fetchedDate = myDateTime.toLocal();
+          var hour = fetchedDate.hour.toString();
+          var minute = fetchedDate.minute.toString();
+          var date = fetchedDate.day.toString();
+          var month = fetchedDate.month.toString();
+          var year = fetchedDate.year.toString();
+  
+          return hour+':'+minute+' '+date+'/'+month+'/'+year;
+        }
+        
+        return Scaffold(
+          appBar: AppBar(
+            automaticallyImplyLeading: true,
+            title: Text("Post"),
+            actions: <Widget> [
+              PopupMenuButton<int>(
+                  onSelected: (item) => handleClick(item),
+                  itemBuilder: (context) => [
+                    if(isAdmin()) PopupMenuItem<int>(onTap: () => _showMyDialog(context), value: 0, child: Text('Delete')),
+                    if(isAdmin()) PopupMenuItem<int>(onTap: () => {
+                      context.push('/post/$postpuid/edit')
+                      // Navigator.push(context, new MaterialPageRoute(builder: (context) => new EditDiary(puid: postpuid)))
+                      }, value: 1, child: Text('Edit')
                     ),
-                    
-                    if (threads.length > 0) Divider(),
-                    // if (threads.length > 0) Center(child: Text("Threads")),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: PostThreadViewerComponent(puid, true),
-                    ),
+                    if(isFoodReview()) PopupMenuItem<int>(onTap:() => _showEditRateUI(), value: 2, child: Text('Rating')),
                   ],
-                ),
+                )
+            ],
+          ),
+          body: GestureDetector(
+            onLongPress: () {
+              
+            },
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    children: <Widget>[
+                      ListTile(
+                        // contentPadding: EdgeInsets.fromLTRB(15, 15, 15, 5),
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(48.0),
+                          child: isFoodReview() ? Image.network(user!['avatar_url'], width: 48, height: 48
+                          ) : Image.network(user!['avatar_url'], width: 40, height: 40
+                          )
+                        ),
+                        title: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                splashFactory: NoSplash.splashFactory,
+                                minimumSize: Size(10, 10),
+                                alignment: isLocationAttached() ? Alignment.bottomLeft : Alignment.centerLeft
+                              ),
+                              child: Text(user['name'], style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), 
+                              onPressed: () {
+                                if(isAdmin()) {
+                                  context.go('/account');
+                                } else {
+                                  context.push('/user/$postuuid');
+                                }
+                              }
+                            ),
+                            if(isLocationAttached()) TextButton.icon(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                splashFactory: NoSplash.splashFactory,
+                                minimumSize: Size(10, 10)
+                              ),
+                              onPressed: () => post['locations']['lat'] != null && post['locations']['long'] != null  ? goLocation(post['locations']['lat'], post['locations']['long']) : null, 
+                              label: post['locations']['name'] != null ? Text(post['locations']['name'], overflow: TextOverflow.ellipsis) : Text('Location name unavailable', overflow: TextOverflow.ellipsis), 
+                              // icon: Icon(Icons.location_pin),
+                            ),
+                            if(isFoodReview()) TextButton.icon(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                splashFactory: NoSplash.splashFactory,
+                                alignment: Alignment.topLeft,
+                                minimumSize: Size(10, 10)
+                              ),
+                              onPressed: () => _showEditRateUI(),
+                              // onPressed: () => context.push('/category/368d3855-965d-4f13-b741-7975bbac80bf'), 
+                              label: ValueListenableBuilder(valueListenable: calcRating, builder: (context, value, child) {
+                                if(calcRating.value! == '0') {
+                                  Text('No rating yet');
+                                } return Text(calcRating.value!);
+                              }),
+                              icon: Icon(Icons.star),
+                            )
+                          ],
+                        ),
+                        // trailing: Text(timeago.format(myDateTime, locale: 'en'))
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [                             
+                            if (post['mediaUrl']!= null && post['mediaUrl'].isNotEmpty) Padding(
+                              padding: const EdgeInsets.fromLTRB(0,0,0,20),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: PictureViewerWidget(post['mediaUrl'],400,400,true),
+                              ),
+                            ),
+                            if(post['mediaUrl'] == null && post['mediaUrlOnDb'] != null) Row(
+                              children: [
+                                Icon(Icons.image_not_supported),
+                                Text("This image can only be viewed on Journee Web.", style: TextStyle(fontWeight: FontWeight.bold),),
+                              ],
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+                              child: Text(post['details']),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(0,16,0,0),
+                              child: Text(
+                                convertedDate()+' – '+(timeago.format(myDateTime, locale: 'en')),
+                                style: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white.withOpacity(0.5)
+                                    : Colors.black.withOpacity(0.5),
+                                ),
+                              ),
+                            ),                        // Divider()
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  if (threads.length > 0) Divider(),
+                  // if (threads.length > 0) Center(child: Text("Threads")),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: PostThreadViewerComponent(puid, true),
+                  ),
+                ],
               ),
-            );
-          },
-        )
-      ),
+            ),
+          ),
+        );
+      }
     );
   }
 

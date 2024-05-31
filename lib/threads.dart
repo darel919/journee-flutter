@@ -656,7 +656,7 @@ class _ViewThreadRouteState extends State<ViewThreadsRoute> {
                                   padding: const EdgeInsets.fromLTRB(0,15,0,15),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(thread['mediaUrl'], width: 400, loadingBuilder: (context, child, loadingProgress) => pictureLoadingScreen(context, child, loadingProgress)),
+                                    child: PictureViewerWidget(thread['mediaUrl'],400,400,false)
                                   ),
                                 ),
                               ],
@@ -726,8 +726,7 @@ Widget PostThreadViewerComponent(puid, thinMode) {
                         final tuid = threadDetails['tuid'];
                         DateTime threadDateTime = DateTime.parse(threadDetails['created_at']);
                         if(thinMode) {
-                          return ListTile(
-                            
+                          return ListTile(        
                             onTap: () {
                               context.push('/thread/$tuid');
                             },
@@ -752,11 +751,7 @@ Widget PostThreadViewerComponent(puid, thinMode) {
                                   padding: const EdgeInsets.fromLTRB(0,15,0,15),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(threadDetails['mediaUrl'], 
-                                    width: 128,
-                                    fit: BoxFit.cover,
-                                    loadingBuilder: pictureLoadingScreen,
-                                    ),
+                                    child: PictureViewerWidget(threadDetails['mediaUrl'],150,150, false)
                                   ),
                                 ),
                               ],
@@ -785,20 +780,7 @@ Widget PostThreadViewerComponent(puid, thinMode) {
                                     padding: const EdgeInsets.fromLTRB(0,15,0,15),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(threadDetails['mediaUrl'], 
-                                      // width: 400,
-                                      fit: BoxFit.cover,
-                                      loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                                        if (loadingProgress == null) return child; // If the image is fully loaded, return the child widget
-                                          return Center( // Otherwise, return a loading widget
-                                            child: CircularProgressIndicator( // You can use any widget you like, such as a Shimmer widget
-                                              value: loadingProgress.expectedTotalBytes != null
-                                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                                : null,
-                                            ),
-                                          );
-                                        },
-                                      ),
+                                      child: PictureViewerWidget(threadDetails['mediaUrl'],400,400,false)
                                     ),
                                   ),
                                 ],
@@ -828,17 +810,6 @@ Widget PostThreadViewerComponent(puid, thinMode) {
           ),
         ),
       ],
-    );
-  }
-
-Widget pictureLoadingScreen(BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-  if (loadingProgress == null) return child; // If the image is fully loaded, return the child widget
-    return Center( // Otherwise, return a loading widget
-      child: CircularProgressIndicator( // You can use any widget you like, such as a Shimmer widget
-        value: loadingProgress.expectedTotalBytes != null
-          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-          : null,
-      ),
     );
   }
 

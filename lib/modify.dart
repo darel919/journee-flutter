@@ -346,7 +346,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       .match({ 'puid': earlyPuid });
                       
                       String? uploadLocUID = await locationsUploader();
-                      String? uploadReviewUID = await reviewsUploader(earlyPuid);
+                      String? uploadReviewUID = await reviewsUploader(earlyPuid, darelRating, inesRating);
 
                       // UPDATE CREATED LOCATION UNIQUE ID AND REVIEW UNIQUE ID
                       await supabase.from('posts')
@@ -473,7 +473,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                     }
                     
                     String? uploadLocUID = await locationsUploader();
-                    String? uploadReviewUID = await reviewsUploader(earlyPuid);
+                    String? uploadReviewUID = await reviewsUploader(earlyPuid, darelRating, inesRating);
                     
                     await supabase.from('posts')
                     .update({
@@ -947,29 +947,32 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     return earlyUploadPost[0]['puid'];
   }
 
-  Future<String?> reviewsUploader(String earlyPuid) async {
-    List<Map<String, dynamic>> uploadReviewUID = await supabase.from('foodReviews')
-    .insert({
-      'puid': earlyPuid,
-      'darelRate': darelRating,
-      'inesRate': inesRating
-    })
-    .select();
-    return uploadReviewUID[0]['ruid'];
-  }
-
   Future<String?> locationsUploader() async {
     final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);  
     if(preferredLoc!.isEmpty) {
-      final List<Map<String, dynamic>> uploadLocUIDGen = await supabase.from('locations')
-      .insert({
-        'lat': globalLat, 
-        'long': globalLong, 
-        'name': endpointData!['title'],
-        'full_address': endpointData['address']['label']
-      })
-      .select();
-      return uploadLocUIDGen[0]['luid'];
+      // CHECKS THE DB FOR LOCATION ADDRESS
+      final _data = await supabase
+      .from('locations')
+      .select('*')
+      .eq('full_address', endpointData!['address']['label']);
+
+      // IF FOUND, ATTACH EXISTING LOCATION LUID INSTEAD OF INSERTING NEW LUID
+      if(_data[0]['full_address'] == endpointData['address']['label']) {
+        print('found loc address on db, attaching instead');
+        return _data[0]['luid'];
+      } 
+      // IF NOT FOUND, INSERT NEW LUID TO DB
+      else {
+        final List<Map<String, dynamic>> uploadLocUIDGen = await supabase.from('locations')
+        .insert({
+          'lat': globalLat, 
+          'long': globalLong, 
+          'name': endpointData['title'],
+          'full_address': endpointData['address']['label']
+        })
+        .select();
+        return uploadLocUIDGen[0]['luid'];
+      }
     } else {
       return preferredLoc!['luid'];
     }
@@ -1090,7 +1093,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   @override
   void dispose() {
     myController.dispose();
-    // clearGPSLoc();
     super.dispose();
   }
 
@@ -1619,7 +1621,6 @@ class _EditDiaryState extends State<EditDiary> {
       appBar: AppBar(
         centerTitle: true,
         title: Text("Edit info"), 
-        // leading: Center(child: Text('Cancel')),
         actions: <Widget> [
           TextButton(
             onPressed: () {
@@ -1725,4 +1726,16 @@ class _EditDiaryState extends State<EditDiary> {
         )),
     );
   }
+}
+
+Future<String?> reviewsUploader(String earlyPuid, double darelRating, double inesRating) async {
+  final supabase = Supabase.instance.client;
+  List<Map<String, dynamic>> uploadReviewUID = await supabase.from('foodReviews')
+  .insert({
+    'puid': earlyPuid,
+    'darelRate': darelRating,
+    'inesRate': inesRating
+  })
+  .select();
+  return uploadReviewUID[0]['ruid'];
 }
