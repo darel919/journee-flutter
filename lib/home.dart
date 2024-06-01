@@ -19,7 +19,7 @@ class HomePostView extends StatefulWidget {
   State<HomePostView> createState() => _HomePostViewState();
 }
 
-class _HomePostViewState extends State<HomePostView> {
+class _HomePostViewState extends State<HomePostView> with SingleTickerProviderStateMixin {
   static const appcastURL = 'https://raw.githubusercontent.com/darel919/journee-flutter/main/android/app/appcast/appcast.xml';
   static const _urlAndroid = 'https://github.com/darel919/journee-flutter/releases/download/app/app-release.apk';
   static const _url = 'https://github.com/darel919/journee-flutter/releases/';
@@ -75,40 +75,45 @@ class _HomePostViewState extends State<HomePostView> {
       }
     );  
   }
-  // this method invokes only when new route push to navigator
-  // void fetchData() {
-  //   _refresh();
-  // }
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   fetchData();
-  // }
+
+  late TabController _secondaryTabController;
+  @override
+  void initState() {
+     super.initState();
+     _secondaryTabController = TabController(length: 2, vsync:this);
+  }
+  @override
+  void dispose() {
+    _secondaryTabController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-          appBar: AppBar(
-            primary: true,
-            title: Text("Journee"),
-            actions: <Widget> [
-              GestureDetector(
-                onTap: () => context.push('/account'),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(0,0,20,0), 
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(32.0),
-                    child: Image.network(userData!['avatar_url'], width: 32, height: 32))),
-              )
-            ],
-            bottom: TabBar( 
+        appBar: AppBar(
+          primary: true,
+          title: Text("Journee"),
+          actions: <Widget> [
+            GestureDetector(
+              onTap: () => context.push('/account'),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(0,0,20,0), 
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(32.0),
+                  child: Image.network(userData!['avatar_url'], width: 32, height: 32))),
+            )
+          ],
+          bottom: TabBar( 
             tabs: [ 
               Tab( 
                 text: "All", 
               ), 
               Tab( 
-                text: "Food Ranks", 
+                text: "Food Mode", 
               ), 
               Tab( 
                 text: "Categories", 
@@ -116,52 +121,85 @@ class _HomePostViewState extends State<HomePostView> {
             ], 
           ), 
           automaticallyImplyLeading: false,
-          ),        
-          // floatingActionButton: FloatingActionButton(
-          //   child: const Icon(Icons.create_outlined),
-          //   onPressed: () {
-          //       context.push('/create/diary');
-          //     }
-          // ),
-          body: TabBarView(
-            children: [
-              UpgradeAlert(
-                showIgnore: false, 
-                showLater: false,
-                onUpdate: () => launchUpdateURL(), 
-                child: RefreshIndicator(
-                    onRefresh: () => _refresh(),
-                    child: AllPostView(),
-                  ),
+        ),        
+        body: TabBarView(
+          children: [
+            UpgradeAlert(
+              showIgnore: false, 
+              showLater: false,
+              onUpdate: () => launchUpdateURL(), 
+              child: RefreshIndicator(
+                  onRefresh: () => _refresh(),
+                  child: AllPostView(),
                 ),
-              FoodReviewHome(),
-              CategoriesPage()
-              ]
-            ),
-          ),
+              ),
+            FoodReviewHome(_secondaryTabController),
+            CategoriesPage()
+          ]
+        ),
+      ),
     );
   }
 }
- Widget FoodReviewHome() {
-    final supabase = Supabase.instance.client;
-    late final _futureFoodRankView = supabase
-    .from('posts')
-    .select('''*, users(*), threads ( * ), categories ( * ), locations(*)''')
-    .eq('cuid', '368d3855-965d-4f13-b741-7975bbac80bf')
-    .order('created_at',  ascending: false);
+Widget FoodReviewHome(TabController _secondaryTabController) {
+  final supabase = Supabase.instance.client;
+  late final _futureFoodRankView = supabase
+  .from('posts')
+  .select('''*, users(*), threads ( * ), categories ( * ), locations(*)''')
+  .eq('cuid', '368d3855-965d-4f13-b741-7975bbac80bf')
+  .order('created_at',  ascending: false);
 
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _futureFoodRankView,
-      builder: (context, snapshot) {
-        if(!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-          
-        final posts = snapshot.data!;
-        return FoodModeGridView(posts,snapshot,true);
+  return FutureBuilder<List<Map<String, dynamic>>>(
+    future: _futureFoodRankView,
+    builder: (context, snapshot) {
+      if(!snapshot.hasData) {
+        return const Center(child: CircularProgressIndicator());
       }
-    );  
-  }
+        
+      final posts = snapshot.data!;
+      final PageController _pageController = PageController(initialPage: 0);
+      
+      return DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
+            flexibleSpace: TabBar(
+              controller: _secondaryTabController,
+              tabs: [
+                Tab(text: 'Ratings'),
+                Tab(text: 'Reviews'),
+              ],
+            ),
+          ),
+          body: TabBarView(
+            controller: _secondaryTabController,
+            children: [
+              GestureDetector(
+                onHorizontalDragEnd: (details) {
+                  if (details.primaryVelocity! > 0) {
+                    DefaultTabController.of(context).animateTo(0);
+                  } else {
+                    _secondaryTabController.animateTo(1);
+                  }
+                },
+                child: FoodModeGridView(posts, snapshot, true)), // First tab content
+              GestureDetector(
+                onHorizontalDragEnd: (details) {
+                  if (details.primaryVelocity! < 0) {
+                    DefaultTabController.of(context).animateTo(2);
+                  } else {
+                    _secondaryTabController.animateTo(0);
+                  }
+                },
+                child: NewPostView(posts, snapshot, true, true))
+            ],
+          ),
+        ),
+      );
+    }
+  );  
+}
+
 Widget FoodModeGridView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map<String, dynamic>>> snapshot, bool scrollPhysics) {
   final supabase = Supabase.instance.client;  
   Future<String> fetchRating(ruid) async {
@@ -299,8 +337,8 @@ Widget FoodModeGridView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map
       );
     }
   );
-
 }
+
 Widget NewPostView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map<String, dynamic>>> snapshot, bool foodMode, bool scrollPhysics) {
   final supabase = Supabase.instance.client;  
   ValueNotifier<String> catName = ValueNotifier<String>('');
@@ -702,8 +740,7 @@ Widget pictureFrameScreen(context, child, frame, wasSynchronouslyLoaded) {
 }
 
 Widget pictureErrorScreen(context, exception, stackTrace) {
-  // Handle image loading failure (e.g., show an error message)
-  return Text('Failed to load image');
+  return Text('Failed to load image $exception');
 }
 
 Widget pictureLoadingScreen(BuildContext context, Widget child, ImageChunkEvent? loadingProgress, double width, double height, bool fullView) {
