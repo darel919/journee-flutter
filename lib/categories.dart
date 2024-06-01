@@ -172,7 +172,8 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
               return Scaffold(
                 body: RefreshIndicator(
                   onRefresh: () => refreshPage(),
-                  child: categoryViewUI())
+                  child: categoryViewUI()
+                )
               );
             } return Scaffold(
               appBar: AppBar(

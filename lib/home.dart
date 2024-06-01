@@ -53,7 +53,7 @@ class _HomePostViewState extends State<HomePostView> {
   final supabase = Supabase.instance.client;
   late final User? user = supabase.auth.currentUser;
   late final userData = user?.userMetadata!;
-  final _future = Supabase.instance.client
+  late final _future = supabase
     .from('posts')
     .select('''*, users(*), threads ( * ), categories ( * )''')
     .neq('cuid', '368d3855-965d-4f13-b741-7975bbac80bf')
@@ -75,7 +75,15 @@ class _HomePostViewState extends State<HomePostView> {
       }
     );  
   }
-
+  // this method invokes only when new route push to navigator
+  // void fetchData() {
+  //   _refresh();
+  // }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   fetchData();
+  // }
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -86,29 +94,28 @@ class _HomePostViewState extends State<HomePostView> {
             title: Text("Journee"),
             actions: <Widget> [
               GestureDetector(
-                onTap: () => context.replace('/account'),
+                onTap: () => context.push('/account'),
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(0,0,20,0), 
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(32.0),
                     child: Image.network(userData!['avatar_url'], width: 32, height: 32))),
               )
-              ],
+            ],
             bottom: TabBar( 
             tabs: [ 
               Tab( 
                 text: "All", 
               ), 
               Tab( 
-                text: "Food Reviews", 
+                text: "Food Ranks", 
               ), 
               Tab( 
                 text: "Categories", 
               ), 
             ], 
           ), 
-            automaticallyImplyLeading: false,
-            // actions: <Widget> [searchMode()],
+          automaticallyImplyLeading: false,
           ),        
           // floatingActionButton: FloatingActionButton(
           //   child: const Icon(Icons.create_outlined),
@@ -127,17 +134,173 @@ class _HomePostViewState extends State<HomePostView> {
                     child: AllPostView(),
                   ),
                 ),
-              CategoriesViewPage(cuid: '368d3855-965d-4f13-b741-7975bbac80bf', home: true),
+              FoodReviewHome(),
               CategoriesPage()
               ]
             ),
           ),
     );
   }
-
-  
 }
+ Widget FoodReviewHome() {
+    final supabase = Supabase.instance.client;
+    late final _futureFoodRankView = supabase
+    .from('posts')
+    .select('''*, users(*), threads ( * ), categories ( * ), locations(*)''')
+    .eq('cuid', '368d3855-965d-4f13-b741-7975bbac80bf')
+    .order('created_at',  ascending: false);
 
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _futureFoodRankView,
+      builder: (context, snapshot) {
+        if(!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+          
+        final posts = snapshot.data!;
+        return FoodModeGridView(posts,snapshot,true);
+      }
+    );  
+  }
+Widget FoodModeGridView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map<String, dynamic>>> snapshot, bool scrollPhysics) {
+  final supabase = Supabase.instance.client;  
+  Future<String> fetchRating(ruid) async {
+    double darelRating = 0.0;
+    double inesRating = 0.0;
+    Map<String, dynamic> reviewData = {};
+    
+    try {
+      var res = await supabase
+      .from('foodReviews')
+      .select('*')
+      .eq('ruid', ruid);
+      reviewData = res[0];
+      darelRating = reviewData['darelRate'].toDouble();
+      inesRating = reviewData['inesRate'].toDouble();
+    } catch (e) {
+      print(e);
+    }
+
+    
+    if(inesRating == 0.0) {
+      var ratingCalculation = darelRating + inesRating;
+      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+      return clampedRating.toString();
+      
+    } else if (darelRating == 0.0) {
+      var ratingCalculation = darelRating + inesRating;
+      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+      return clampedRating.toStringAsFixed(1);
+
+    } else {
+      // Calculate the combined rating and divide by 2 to normalize to a scale of 5
+      var ratingCalculation = (darelRating + inesRating) / 2;
+
+      // Clamp the normalized rating between 0.0 and 5.0
+      var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+
+      // Set the calculated rating value
+      return clampedRating.toStringAsFixed(1);
+    }
+  }
+  
+  return GridView.builder(
+    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
+    itemCount: posts.length,
+    itemBuilder: (BuildContext context, index) {
+      final post = posts[index];
+      final puid = post['puid'];
+
+      return GridTile(
+        child: post['mediaUrl_preview'] != null ? GestureDetector(
+          onTap: () => context.push('/post/$puid'),
+          child: Padding(
+            padding: const EdgeInsets.all(2),
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                PictureViewerWidget(post['mediaUrl_preview'], 150, 150, false),
+                SizedBox(
+                  width: 40,
+                  height: 20,
+                  child: Container(
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.75)),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(0,0,4,0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(Icons.star, size: 13),
+                          FutureBuilder<String>(
+                          future: fetchRating(post['ruid']), // your async function call
+                          builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                            if (snapshot.connectionState == ConnectionState.done) {
+                              if (snapshot.hasError) {
+                                return Text('Error: ${snapshot.error}');
+                              } else if (snapshot.hasData) {
+                                return Text(snapshot.data!); // display the data
+                              }
+                            }
+                            // By default, show a loading spinner
+                            return Text('...');
+                          },
+                        ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ) : GestureDetector(
+          onTap: () => context.push('/post/$puid'),
+          child: Padding(
+            padding: const EdgeInsets.all(2),
+            child: Stack(
+              children: [
+                PictureViewerWidget(post['mediaUrl'], 100, 100, false),
+                SizedBox(
+                  width: 40,
+                  height: 20,
+                  child: Container(
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.75)),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(0,0,4,0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(Icons.star, size: 13),
+                          FutureBuilder<String>(
+                          future: fetchRating(post['ruid']), // your async function call
+                          builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                            if (snapshot.connectionState == ConnectionState.done) {
+                              if (snapshot.hasError) {
+                                return Text('Error: ${snapshot.error}');
+                              } else if (snapshot.hasData) {
+                                return Text(snapshot.data!); // display the data
+                              }
+                            }
+                            // By default, show a loading spinner
+                            return Text('...');
+                          },
+                        ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+  );
+
+}
 Widget NewPostView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map<String, dynamic>>> snapshot, bool foodMode, bool scrollPhysics) {
   final supabase = Supabase.instance.client;  
   ValueNotifier<String> catName = ValueNotifier<String>('');

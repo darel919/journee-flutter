@@ -45,6 +45,7 @@ class _AccountPageState extends State<AccountPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: true,
         actions: [
           PopupMenuButton<int>(
             onSelected: (item) => handleClick(item),

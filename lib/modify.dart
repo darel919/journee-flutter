@@ -422,7 +422,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                           elevation: 20.0,
                         ),
                       );
-                      context.pushReplacement('/');
+                      context.pushReplacement('/post/$earlyPuid');
                     } 
                     else {
                       File file = File(filePicked.files.single.path!);
@@ -634,7 +634,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                         elevation: 20.0,
                       ),
                     );
-                    context.pushReplacement('/');
+                    context.pushReplacement('/post/$earlyPuid');
                   } 
                   else {
                     File file = File(filePicked.files.single.path!);
@@ -1153,6 +1153,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: selectedCatName != null ? Text("Create new '$selectedCatName'") : Text("Create new post"),
       ),
       body: Form(
@@ -1161,7 +1162,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(
+            if(!uploading)Expanded(
               child: SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -1535,7 +1536,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                 ),
               ),
             ),
-            if(uploading) Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
+            if(uploading) Expanded(child: Center(child: Text("Uploading...", style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold)))),
             if(!uploading) SizedBox(
               width: 300,
               // color: Colors.black,

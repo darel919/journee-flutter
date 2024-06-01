@@ -47,14 +47,6 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   late Map<String, dynamic> fetchedData = {};
   late Map<String, dynamic> reviewData = {};
   
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   // runFoodCheck();
-  //   // fetchRating();
-  // }
-
-
   Future<void> _deletePost() async {
     try {
       await supabase
@@ -170,7 +162,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
       var res = await supabase
       .from('foodReviews')
       .select('*')
-      .eq('ruid', postruid!);
+      .eq('ruid', fetchedData['ruid']);
       reviewData = res[0];
       darelRating = reviewData['darelRate'].toDouble();
       inesRating = reviewData['inesRate'].toDouble();
@@ -382,54 +374,52 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
         if(!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final post = snapshot.data![0];
-        fetchedData = post;
-        postruid = post['ruid'];
-        final user = post['users'];
-        final threads = post['threads'];
-        postuuid = post['uuid'];
-        postpuid = post['puid'];
-        postluid = post['luid'];
-        postcatid = post['cuid'];
-        allowThread = post['allowReply'];
-        DateTime myDateTime = DateTime.parse(post['created_at']);
-        if(post['ruid'] != null) fetchRating();
-        if(post['ruid'] == null) createEmergencyRating();
-        String convertedDate() {
-          var fetchedDate = myDateTime.toLocal();
-          var hour = fetchedDate.hour.toString();
-          var minute = fetchedDate.minute.toString();
-          var date = fetchedDate.day.toString();
-          var month = fetchedDate.month.toString();
-          var year = fetchedDate.year.toString();
-  
-          return hour+':'+minute+' '+date+'/'+month+'/'+year;
-        }
-        
-        return Scaffold(
-          appBar: AppBar(
-            automaticallyImplyLeading: true,
-            title: Text("Post"),
-            actions: <Widget> [
-              PopupMenuButton<int>(
-                  onSelected: (item) => handleClick(item),
-                  itemBuilder: (context) => [
-                    if(isAdmin()) PopupMenuItem<int>(onTap: () => _showMyDialog(context), value: 0, child: Text('Delete')),
-                    if(isAdmin()) PopupMenuItem<int>(onTap: () => {
-                      context.push('/post/$postpuid/edit')
-                      // Navigator.push(context, new MaterialPageRoute(builder: (context) => new EditDiary(puid: postpuid)))
-                      }, value: 1, child: Text('Edit')
-                    ),
-                    if(isFoodReview()) PopupMenuItem<int>(onTap:() => _showEditRateUI(), value: 2, child: Text('Rating')),
-                  ],
-                )
-            ],
-          ),
-          body: GestureDetector(
-            onLongPress: () {
-              
-            },
-            child: SingleChildScrollView(
+        try {
+          final post = snapshot.data![0];
+          fetchedData = post;
+          isFoodReview() ? postruid = post['ruid'] : null;
+          final user = post['users'];
+          final threads = post['threads'];
+          postuuid = post['uuid'];
+          postpuid = post['puid'];
+          postluid = post['luid'];
+          postcatid = post['cuid'];
+          allowThread = post['allowReply'];
+          DateTime myDateTime = DateTime.parse(post['created_at']);
+          if(post['ruid'] != null && isFoodReview()) fetchRating();
+          if(post['ruid'] == null && isFoodReview()) createEmergencyRating();
+          String convertedDate() {
+            var fetchedDate = myDateTime.toLocal();
+            var hour = fetchedDate.hour.toString();
+            var minute = fetchedDate.minute.toString();
+            var date = fetchedDate.day.toString();
+            var month = fetchedDate.month.toString();
+            var year = fetchedDate.year.toString();
+    
+            return hour+':'+minute+' '+date+'/'+month+'/'+year;
+          }
+          
+          return Scaffold(
+            appBar:
+             AppBar(
+              automaticallyImplyLeading: true,
+              title: Text("Post"),
+              actions: <Widget> [
+                PopupMenuButton<int>(
+                    onSelected: (item) => handleClick(item),
+                    itemBuilder: (context) => [
+                      if(isAdmin()) PopupMenuItem<int>(onTap: () => _showMyDialog(context), value: 0, child: Text('Delete')),
+                      if(isAdmin()) PopupMenuItem<int>(onTap: () => {
+                        context.push('/post/$postpuid/edit')
+                        // Navigator.push(context, new MaterialPageRoute(builder: (context) => new EditDiary(puid: postpuid)))
+                        }, value: 1, child: Text('Edit')
+                      ),
+                      if(isFoodReview()) PopupMenuItem<int>(onTap:() => _showEditRateUI(), value: 2, child: Text('Rating')),
+                    ],
+                  )
+              ],
+            ),
+            body: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -547,8 +537,11 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                 ],
               ),
             ),
-          ),
-        );
+          );
+        } catch(e) {
+          context.pushReplacement('/');
+        }
+        return Text("Error occured while loading the page");
       }
     );
   }

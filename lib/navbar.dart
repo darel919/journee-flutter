@@ -127,3 +127,93 @@ class NavBar extends StatelessWidget {
     // }
   }
 }
+
+class BottomNavBar extends StatefulWidget {
+  final Widget child;
+  const BottomNavBar({super.key, required this.child});
+
+  @override
+  State<BottomNavBar> createState() => _BottomNavBarState(child: child);
+}
+
+class _BottomNavBarState extends State<BottomNavBar> {
+  _BottomNavBarState({Key? key, required this.child});
+  Widget? child;
+  int currentIndex = 0;
+  void changeTab(int index) {
+    switch(index){
+      case 0:  
+        context.go('/');
+        break;
+      case 1:  
+        context.go('/create/diary');
+        break;
+      default:
+        context.go('/search');
+        break;
+    }
+    setState(() {
+      currentIndex = index;
+    });
+  }
+
+  List<BottomNavigationBarItem> get bottomNavbarItems {
+    return const [
+      BottomNavigationBarItem(
+        icon: Icon(Icons.home_outlined),
+        activeIcon: Icon(Icons.home_filled),
+        label: 'Home'
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.create_outlined),
+        activeIcon: Icon(Icons.create_sharp),
+        label: 'Create'
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.search_outlined),
+        activeIcon: Icon(Icons.search_sharp),
+        label: 'Search'
+      ),
+    ];
+  }
+
+    List<NavigationDestination> get navbarItems {
+    return const [
+    NavigationDestination(
+      icon: Icon(Icons.home_outlined),
+      selectedIcon: Icon(Icons.home_filled),
+      label: 'Home',
+    ),
+     NavigationDestination(
+      icon: Icon(Icons.create_outlined),
+      selectedIcon: Icon(Icons.create_sharp),
+      label: 'Create',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.search_outlined),
+      selectedIcon: Icon(Icons.search_sharp),
+      label: 'Search',
+    ),
+    ];
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: widget.child,
+      // bottomNavigationBar: BottomNavigationBar(
+      //   onTap: changeTab,
+      //   // backgroundColor: const Color(0xffe0b9f6),
+      //   currentIndex: currentIndex,
+      //   items: bottomNavbarItems,
+      // ),
+      bottomNavigationBar: NavigationBar(
+        destinations: navbarItems,
+        selectedIndex: currentIndex,
+        onDestinationSelected: changeTab,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+      )
+    );
+  }
+
+}

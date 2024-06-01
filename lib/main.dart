@@ -33,93 +33,105 @@ Future<void> main() async {
   
 }
 
-final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
-final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 class NavigatorRoutes {
-  final _router = GoRouter(
-    redirect: (BuildContext context, GoRouterState state) {
-      final session = supabase.auth.currentSession;
-      if (session != null) {
-        return null;
-      } else {
-        return '/login';
-      }   
-    },
-    navigatorKey: _rootNavigatorKey,
-    initialLocation: '/init',
-    routes: <RouteBase>[
-      ShellRoute(
-        navigatorKey: _shellNavigatorKey,
-        builder: (context, state, child) => NavBar(child: child),
-        routes: <RouteBase>[
-          GoRoute(           
-            path: '/',
-            builder: (context, state) => HomePostView(),
-            routes: <RouteBase>[
-              GoRoute(
-                path: 'post/:puid',
-                builder: (context, state) => ViewPostRoute(
-                  puid: state.pathParameters['puid']
-                ),
-                routes: <RouteBase>[
-                  GoRoute(
-                    path: 'edit',
-                    builder: (context, state) => EditDiary(
-                      puid: state.pathParameters['puid']
-                    ),
-                  ),
-                ]
-              ),
-              GoRoute(
-                path: 'thread/:tuid',
-                builder: (context, state) => ViewThreadsRoute(
-                  tuid: state.pathParameters['tuid']
-                ),
-              ),
-              GoRoute(
-                path: 'category/:cuid',
-                builder: (context, state) => CategoriesViewPage(
-                  cuid: state.pathParameters['cuid'],
-                  home: false
-                ),
-              ),
-              GoRoute(
-                path: 'user/:uuid',
-                builder: (context, state) => UserPageRoute(
-                  uuid: state.pathParameters['uuid'], 
-                ),
-              ),
-              GoRoute(
-                path: 'create/diary',
-                builder: (context, state) => const CreateDiaryPage(),
-              ),
-              GoRoute(
-                path: 'search',
-                builder: (context, state) => const SearchPage(),
-              ),
-              GoRoute(
-                path: 'account',
-                builder: (context, state) => const AccountPage(),
-              ),
-            ],
-          ),
-        ]
-      ),   
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginPage(),
-      ),
-      GoRoute(
-        path: '/init',
-        builder: (context, state) => const SplashPage(),
-      ),
-      GoRoute(
-        path: '/update',
-        builder: (context, state) => const UpdatePage(),
-      ),
-    ],
-  );    
+  // final _router = GoRouter(
+  //   redirect: (BuildContext context, GoRouterState state) {
+  //     final session = supabase.auth.currentSession;
+  //     if (session != null) {
+  //       return null;
+  //     } else {
+  //       return '/login';
+  //     }   
+  //   },
+  //   navigatorKey: _rootNavigatorKey,
+  //   initialLocation: '/init',
+  //   routes: [
+  //     ShellRoute(
+  //       navigatorKey: _shellNavigatorKey,
+  //       builder: (context, state, child) => BottomNavBar(child: child),
+  //       routes: [
+  //         GoRoute(           
+  //           path: '/',
+  //           parentNavigatorKey: _shellNavigatorKey,
+  //           builder: (context, state) => HomePostView(),
+  //           routes: [
+  //             GoRoute(
+  //               path: 'post/:puid',
+  //               parentNavigatorKey: _rootNavigatorKey,
+  //               builder: (context, state) => ViewPostRoute(
+  //                 puid: state.pathParameters['puid']
+  //               ),
+  //               routes: [
+  //                 GoRoute(
+  //                   path: 'edit',
+  //                   parentNavigatorKey: _rootNavigatorKey,
+  //                   builder: (context, state) => EditDiary(
+  //                     puid: state.pathParameters['puid']
+  //                   ),
+  //                 ),
+  //               ]
+  //             ),
+  //             GoRoute(
+  //               path: 'thread/:tuid',
+  //               parentNavigatorKey: _shellNavigatorKey,
+  //               builder: (context, state) => ViewThreadsRoute(
+  //                 tuid: state.pathParameters['tuid']
+  //               ),
+  //             ),
+  //             GoRoute(
+  //               path: 'category/:cuid',
+  //               parentNavigatorKey: _shellNavigatorKey,
+  //               builder: (context, state) => CategoriesViewPage(
+  //                 cuid: state.pathParameters['cuid'],
+  //                 home: false
+  //               ),
+  //             ),
+  //             GoRoute(
+  //               path: 'user/:uuid',
+  //               parentNavigatorKey: _shellNavigatorKey,
+  //               builder: (context, state) => UserPageRoute(
+  //                 uuid: state.pathParameters['uuid'], 
+  //               ),
+  //             ),
+  //             GoRoute(
+  //               path: 'create/diary',
+  //               parentNavigatorKey: _shellNavigatorKey,
+  //               builder: (context, state) => const CreateDiaryPage(),
+  //             ),
+  //             GoRoute(
+  //               path: 'search',
+  //               parentNavigatorKey: _shellNavigatorKey,
+  //               builder: (context, state) => const SearchPage(),
+  //             ),
+  //             GoRoute(
+  //               path: 'account',
+  //               parentNavigatorKey: _shellNavigatorKey,
+  //               builder: (context, state) => const AccountPage(),
+  //             ),
+  //           ],
+  //         ),
+  //       ]
+  //     ),   
+  //     GoRoute(
+  //       path: '/login',
+  //       parentNavigatorKey: _rootNavigatorKey,
+  //       builder: (context, state) => const LoginPage(),
+  //     ),
+  //     GoRoute(
+  //       path: '/init',
+  //       parentNavigatorKey: _rootNavigatorKey,
+  //       builder: (context, state) => const SplashPage(),
+  //     ),
+  //     GoRoute(
+  //       path: '/update',
+  //       parentNavigatorKey: _rootNavigatorKey,
+  //       builder: (context, state) => const UpdatePage(),
+  //     ),
+  //   ],
+  // );    
 }
 
 class MyApp extends StatelessWidget {
@@ -149,18 +161,114 @@ class MyApp extends StatelessWidget {
         )
       );
   }
-  final _appRouter = NavigatorRoutes();
+  final _router = GoRouter(
+    redirect: (BuildContext context, GoRouterState state) {
+      final session = supabase.auth.currentSession;
+      if (session != null) {
+        return null;
+      } else {
+        return '/login';
+      }   
+    },
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: '/init',
+    routes: [
+      ShellRoute(
+        navigatorKey: _shellNavigatorKey,
+        builder: (context, state, child) => BottomNavBar(child: child),
+        routes: [
+          GoRoute(           
+            path: '/',
+            parentNavigatorKey: _shellNavigatorKey,
+            builder: (context, state) => HomePostView(),
+            routes: [
+              GoRoute(
+                path: 'post/:puid',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => ViewPostRoute(
+                  puid: state.pathParameters['puid']
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => EditDiary(
+                      puid: state.pathParameters['puid']
+                    ),
+                  ),
+                ]
+              ),
+              GoRoute(
+                path: 'thread/:tuid',
+                parentNavigatorKey: _shellNavigatorKey,
+                builder: (context, state) => ViewThreadsRoute(
+                  tuid: state.pathParameters['tuid']
+                ),
+              ),
+              GoRoute(
+                path: 'category/:cuid',
+                parentNavigatorKey: _shellNavigatorKey,
+                builder: (context, state) => CategoriesViewPage(
+                  cuid: state.pathParameters['cuid'],
+                  home: false
+                ),
+              ),
+              GoRoute(
+                path: 'user/:uuid',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => UserPageRoute(
+                  uuid: state.pathParameters['uuid'], 
+                ),
+              ),
+              GoRoute(
+                path: 'create/diary',
+                parentNavigatorKey: _shellNavigatorKey,
+                builder: (context, state) => const CreateDiaryPage(),
+              ),
+              GoRoute(
+                path: 'search',
+                parentNavigatorKey: _shellNavigatorKey,
+                builder: (context, state) => const SearchPage(),
+              ),
+              GoRoute(
+                path: 'account',
+                parentNavigatorKey: _shellNavigatorKey,
+                builder: (context, state) => const AccountPage(),
+              ),
+            ],
+          ),
+        ]
+      ),   
+      GoRoute(
+        path: '/login',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: '/init',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const SplashPage(),
+      ),
+      GoRoute(
+        path: '/update',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const UpdatePage(),
+      ),
+    ],
+  );    
+  
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Journee',
       theme: _theme(Brightness.light),
       themeMode: ThemeMode.system, 
       darkTheme: _theme(Brightness.dark),
-      // routerConfig: _router,
-      routerConfig: _appRouter._router,
+      routerConfig: _router,
+      // routerConfig: _appRouter,
     );
   }
 }
