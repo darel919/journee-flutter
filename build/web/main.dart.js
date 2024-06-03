@@ -124198,7 +124198,7 @@ $.h8().gjq().h(0,"windowsSecretId").toString
 l=n.d.z
 l===$&&A.a()
 s=7
-return A.p(A.UO(l,B.a0W,"https://newjournee.vercel.app/"),$async$zq)
+return A.p(A.UO(l,B.a0W,"https://newjournee.vercel.app/#/init"),$async$zq)
 case 7:l=n.c.ae(t.Q)
 l.toString
 l.f.eJ(A.ed(null,null,null,null,null,B.o,null,A.a0("Web Login success!",null,null,null,null,null,null,null,null),null,B.av,20,null,null,null,null,null,null,null,null))

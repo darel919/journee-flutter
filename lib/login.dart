@@ -44,7 +44,7 @@ class _LoginPageState extends State<LoginPage> {
       if(kIsWeb) {
         var link = await supabase.auth.signInWithOAuth(
           OAuthProvider.google,
-          redirectTo: kReleaseMode ? 'https://newjournee.vercel.app/' : 'http://localhost:3000/init'
+          redirectTo: kReleaseMode ? 'https://newjournee.vercel.app/#/init' : 'http://localhost:3000/init'
         );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -108,13 +108,16 @@ class _LoginPageState extends State<LoginPage> {
               idToken = googleSignInAuthentication.idToken;
               print('Android GSI Login');
               if (accessToken!.isNotEmpty && idToken!.isNotEmpty) {
-                // await supabase.auth.signInWithOAuth(OAuthProvider.google, redirectTo: kReleaseMode?'https://newjournee.vercel.app/#/init' : 'http://localhost:3000/init');
-                await supabase.auth.signInWithIdToken(
-                  provider: OAuthProvider.google,
-                  idToken: idToken!,
-                  accessToken: accessToken,
-                  nonce: 'NONCE',
-                );
+                await supabase.auth.signInWithOAuth(
+                  OAuthProvider.google, 
+                  redirectTo: 'https://newjournee.vercel.app/#/init');
+
+                // await supabase.auth.signInWithIdToken(
+                //   provider: OAuthProvider.google,
+                //   idToken: idToken!,
+                //   accessToken: accessToken,
+                //   nonce: 'NONCE',
+                // );
               }
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
