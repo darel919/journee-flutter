@@ -44,7 +44,7 @@ class _LoginPageState extends State<LoginPage> {
       if(kIsWeb) {
         var link = await supabase.auth.signInWithOAuth(
           OAuthProvider.google,
-          redirectTo: kReleaseMode ? 'https://newjournee.vercel.app/#/init' : 'http://localhost:3000/init'
+          redirectTo: kReleaseMode ? 'https://newjournee.vercel.app/' : 'http://localhost:3000/init'
         );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
