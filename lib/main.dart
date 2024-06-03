@@ -22,10 +22,12 @@ Future<void> main() async {
   await dotenv.load(fileName: 'lib/.env');
   WidgetsFlutterBinding.ensureInitialized();
   var sbaseUrl = dotenv.env['supabaseUrl']!;
+  var sbaseUrl2 = dotenv.env['supabaseSelfHostUrl']!;
+  var sbasekey2 = dotenv.env['supabaseSelfHostKey']!;
   var sbaseAnonKey = dotenv.env['supabaseAnonKey']!;
   await Supabase.initialize(
-    url: sbaseUrl,
-    anonKey: sbaseAnonKey,
+    url: sbaseUrl2,
+    anonKey: sbasekey2,
     debug: false
   );
   // GoogleFonts.config.allowRuntimeFetching = false;

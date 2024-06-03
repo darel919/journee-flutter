@@ -108,6 +108,7 @@ class _LoginPageState extends State<LoginPage> {
               idToken = googleSignInAuthentication.idToken;
               print('Android GSI Login');
               if (accessToken!.isNotEmpty && idToken!.isNotEmpty) {
+                // await supabase.auth.signInWithOAuth(OAuthProvider.google, redirectTo: kReleaseMode?'https://newjournee.vercel.app/#/init' : 'http://localhost:3000/init');
                 await supabase.auth.signInWithIdToken(
                   provider: OAuthProvider.google,
                   idToken: idToken!,
