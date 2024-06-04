@@ -35442,15 +35442,15 @@ _.a=!1
 _.c=_.b=$
 _.d=!1
 _.e=$},
-UO(a,b,c){var s=0,r=A.v(t.y),q,p,o
-var $async$UO=A.q(function(d,e){if(d===1)return A.r(e,r)
+UO(a,b){var s=0,r=A.v(t.y),q,p,o
+var $async$UO=A.q(function(c,d){if(c===1)return A.r(d,r)
 while(true)switch(s){case 0:o=A
 s=3
-return A.p(a.L5(b,null,c,null),$async$UO)
-case 3:p=o.cc(e.b,0,null)
+return A.p(a.L5(b,null,null,null),$async$UO)
+case 3:p=o.cc(d.b,0,null)
 s=4
 return A.p(A.nv(p,B.cL,"_self"),$async$UO)
-case 4:q=e
+case 4:q=d
 s=1
 break
 case 1:return A.t(q,r)}})
@@ -109597,20 +109597,19 @@ return A.u($async$G4,r)},
 F5(a,b,c,d,e){return this.arj(a,b,c,d,e)},
 arj(a,b,c,d,e){var s=0,r=A.v(t.PO),q,p=this,o,n,m,l,k
 var $async$F5=A.q(function(f,g){if(f===1)return A.r(g,r)
-while(true)switch(s){case 0:l=t.N
-k=A.S(["provider",A.bkl(a)],l,l)
-k.l(0,"redirect_to",c)
-o=p.ax
-s=o===B.hW?3:4
+while(true)switch(s){case 0:m=t.N
+l=A.S(["provider",A.bkl(a)],m,m)
+k=p.ax
+s=k===B.hW?3:4
 break
-case 3:n=A.bqJ()
+case 3:o=A.bqJ()
 s=5
-return A.p(p.at.yB("supabase.auth.token-code-verifier",n),$async$F5)
-case 5:m=B.pL.cR(B.p5.cR(n))
-k.U(0,A.S(["flow_type",o.b,"code_challenge",B.p9.gx_().cR(m.a).split("=")[0],"code_challenge_method","s256"],l,l))
-case 4:l=A.pA(null,null,null,null,null,k,null,null).f
-if(l==null)l=""
-q=new A.WV(e+"?"+l)
+return A.p(p.at.yB("supabase.auth.token-code-verifier",o),$async$F5)
+case 5:n=B.pL.cR(B.p5.cR(o))
+l.U(0,A.S(["flow_type",k.b,"code_challenge",B.p9.gx_().cR(n.a).split("=")[0],"code_challenge_method","s256"],m,m))
+case 4:m=A.pA(null,null,null,null,null,l,null,null).f
+if(m==null)m=""
+q=new A.WV(e+"?"+m)
 s=1
 break
 case 1:return A.t(q,r)}})
@@ -124198,7 +124197,7 @@ $.h8().gjq().h(0,"windowsSecretId").toString
 l=n.d.z
 l===$&&A.a()
 s=7
-return A.p(A.UO(l,B.a0W,"https://newjournee.vercel.app/#/init"),$async$zq)
+return A.p(A.UO(l,B.a0W),$async$zq)
 case 7:l=n.c.ae(t.Q)
 l.toString
 l.f.eJ(A.ed(null,null,null,null,null,B.o,null,A.a0("Web Login success!",null,null,null,null,null,null,null,null),null,B.av,20,null,null,null,null,null,null,null,null))
