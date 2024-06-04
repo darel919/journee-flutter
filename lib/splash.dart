@@ -36,16 +36,17 @@ class _SplashPageState extends State<SplashPage> {
     final session = supabase.auth.currentSession;
     final userMetadata = session?.user.userMetadata;
     if (session != null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Login success!'),
-                  elevation: 20.0,
-                ),
-              );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            // ignore: prefer_interpolation_to_compose_strings
+            content: Text('Welcome, '+userMetadata!['name']),
+            elevation: 20.0,
+          ),
+        );
         await supabase
           .from('users')
           .upsert({
-            'uuid': userMetadata!['provider_id'],
+            'uuid': userMetadata['provider_id'],
             'name': userMetadata['name'],
             'email': userMetadata['email'], 
             'avatar_url': userMetadata['avatar_url'],
@@ -57,7 +58,7 @@ class _SplashPageState extends State<SplashPage> {
     } 
     else {
       context.pushReplacement('/login');
-      print("no account!");
+      // print("no account!");
     }
   }
 

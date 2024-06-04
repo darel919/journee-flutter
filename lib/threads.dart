@@ -114,7 +114,7 @@ class _CreateThreadState extends State<CreateThread> {
               File postMediaAndroid = File(filePicked.path);
               String? earlyTuid = earlyUploadThread[0]['tuid'];
               final uploadPath = earlyTuid!+'/'+filePicked.name;
-              final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+              final completeImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
               if(!kIsWeb) {
                 final String path = await supabase.storage.from('post_media').upload(
                   uploadPath,
@@ -147,7 +147,7 @@ class _CreateThreadState extends State<CreateThread> {
 
               String? earlyTuid = earlyUploadThread[0]['tuid'];
               final uploadPath = earlyTuid!+'/'+fileName;
-              final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+              final completeImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
               if(kIsWeb) {
                 final String path = await supabase.storage.from('post_media').uploadBinary(
                   uploadPath,

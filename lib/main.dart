@@ -21,7 +21,7 @@ import 'package:go_router/go_router.dart';
 Future<void> main() async {
   await dotenv.load(fileName: 'lib/.env');
   WidgetsFlutterBinding.ensureInitialized();
-  var sbaseUrl = dotenv.env['supabaseUrl']!;
+  // var sbaseUrl = dotenv.env['supabaseUrl']!;
   var sbaseUrl2 = dotenv.env['supabaseSelfHostUrl']!;
   var sbasekey2 = dotenv.env['supabaseSelfHostKey']!;
   var sbaseAnonKey = dotenv.env['supabaseAnonKey']!;

@@ -329,7 +329,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                     File postMediaAndroid = File(filePicked.path);
                     String? earlyPuid = earlyUploadPost;
                     final uploadPath = earlyPuid!+'/'+filePicked.name;
-                    final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+                    final completeImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
 
                     if(!kIsWeb) {
                       final String path = await supabase.storage.from('post_media').upload(
@@ -377,7 +377,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
                     String? earlyPuid = earlyUploadPost;
                     final uploadPath = earlyPuid!+'/'+fileName;
-                    final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+                    final completeImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
                     
                     if(kIsWeb) {
                       final String path = await supabase.storage.from('post_media').uploadBinary(
@@ -398,7 +398,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       final param = ImageFileConfiguration(input: input, config: config);
                       final compressedOutput = await compressor.compress(param);
                       final previewUploadPath = earlyPuid+'/preview/'+fileName;
-                      final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
+                      final previewCompleteImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
                       
                       final String compressedPreviewPath = await supabase.storage.from('post_media').uploadBinary(
                         previewUploadPath,
@@ -454,7 +454,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                         return file;
                       }
                       final previewUploadPath = earlyPuid+'/preview/'+fileName;
-                      final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
+                      final previewCompleteImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
                       
                       final String compressedPreviewPath = await supabase.storage.from('post_media').upload(
                         previewUploadPath,
@@ -536,7 +536,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                   File postMediaAndroid = File(filePicked.path);
                   String? earlyPuid = earlyUploadPost;
                   final uploadPath = earlyPuid!+'/'+filePicked.name;
-                  final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+                  final completeImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
 
                   if(!kIsWeb) {
                     final String path = await supabase.storage.from('post_media').upload(
@@ -579,7 +579,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
                   String? earlyPuid = earlyUploadPost;
                   final uploadPath = earlyPuid!+'/'+fileName;
-                  final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+                  final completeImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
                   
                   if(kIsWeb) {
                     final String path = await supabase.storage.from('post_media').uploadBinary(
@@ -600,7 +600,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                     final param = ImageFileConfiguration(input: input, config: config);
                     final compressedOutput = await compressor.compress(param);
                     final previewUploadPath = earlyPuid+'/preview/'+fileName;
-                    final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
+                    final previewCompleteImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
                     
                     final String compressedPreviewPath = await supabase.storage.from('post_media').uploadBinary(
                       previewUploadPath,
@@ -666,7 +666,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       return file;
                     }
                     final previewUploadPath = earlyPuid+'/preview/'+fileName;
-                    final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
+                    final previewCompleteImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
                     
                     final String compressedPreviewPath = await supabase.storage.from('post_media').upload(
                       previewUploadPath,
@@ -746,7 +746,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               File postMediaAndroid = File(filePicked.path);
               String? earlyPuid = earlyUploadPost;
               final uploadPath = earlyPuid!+'/'+filePicked.name;
-              final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+              final completeImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
 
               if(!kIsWeb) {
                 final String path = await supabase.storage.from('post_media').upload(
@@ -779,7 +779,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
             String? earlyPuid = earlyUploadPost;
             final uploadPath = earlyPuid!+'/'+fileName;
-            final completeImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
+            final completeImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+uploadPath;
             
             if(kIsWeb) {
               final String path = await supabase.storage.from('post_media').uploadBinary(
@@ -800,7 +800,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               final param = ImageFileConfiguration(input: input, config: config);
               final compressedOutput = await compressor.compress(param);
               final previewUploadPath = earlyPuid+'/preview/'+fileName;
-              final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
+              final previewCompleteImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
               
               final String compressedPreviewPath = await supabase.storage.from('post_media').uploadBinary(
                 previewUploadPath,
@@ -856,7 +856,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                 return file;
               }
               final previewUploadPath = earlyPuid+'/preview/'+fileName;
-              final previewCompleteImgDir = '${dotenv.env['supabaseUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
+              final previewCompleteImgDir = '${dotenv.env['supabaseSelfHostUrl']!}/storage/v1/object/public/post_media/'+previewUploadPath;
               
               final String compressedPreviewPath = await supabase.storage.from('post_media').upload(
                 previewUploadPath,

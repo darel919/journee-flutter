@@ -38,14 +38,12 @@ class _LoginPageState extends State<LoginPage> {
 
       var clientId =  dotenv.env['androidClientId']!;
       var webClientId =  dotenv.env['webClientId']!;
-      // var webClientSecret = dotenv.env['webClientSecret']!;
       var desktopClientId =  dotenv.env['windowsClientId']!;
       var desktopClientSecret =  dotenv.env['windowsSecretId']!;
       
       if(kIsWeb) {
         var link = await supabase.auth.signInWithOAuth(
           OAuthProvider.google,
-          // redirectTo: kReleaseMode ? 'https://newjournee.vercel.app' : 'http://localhost:3000'
         );
 
       } else {
@@ -93,9 +91,12 @@ class _LoginPageState extends State<LoginPage> {
               }
           }
           else if(Platform.isAndroid) {
+            
             GoogleSignIn _googleSignIn = GoogleSignIn(
-              serverClientId: webClientId
+              serverClientId: webClientId,
+              forceCodeForRefreshToken: true
             );
+            // await _googleSignIn.signOut(); 
             final GoogleSignInAccount? googleSignInAccount = await _googleSignIn.signIn();
 
             if (googleSignInAccount != null) {
@@ -103,19 +104,16 @@ class _LoginPageState extends State<LoginPage> {
               accessToken = googleSignInAuthentication.accessToken;
               idToken = googleSignInAuthentication.idToken;
               print('Android GSI Login');
-              if (accessToken!.isNotEmpty && idToken!.isNotEmpty) {
-
-                // await supabase.auth.signInWithIdToken(
-                //   provider: OAuthProvider.google,
-                //   idToken: idToken!,
-                //   accessToken: accessToken,
-                //   nonce: 'NONCE',
-                // );
-
-              await supabase.auth.signInWithOAuth(
-                OAuthProvider.google,
-                redirectTo: kReleaseMode ? 'https://newjournee.vercel.app' : 'http://localhost:3000'
-              );
+              if (accessToken!.isNotEmpty && idToken!.isNotEmpty) {             
+                await supabase.auth.signInWithIdToken(
+                  provider: OAuthProvider.google,
+                  idToken: idToken!,
+                  // accessToken: accessToken,
+                  // nonce: 'NONCE',
+                );
+              // await supabase.auth.signInWithOAuth(
+              //   OAuthProvider.google, redirectTo: 'journee://'
+              // );
               }
               // ScaffoldMessenger.of(context).showSnackBar(
               //   SnackBar(
