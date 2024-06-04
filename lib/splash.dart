@@ -36,6 +36,12 @@ class _SplashPageState extends State<SplashPage> {
     final session = supabase.auth.currentSession;
     final userMetadata = session?.user.userMetadata;
     if (session != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Login success!'),
+                  elevation: 20.0,
+                ),
+              );
         await supabase
           .from('users')
           .upsert({
@@ -51,6 +57,7 @@ class _SplashPageState extends State<SplashPage> {
     } 
     else {
       context.pushReplacement('/login');
+      print("no account!");
     }
   }
 

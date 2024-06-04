@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, unused_local_variable, prefer_const_constructors, unused_element, prefer_typing_uninitialized_variables, use_build_context_synchronously, camel_case_types, no_leading_underscores_for_local_identifiers, unused_import
+// ignore_for_file: avoid_print, unused_local_variable, prefer_const_constructors, unused_element, prefer_typing_uninitialized_variables, use_build_context_synchronously, camel_case_types, no_leading_underscores_for_local_identifiers, unused_import, empty_statements
 
 import 'dart:async';
 import 'dart:io';
@@ -38,26 +38,16 @@ class _LoginPageState extends State<LoginPage> {
 
       var clientId =  dotenv.env['androidClientId']!;
       var webClientId =  dotenv.env['webClientId']!;
+      // var webClientSecret = dotenv.env['webClientSecret']!;
       var desktopClientId =  dotenv.env['windowsClientId']!;
       var desktopClientSecret =  dotenv.env['windowsSecretId']!;
       
       if(kIsWeb) {
         var link = await supabase.auth.signInWithOAuth(
           OAuthProvider.google,
-          // redirectTo: kReleaseMode ? 'https://newjournee.vercel.app/#/init' : 'http://localhost:3000/init'
+          // redirectTo: kReleaseMode ? 'https://newjournee.vercel.app' : 'http://localhost:3000'
         );
-                // await supabase.auth.signInWithIdToken(
-                //   provider: OAuthProvider.google,
-                //   idToken: idToken!,
-                //   accessToken: accessToken,
-                //   nonce: 'NONCE',
-                // );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Web Login success!'),
-            elevation: 20.0,
-          ),
-        );
+
       } else {
           if (Platform.isWindows) {  
             var client = http.Client();
@@ -115,19 +105,24 @@ class _LoginPageState extends State<LoginPage> {
               print('Android GSI Login');
               if (accessToken!.isNotEmpty && idToken!.isNotEmpty) {
 
-                await supabase.auth.signInWithIdToken(
-                  provider: OAuthProvider.google,
-                  idToken: idToken!,
-                  accessToken: accessToken,
-                  nonce: 'NONCE',
-                );
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Login success!'),
-                  elevation: 20.0,
-                ),
+                // await supabase.auth.signInWithIdToken(
+                //   provider: OAuthProvider.google,
+                //   idToken: idToken!,
+                //   accessToken: accessToken,
+                //   nonce: 'NONCE',
+                // );
+
+              await supabase.auth.signInWithOAuth(
+                OAuthProvider.google,
+                redirectTo: kReleaseMode ? 'https://newjournee.vercel.app' : 'http://localhost:3000'
               );
+              }
+              // ScaffoldMessenger.of(context).showSnackBar(
+              //   SnackBar(
+              //     content: Text('Login success!'),
+              //     elevation: 20.0,
+              //   ),
+              // );
             }
           } 
         }

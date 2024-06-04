@@ -168,7 +168,9 @@ class MyApp extends StatelessWidget {
       final session = supabase.auth.currentSession;
       if (session != null) {
         return null;
-      } else {
+      } 
+      // print(session);
+      else {
         return '/login';
       }   
     },
