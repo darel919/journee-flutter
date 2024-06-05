@@ -709,7 +709,8 @@ Widget OldPostView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map<Stri
 }
 
 Widget PictureViewerWidget(String getSource, double width, double height, bool fullView) {
-  return DecoratedBox(
+  if(getSource.isNotEmpty) {
+    return DecoratedBox(
     decoration: BoxDecoration(
       color: Colors.transparent,
       border: Border.all(color: Colors.transparent),
@@ -725,6 +726,15 @@ Widget PictureViewerWidget(String getSource, double width, double height, bool f
       errorBuilder: pictureErrorScreen,
     ),
   );
+  } else {
+    return DecoratedBox(
+    decoration: BoxDecoration(
+      color: Colors.transparent,
+      border: Border.all(color: Colors.transparent),
+      // borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text("An error occured while we load the image"));
+  }
 }
 
 Widget pictureFrameScreen(context, child, frame, wasSynchronouslyLoaded) {
@@ -740,7 +750,7 @@ Widget pictureFrameScreen(context, child, frame, wasSynchronouslyLoaded) {
 }
 
 Widget pictureErrorScreen(context, exception, stackTrace) {
-  return Text('Failed to load image $exception');
+  return Text('Failed to load image: $exception');
 }
 
 Widget pictureLoadingScreen(BuildContext context, Widget child, ImageChunkEvent? loadingProgress, double width, double height, bool fullView) {

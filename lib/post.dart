@@ -158,79 +158,86 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   double newinesRating = 0.0;
   double newdarelRating = 0.0;
   Future<void> fetchRating() async {
-    try {
-      var res = await supabase
-      .from('foodReviews')
-      .select('*')
-      .eq('ruid', fetchedData['ruid']);
-      reviewData = res[0];
-      darelRating = reviewData['darelRate'].toDouble();
-      inesRating = reviewData['inesRate'].toDouble();
+    if(postruid == '' && isFoodReview()) {
+      print('no postruid!');
+      print("must create emergencyrate!");
+      await createEmergencyRating();
+    } else {
+      try {
+        var res = await supabase
+        .from('foodReviews')
+        .select('*')
+        .eq('ruid', fetchedData['ruid']);
+        reviewData = res[0];
+        // print(reviewData);
+        darelRating = reviewData['darelRate'].toDouble();
+        inesRating = reviewData['inesRate'].toDouble();
 
-      if(inesRating == 0.0) {
-        var ratingCalculation = darelRating + inesRating;
-        var clampedRating = ratingCalculation.clamp(0.0, 5.0);
-        calcRating.value = clampedRating.toString();
-        
-      } else if (darelRating == 0.0) {
-        var ratingCalculation = darelRating + inesRating;
-        var clampedRating = ratingCalculation.clamp(0.0, 5.0);
-        calcRating.value = clampedRating.toStringAsFixed(1);
-
-      } else {
-        // Calculate the combined rating and divide by 2 to normalize to a scale of 5
-        var ratingCalculation = (darelRating + inesRating) / 2;
-
-        // Clamp the normalized rating between 0.0 and 5.0
-        var clampedRating = ratingCalculation.clamp(0.0, 5.0);
-
-        // Set the calculated rating value
-        calcRating.value = clampedRating.toStringAsFixed(1);
-      } 
-    } catch (e) {
-      print('Fail fetching! $e');
-      // await createEmergencyRating();
+        if(inesRating == 0.0) {
+          var ratingCalculation = darelRating + inesRating;
+          var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+          calcRating.value = clampedRating.toString();
+        } else if (darelRating == 0.0) {
+          var ratingCalculation = darelRating + inesRating;
+          var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+          calcRating.value = clampedRating.toStringAsFixed(1);
+        } else {
+          var ratingCalculation = (darelRating + inesRating) / 2;
+          var clampedRating = ratingCalculation.clamp(0.0, 5.0);
+          calcRating.value = clampedRating.toStringAsFixed(1);
+        } 
+      } catch (e) {
+        print('Failed fetching rating system! $e');
+      }
     }
   }
+
   ValueNotifier<String?> calcRating = ValueNotifier<String?>('0');
   Future<void> updateAPIRating(mode, rate) async {
-    void update() async {
-      if(mode == 'darel') {
-        await supabase.from('foodReviews')
-        .update({
-          'darelRate': rate,
-        })
-        .match({ 'ruid': postruid!});
-      } else {
-        await supabase.from('foodReviews')
-        .update({
-          'inesRate': rate,
-        })
-        .match({ 'ruid': postruid!});
+    // print('function call to update $mode rate from $darelRating to $rate');
+
+    Future<void> update() async {
+      try {
+        if(mode == 'darel') {
+          await supabase.from('foodReviews')
+          .update({
+            'darelRate': rate,
+          })
+          .match({ 'ruid': fetchedData['ruid']});
+        } else {
+          await supabase.from('foodReviews')
+          .update({
+            'inesRate': rate,
+          })
+          .match({ 'ruid': fetchedData['ruid']});
+        }
+        print("$mode rate update to $rate OK!");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: Duration(seconds: 2),
+            content: Text('Updated rating to $rate'),
+            elevation: 20.0,
+          ),
+        );
+      } catch (e) {
+        print("Error while trying to update rating to $rate. Error: $e");
+      } finally {
+        Navigator.pop(context);
+        setState(() {
+          calcRating.value = '0';
+        });
       }
-      print("$mode rate update to $rate");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          duration: Duration(seconds: 2),
-          content: Text('Updated rating to $rate'),
-          elevation: 20.0,
-        ),
-      );
-      Navigator.pop(context);
-      setState(() {
-        calcRating.value = '0';
-      });
+
     }
-    void ignore() async {
+    Future<void> ignore() async {
+      print('ignoring cmd because $mode rate $rate is the same as old rate.');
       Navigator.pop(context);
-      setState(() {
-        calcRating.value = '0';
-      });
+      fetchRating();
+      // setState(() {
+      //   calcRating.value = '0';
+      // });
     }
-    
-    print('old $darelRating');
-    print('updated $newdarelRating');
-    
+
     if(mode == 'ines') {
       if(inesRating == newinesRating) {
         ignore();
@@ -269,7 +276,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   StatefulBuilder editRateUI() {
     return StatefulBuilder(builder: (context, StateSetter setState) {
         return GestureDetector(
-          onTap: closeBottomSheet,
+          onDoubleTap: closeBottomSheet,
           child: Scaffold(
               body: Center(
                 child: Column(
@@ -294,6 +301,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                             setState(() {
                               newdarelRating = value;
                             });
+                            // updateRating('darel', value);
                             // updateRating('darel', value);
                           },
                           onCompleted:(value) {
@@ -330,7 +338,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                       ],
                     ),
                     if(inesRating > 0 && darelRating > 0)Text("End calculation: "+calcRating.value!.toString()),
-                    Text("Tap anywhere to close")
+                    Text("Double Tap anywhere to close")
                   ],
                 ),
               ),
@@ -340,6 +348,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
     );
   }
   void closeBottomSheet() async{
+    print('called force close rate ui and update');
     if(userData!['provider_id'] == '103226649477885875796'|| userData!['provider_id'] == '109587676420726193785' || userData!['provider_id'] == '117026477282809025732') {
       if (Navigator.canPop(context)) {
         await updateAPIRating('ines', newinesRating);
@@ -361,7 +370,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
 
   void updateRating(mode, value) {
     if (_debounce?.isActive ?? false) _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
+    _debounce = Timer(const Duration(milliseconds: 2000), () {
     updateAPIRating(mode, value);
     });
   }
@@ -377,7 +386,8 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
         try {
           final post = snapshot.data![0];
           fetchedData = post;
-          isFoodReview() ? postruid = post['ruid'] : null;
+          if(post['ruid'] != null) postruid = post['ruid'];
+          fetchRating();
           final user = post['users'];
           final threads = post['threads'];
           postuuid = post['uuid'];
@@ -386,8 +396,6 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
           postcatid = post['cuid'];
           allowThread = post['allowReply'];
           DateTime myDateTime = DateTime.parse(post['created_at']);
-          if(post['ruid'] != null && isFoodReview()) fetchRating();
-          if(post['ruid'] == null && isFoodReview()) createEmergencyRating();
           String convertedDate() {
             var fetchedDate = myDateTime.toLocal();
             var hour = fetchedDate.hour.toString();

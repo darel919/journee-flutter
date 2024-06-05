@@ -38,6 +38,7 @@ class _LoginPageState extends State<LoginPage> {
 
       var clientId =  dotenv.env['androidClientId']!;
       var webClientId =  dotenv.env['webClientId']!;
+      var webClientSecret =  dotenv.env['webClientSecret']!;
       var desktopClientId =  dotenv.env['windowsClientId']!;
       var desktopClientSecret =  dotenv.env['windowsSecretId']!;
       
@@ -51,25 +52,27 @@ class _LoginPageState extends State<LoginPage> {
             var client = http.Client();
             try {
                 print("Desktop mode OAuth2 login");
+
                 Future<void> _launchAuthInBrowser(String url) async {
                   final Uri parsedUrl = Uri.parse(url);
                   await canLaunchUrl(parsedUrl) ? await launchUrl(parsedUrl) : print('Could not launch $url');
                 }
                 var id = ClientId(
-                  desktopClientId, // Your client ID for desktop
-                  desktopClientSecret, // Your client secret for desktop
+                  webClientId, // Your client ID for desktop
+                  webClientSecret, // Your client secret for desktop
                 );
                 var scopes = ['email', 'profile', 'openid'];
                 var credentials = await obtainAccessCredentialsViaUserConsent(
-                    id, scopes, client, (url) => _launchAuthInBrowser(url));
+                    id, scopes, client, (url) => _launchAuthInBrowser(url), listenPort: 8000
+                );
                 
                 idToken = credentials.idToken;
-                // print(idToken);
+                print(idToken);
+                
                   if (idToken!.isNotEmpty) {
-                  await supabase.auth.signInWithIdToken(
+                    await supabase.auth.signInWithIdToken(
                     provider: OAuthProvider.google,
                     idToken: idToken!,
-                    nonce: 'NONCE',
                   );
                 }
                 ScaffoldMessenger.of(context).showSnackBar(

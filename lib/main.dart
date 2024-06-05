@@ -17,9 +17,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: 'lib/.env');
+  
   WidgetsFlutterBinding.ensureInitialized();
   // var sbaseUrl = dotenv.env['supabaseUrl']!;
   var sbaseUrl2 = dotenv.env['supabaseSelfHostUrl']!;
@@ -29,6 +32,9 @@ Future<void> main() async {
     url: sbaseUrl2,
     anonKey: sbasekey2,
     debug: false
+  );
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   // GoogleFonts.config.allowRuntimeFetching = false;
   runApp(MyApp());

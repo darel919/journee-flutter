@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "773624019931",
+    "project_id": "journee-flutter",
+    "storage_bucket": "journee-flutter.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:773624019931:android:3ff3b7fa0730ec4d2e05fe",
+        "android_client_info": {
+          "package_name": "com.journee"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqXceOOhEG5I9h66MtdBHiofM_Cq-V3M0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
