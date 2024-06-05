@@ -109,12 +109,12 @@ class _FCMServiceState extends State<FCMService> {
     super.initState();
     checkNotifPermission();
     setupInteractedMessage();
+    fcmService();
   }
 
 
   @override
   Widget build(BuildContext context) {
-    fcmService();
     return const HomePostView();
   }
 }
