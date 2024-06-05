@@ -124659,33 +124659,31 @@ return A.u($async$Bp,r)},
 yN(a){return this.ag9(a)},
 ag9(a){var s=0,r=A.v(t.H),q=1,p,o=this,n,m,l,k,j,i,h
 var $async$yN=A.q(function(b,c){if(b===1){p=c
-s=q}while(true)switch(s){case 0:s=a.length!==0?2:3
+s=q}while(true)switch(s){case 0:j=o.d
+i=j.z
+i===$&&A.a()
+l=i.d
+n=l==null?null:l.r.c
+q=3
+i=t.z
+i=j.cp("users").bv(0,A.P(["fcmToken",a],i,i))
+j=n
+j.toString
+s=6
+return A.o(i.l8(0,A.P(["uuid",J.f(j,"provider_id")],t.N,t.K)),$async$yN)
+case 6:q=1
+s=5
 break
-case 2:l=o.d
-k=l.z
-k===$&&A.a()
-j=k.d
-n=j==null?null:j.r.c
-q=5
-k=t.z
-k=l.cp("users").bv(0,A.P(["fcmToken",a],k,k))
-l=n
-l.toString
-s=8
-return A.o(k.l8(0,A.P(["uuid",J.f(l,"provider_id")],t.N,t.K)),$async$yN)
-case 8:q=1
-s=7
-break
-case 5:q=4
+case 3:q=2
 h=p
 m=A.a3(h)
 A.dT(null,null,null,null,null,B.n,null,A.a_("Error storing FCM ID: "+A.e(m),null,null,null,null,null,null,null,null),null,B.ap,20,null,null,null,null,null,null,null,null)
 A.cA("Error storing FCM Token ID. "+A.e(m))
-s=7
+s=5
 break
-case 4:s=1
+case 2:s=1
 break
-case 7:case 3:return A.t(null,r)
+case 5:return A.t(null,r)
 case 1:return A.r(p,r)}})
 return A.u($async$yN,r)},
 aI(){this.aR()

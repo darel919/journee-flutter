@@ -190,7 +190,6 @@ class MyApp extends StatelessWidget {
       themeMode: ThemeMode.system, 
       darkTheme: _theme(Brightness.dark),
       routerConfig: _router,
-      // routerConfig: _appRouter,
     );
   }
 }

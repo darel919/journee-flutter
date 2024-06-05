@@ -85,7 +85,7 @@ class _FCMServiceState extends State<FCMService> {
       });
 }
   void storeFCMTokenToDb(String token) async {
-    if(token.isNotEmpty) {
+    // if(token.isNotEmpty) {
       final session = supabase.auth.currentSession;
       final userMetadata = session?.user.userMetadata;
       try {
@@ -101,7 +101,7 @@ class _FCMServiceState extends State<FCMService> {
         );
         print("Error storing FCM Token ID. $e");
       }
-    }
+    // }
   }
 
   @override
