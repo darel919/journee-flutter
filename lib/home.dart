@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:journee/categories.dart';
+import 'package:journee/fcm.dart';
 import 'package:journee/search.dart';
 import 'package:journee/threads.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -20,6 +21,7 @@ class HomePostView extends StatefulWidget {
 }
 
 class _HomePostViewState extends State<HomePostView> with SingleTickerProviderStateMixin {
+  
   static const appcastURL = 'https://raw.githubusercontent.com/darel919/journee-flutter/main/android/app/appcast/appcast.xml';
   static const _urlAndroid = 'https://github.com/darel919/journee-flutter/releases/download/app/app-release.apk';
   static const _url = 'https://github.com/darel919/journee-flutter/releases/';
@@ -77,6 +79,7 @@ class _HomePostViewState extends State<HomePostView> with SingleTickerProviderSt
   }
 
   late TabController _secondaryTabController;
+  
   @override
   void initState() {
      super.initState();
@@ -158,8 +161,9 @@ Widget FoodReviewHome(TabController _secondaryTabController) {
         
       final posts = snapshot.data!;
       final PageController _pageController = PageController(initialPage: 0);
-      
+        // notificationService();
       return DefaultTabController(
+        
         length: 2,
         child: Scaffold(
           appBar: AppBar(

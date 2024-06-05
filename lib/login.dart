@@ -99,7 +99,6 @@ class _LoginPageState extends State<LoginPage> {
               serverClientId: webClientId,
               forceCodeForRefreshToken: true
             );
-            // await _googleSignIn.signOut(); 
             final GoogleSignInAccount? googleSignInAccount = await _googleSignIn.signIn();
 
             if (googleSignInAccount != null) {
@@ -114,16 +113,7 @@ class _LoginPageState extends State<LoginPage> {
                   // accessToken: accessToken,
                   // nonce: 'NONCE',
                 );
-              // await supabase.auth.signInWithOAuth(
-              //   OAuthProvider.google, redirectTo: 'journee://'
-              // );
               }
-              // ScaffoldMessenger.of(context).showSnackBar(
-              //   SnackBar(
-              //     content: Text('Login success!'),
-              //     elevation: 20.0,
-              //   ),
-              // );
             }
           } 
         }
