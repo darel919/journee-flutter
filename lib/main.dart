@@ -33,9 +33,9 @@ Future<void> main() async {
     anonKey: sbasekey2,
     debug: false
   );
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // await Firebase.initializeApp(
+  //   options: DefaultFirebaseOptions.currentPlatform,
+  // );
   // GoogleFonts.config.allowRuntimeFetching = false;
   runApp(MyApp());
   
