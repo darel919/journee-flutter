@@ -1,11 +1,11 @@
 {
-    "name": "journee",
-    "short_name": "journee",
+    "name": "journee_flutter",
+    "short_name": "Journee",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#001238",
+    "theme_color": "#000000",
+    "description": "Journee PWA Client",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
