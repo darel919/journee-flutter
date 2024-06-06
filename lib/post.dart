@@ -398,6 +398,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _debounce2?.cancel();
     super.dispose();
   }
 
@@ -428,7 +429,7 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
             allowThread = fetchedData['allowReply'];
             DateTime myDateTime = DateTime.parse(fetchedData['created_at']);
             String convertedDate() {
-              var fetchedDate = myDateTime.toLocal();
+              var fetchedDate = myDateTime;
               var hour = fetchedDate.hour.toString();
               var minute = fetchedDate.minute.toString();
               var date = fetchedDate.day.toString();
@@ -574,7 +575,16 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
                                       : Colors.black.withOpacity(0.5),
                                   ),
                                 ),
-                              ),                        // Divider()
+                              ),    
+                              if(fetchedData['posted_on'] != null) Padding(
+                                padding: const EdgeInsets.fromLTRB(0,8,0,0),
+                                child: Text("Journee "+fetchedData['posted_on'], style: TextStyle(
+                                  fontSize: 11,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white.withOpacity(0.5)
+                                      : Colors.black.withOpacity(0.5),
+                                  ),),
+                              )                    // Divider()
                             ],
                           ),
                         ),
@@ -592,7 +602,8 @@ class _ViewPostRouteState extends State<ViewPostRoute> {
               ),
             );
           }
-          if(snapshot.data!.isEmpty) goBack();
+          if(snapshot.data!.isEmpty) Text("An error occured while we try loading this post.");
+          // goBack();
           }
         return const Center(child: CircularProgressIndicator());
       }

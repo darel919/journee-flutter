@@ -58,6 +58,13 @@ class _UpdatePageState extends State<UpdatePage> {
     context.go('/');
   }
 
+  void launchGithubPage() async {
+    if(Platform.isAndroid) {
+      launchUrl(Uri.parse(_url));
+      // context.pushReplacement('/');
+    }
+  }
+
   Future<void> getVersion() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     setState(() {
@@ -67,7 +74,9 @@ class _UpdatePageState extends State<UpdatePage> {
 
   @override 
   void initState() {
-    getVersion();
+    // getVersion();
+    // launchUpdateURL();
+    launchGithubPage();
     super.initState();
   }
   @override

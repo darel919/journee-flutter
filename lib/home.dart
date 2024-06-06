@@ -26,21 +26,29 @@ class _HomePostViewState extends State<HomePostView> with SingleTickerProviderSt
   String? version;
   String? newestVersion;
   bool willUpgrade = false;
+  final upgrader = Upgrader(
+    durationUntilAlertAgain: Duration(seconds: 1),
+    debugDisplayAlways: false,
+    debugLogging: true,
+    storeController: UpgraderStoreController(
+      onAndroid: () => UpgraderAppcastStore(appcastURL: appcastURL),
+    ),
+  );
   // late Upgrader upgrader = Upgrader(
   //   durationUntilAlertAgain: Duration(seconds: 1),
   //   debugDisplayAlways: false,
   //   debugLogging: false,
-  //     willDisplayUpgrade: ({appStoreVersion, required display, installedVersion, minAppVersion}) {
-  //   if(appStoreVersion == version) {
-  //     willUpgrade = false;
-  //   } else {
-  //     willUpgrade = display;
-  //   }
-  //     newestVersion = appStoreVersion;
-  // },
+  // //     willDisplayUpgrade: ({appStoreVersion, required display, installedVersion, minAppVersion}) {
+  // //   if(appStoreVersion == version) {
+  // //     willUpgrade = false;
+  // //   } else {
+  // //     willUpgrade = display;
+  // //   }
+  // //     newestVersion = appStoreVersion;
+  // // },
   //   minAppVersion: newestVersion,
-  //     appcastConfig:
-  //         AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
+  //     // appcastConfig:
+  //     //     AppcastConfiguration(url: appcastURL, supportedOS: ['android'])
   // );
   bool launchUpdateURL() {
     if(Platform.isAndroid) {
@@ -258,7 +266,7 @@ Widget FoodModeGridView(List<Map<String, dynamic>> posts, AsyncSnapshot<List<Map
             child: Stack(
               alignment: Alignment.bottomRight,
               children: [
-                PictureViewerWidget(post['mediaUrl_preview'], 150, 150, false),
+                PictureViewerWidget(post['mediaUrl_preview'], 400, 400, false),
                 SizedBox(
                   width: 40,
                   height: 20,
@@ -745,7 +753,7 @@ Widget pictureFrameScreen(context, child, frame, wasSynchronouslyLoaded) {
   return AnimatedOpacity(
     child: child,
     opacity: frame == null ? 0 : 1,
-    duration: const Duration(seconds: 3),
+    duration: const Duration(seconds: 1),
     curve: Curves.easeOut,
   );
 }
@@ -768,105 +776,3 @@ Widget pictureLoadingScreen(BuildContext context, Widget child, ImageChunkEvent?
       ),
     );
 }
-
-// class HomePostViewGridMode extends StatefulWidget {
-//   const HomePostViewGridMode({super.key});
-
-//   @override
-//   State<HomePostViewGridMode> createState() => _HomePostViewGridModeState();
-// }
-
-// class _HomePostViewGridModeState extends State<HomePostViewGridMode> {
-//     final _future = Supabase.instance.client
-//     .from('posts')
-//     .select('''*, users(*), threads ( * ), categories ( * )''')
-//     .order('created_at',  ascending: false);
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text("Journee Grid Mode")
-//       ),
-//       body: FutureBuilder<List<Map<String, dynamic>>>(
-//         future: _future,
-//         builder: (context, snapshot) {
-//           if(!snapshot.hasData) {
-//             return const Center(child: CircularProgressIndicator());
-//           }
-//             final posts = snapshot.data!;
-            
-//             return GridView.builder(
-//             gridDelegate:
-//               const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
-//             physics: const AlwaysScrollableScrollPhysics(),
-//             itemCount: posts.length,
-//             itemBuilder: ((context, index) {
-//               final post = posts[index];
-//               final user = post['users'];
-//               final thread = post['threads'];
-//               final category = post['categories'];
-//               final special = post['type'];
-//               final puid = post['puid'];
-//               int threadLength = post['threads'].length;
-//               DateTime myDateTime = DateTime.parse(post['created_at']);
-  
-//               return GridTile(
-//                 child: Column(
-//                   // crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     if(post['mediaUrl_preview'] != null) Image.network(
-//                       post['mediaUrl_preview'], 
-//                       fit: BoxFit.cover, 
-//                       width: 128, 
-//                       height: 128
-//                       ),
-//                     // Text(post['details'], maxLines: 3, style: TextStyle(fontSize: 12.5, height: 2)),
-                    
-//                     // Padding(
-//                     //   padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-//                     //   child: Row(
-//                     //     children: [
-//                     //       if(post['mediaUrl_preview'] == null && post['mediaUrl'] != null) Padding(
-//                     //         padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
-//                     //         child: Icon(Icons.image_outlined, size: 22),
-//                     //       ),
-//                     //       if(post['allowReply']) Padding(
-//                     //         padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-//                     //         child: Row(
-//                     //           crossAxisAlignment: CrossAxisAlignment.center,
-//                     //           children: [
-//                     //             Icon(Icons.chat_bubble_outline, size: 20),
-//                     //             if(threadLength > 0) Padding(
-//                     //               padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-//                     //               child: Text('$threadLength'),
-//                     //             ),
-//                     //           ],
-//                     //         ),
-//                     //       ),
-//                     //       if(!post['allowReply']) Padding(
-//                     //         padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-//                     //         child: Row(
-//                     //           crossAxisAlignment: CrossAxisAlignment.center,
-//                     //           children: [
-//                     //             // Icon(Icons.comments_disabled_outlined, size: 20),
-//                     //             if(threadLength > 0) Padding(
-//                     //               padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-//                     //               child: Text('$threadLength'),
-//                     //             ),
-//                     //           ],
-//                     //         ),
-//                     //       ),
-//                     //     ],
-//                     //   ),
-//                     // )
-//                   ],
-//                 ),
-//               );
-//             }),
-//           );
-//         },
-//       ),
-//     );
-//   }
-// }

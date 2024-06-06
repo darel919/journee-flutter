@@ -463,14 +463,14 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                         fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
                       );
 
-                        await supabase.from('posts')
-                        .update({
-                          'mediaUrl': completeImgDir, 
-                          'mediaUrlOnDb': uploadPath, 
-                          'mediaUrl_preview': previewCompleteImgDir,
-                          'mediaUrl_previewOnDb': previewUploadPath,
-                        })
-                        .match({ 'puid': earlyPuid });
+                      await supabase.from('posts')
+                      .update({
+                        'mediaUrl': completeImgDir, 
+                        'mediaUrlOnDb': uploadPath, 
+                        'mediaUrl_preview': previewCompleteImgDir,
+                        'mediaUrl_previewOnDb': previewUploadPath,
+                      })
+                      .match({ 'puid': earlyPuid });
                     }
                     
                     String? uploadLocUID = await locationsUploader();
@@ -675,15 +675,14 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
                     );
 
-                    
-                      await supabase.from('posts')
-                      .update({
-                        'mediaUrl': completeImgDir, 
-                        'mediaUrlOnDb': uploadPath, 
-                        'mediaUrl_preview': previewCompleteImgDir,
-                        'mediaUrl_previewOnDb': previewUploadPath,
-                      })
-                      .match({ 'puid': earlyPuid });
+                    await supabase.from('posts')
+                    .update({
+                      'mediaUrl': completeImgDir, 
+                      'mediaUrlOnDb': uploadPath, 
+                      'mediaUrl_preview': previewCompleteImgDir,
+                      'mediaUrl_previewOnDb': previewUploadPath,
+                    })
+                    .match({ 'puid': earlyPuid });
 
                     
                      String? uploadLocUID = await locationsUploader();
@@ -941,9 +940,9 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     String version = packageInfo.version;
     Future<String> runningOnPlatform() async{
       if(Platform.isAndroid) {
-        return 'Android';
+        return 'Android v$version';
       } else if(Platform.isWindows) {
-        return 'Windows';
+        return 'Windows v$version';
       }
       return 'Non-web';
     }
@@ -969,7 +968,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
         'allowReply': allowThreadReply.value, 
         'type': 'Diary',
         'created_at': postDateTime!.toIso8601String(),
-        'posted_on': '$runningOnPlatform() v$version'
+        'posted_on': await runningOnPlatform() 
       })
       .select();
       return earlyUploadPost[0]['puid'];
@@ -978,32 +977,44 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
   Future<String?> locationsUploader() async {
     final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);  
-    if(preferredLoc!.isEmpty) {
-      // CHECKS THE DB FOR LOCATION ADDRESS
-      final _data = await supabase
-      .from('locations')
-      .select('*')
-      .eq('full_address', endpointData!['address']['label']);
+    try {
+      if(preferredLoc!.isEmpty) {
+        // CHECKS THE DB FOR LOCATION ADDRESS
+        final _data = await supabase.from('locations')
+        .select('*')
+        .eq('full_address', await endpointData!['address']['label']);
 
-      // IF FOUND, ATTACH EXISTING LOCATION LUID INSTEAD OF INSERTING NEW LUID
-      if(_data[0]['full_address'] == endpointData['address']['label']) {
-        print('found loc address on db, attaching instead');
-        return _data[0]['luid'];
-      } 
-      // IF NOT FOUND, INSERT NEW LUID TO DB
-      else {
-        final List<Map<String, dynamic>> uploadLocUIDGen = await supabase.from('locations')
-        .insert({
-          'lat': globalLat, 
-          'long': globalLong, 
-          'name': endpointData['title'],
-          'full_address': endpointData['address']['label']
-        })
-        .select();
-        return uploadLocUIDGen[0]['luid'];
+        // IF FOUND, ATTACH EXISTING LOCATION LUID INSTEAD OF INSERTING NEW LUID
+        if(_data[0]['full_address'] == await endpointData['address']['label']) {
+          print('found loc address on db, attaching instead');
+          return _data[0]['luid'];
+        } 
+        // IF NOT FOUND, INSERT NEW LUID TO DB
+        else {
+          print("Uploading new LUID");
+          final List<Map<String, dynamic>> uploadLocUIDGen = await supabase.from('locations')
+          .insert({
+            'lat': globalLat, 
+            'long': globalLong, 
+            'name': await endpointData['title'],
+            'full_address': await endpointData['address']['label']
+          })
+          .select();
+          return uploadLocUIDGen[0]['luid'];
+        }
+      } else {
+        print("Returned choosen LUID");
+        return preferredLoc!['luid'];
       }
-    } else {
-      return preferredLoc!['luid'];
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error uploading location post. Error: $e'),
+          elevation: 20.0,
+        ),
+      );
+      print(e);
+      rethrow;
     }
   }
 
@@ -1586,6 +1597,19 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
 }
 
+Future<String?> reviewsUploader(String puid, darelRating, inesRating) async {
+  final supabase = Supabase.instance.client;
+  final List<Map<String, dynamic>> uploadReviewUID = await supabase.from('foodReviews')
+  .insert({
+    'puid': puid,
+    'darelRate': darelRating,
+    'inesRate': inesRating
+  })
+  .select();
+  print(uploadReviewUID[0]);
+  return uploadReviewUID[0]['ruid'];
+}
+
 class EditDiary extends StatefulWidget {
   const EditDiary({super.key, required this.puid});
 
@@ -1701,30 +1725,7 @@ class _EditDiaryState extends State<EditDiary> {
                       if (!uploading) Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
                         child: Column(
-                          // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Row(
-                            //   children: [
-                            //     ElevatedButton(
-                            //       onPressed: () {
-                            //         if (_formKey.currentState!.validate()) {
-                            //           // Process data.
-                            //           pickPicture();
-                            //         }
-                            //       },
-                            //       child: Icon(Icons.photo_size_select_actual_rounded),
-                            //     ),
-                            //      if(Platform.isAndroid) ElevatedButton(
-                            //       onPressed: () {
-                            //         if (_formKey.currentState!.validate()) {
-                            //           // Process data.
-                            //           capturePicture();
-                            //         }
-                            //       },
-                            //       child: Icon(Icons.camera_alt_outlined),
-                            //     ),
-                            //   ],
-                            // ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -1756,17 +1757,4 @@ class _EditDiaryState extends State<EditDiary> {
         )),
     );
   }
-}
-
-Future<String?> reviewsUploader(String puid, darelRating, inesRating) async {
-  final supabase = Supabase.instance.client;
-  List<Map<String, dynamic>> uploadReviewUID = await supabase.from('foodReviews')
-  .insert({
-    'puid': puid,
-    'darelRate': darelRating,
-    'inesRate': inesRating
-  })
-  .select();
-  print(uploadReviewUID[0]);
-  return uploadReviewUID[0]['ruid'];
 }

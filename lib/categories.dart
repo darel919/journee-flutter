@@ -170,6 +170,7 @@ class _CategoriesViewPageState extends State<CategoriesViewPage> {
             
             if(home == true) {
               return Scaffold(
+                appBar: AppBar(automaticallyImplyLeading: false),
                 body: RefreshIndicator(
                   onRefresh: () => refreshPage(),
                   child: categoryViewUI()
