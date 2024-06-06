@@ -45,6 +45,7 @@ class _LoginPageState extends State<LoginPage> {
       if(kIsWeb) {
         var link = await supabase.auth.signInWithOAuth(
           OAuthProvider.google,
+          redirectTo: kReleaseMode ? 'https://ourjournee.vercel.app' : 'http://localhost:3000'
         );
 
       } else {

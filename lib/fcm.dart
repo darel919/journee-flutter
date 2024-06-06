@@ -1,6 +1,7 @@
 // ignore_for_file: unused_local_variable, avoid_print
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:journee/home.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -74,8 +75,13 @@ class _FCMServiceState extends State<FCMService> {
   }
   void fcmService() async{
     await FirebaseMessaging.instance.setAutoInitEnabled(true);
-    final fcmToken = await FirebaseMessaging.instance.getToken();
-    storeFCMTokenToDb(fcmToken!);
+    if (kIsWeb) {
+      final fcmTokenWeb = await FirebaseMessaging.instance.getToken(vapidKey: "Lch8OOXbr4kHVQ9bEqgzWjNSB4ni1jeME-3eltniEN0");
+      storeFCMTokenToDb(fcmTokenWeb!);
+    } else {
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      storeFCMTokenToDb(fcmToken!);
+    }
     FirebaseMessaging.instance.onTokenRefresh
       .listen((fcmToken) {
         storeFCMTokenToDb(fcmToken);

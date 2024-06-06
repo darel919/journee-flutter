@@ -111,13 +111,13 @@ class _HomePostViewState extends State<HomePostView> with SingleTickerProviderSt
           bottom: TabBar( 
             tabs: [ 
               Tab( 
-                text: "All", 
+                text: "Diaries", 
               ), 
               Tab( 
-                text: "Food Mode", 
+                text: "Foods", 
               ), 
               Tab( 
-                text: "Categories", 
+                text: "All Categories", 
               ), 
             ], 
           ), 
@@ -159,7 +159,6 @@ Widget FoodReviewHome(TabController _secondaryTabController) {
         
       final posts = snapshot.data!;
       final PageController _pageController = PageController(initialPage: 0);
-        // notificationService();
       return DefaultTabController(
         
         length: 2,

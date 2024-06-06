@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:journee/heregeolocation.dart';
 import 'package:journee/search.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -922,7 +923,9 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       }
       
     } catch (e) {
-      uploading = false;
+      setState(() {
+        uploading = false;
+      });
       print(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -934,17 +937,43 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   }
 
   Future<String?> earlyUploader() async {
-    List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
-    .insert({
-      'uuid': userData!['provider_id'], 
-      'cuid': selectedCategory.value,
-      'details': myController.text, 
-      'allowReply': allowThreadReply.value, 
-      'type': 'Diary',
-      'created_at': postDateTime!.toIso8601String()
-    })
-    .select();
-    return earlyUploadPost[0]['puid'];
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    String version = packageInfo.version;
+    Future<String> runningOnPlatform() async{
+      if(Platform.isAndroid) {
+        return 'Android';
+      } else if(Platform.isWindows) {
+        return 'Windows';
+      }
+      return 'Non-web';
+    }
+    if(kIsWeb) {
+      List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
+      .insert({
+        'uuid': userData!['provider_id'], 
+        'cuid': selectedCategory.value,
+        'details': myController.text, 
+        'allowReply': allowThreadReply.value, 
+        'type': 'Diary',
+        'created_at': postDateTime!.toIso8601String(),
+        'posted_on': 'Web v$version'
+      })
+      .select();
+      return earlyUploadPost[0]['puid'];
+    } else {
+      List<Map<String, dynamic>> earlyUploadPost = await supabase.from('posts')
+      .insert({
+        'uuid': userData!['provider_id'], 
+        'cuid': selectedCategory.value,
+        'details': myController.text, 
+        'allowReply': allowThreadReply.value, 
+        'type': 'Diary',
+        'created_at': postDateTime!.toIso8601String(),
+        'posted_on': '$runningOnPlatform() v$version'
+      })
+      .select();
+      return earlyUploadPost[0]['puid'];
+      }
   }
 
   Future<String?> locationsUploader() async {
@@ -1729,14 +1758,15 @@ class _EditDiaryState extends State<EditDiary> {
   }
 }
 
-Future<String?> reviewsUploader(String earlyPuid, double darelRating, double inesRating) async {
+Future<String?> reviewsUploader(String puid, darelRating, inesRating) async {
   final supabase = Supabase.instance.client;
   List<Map<String, dynamic>> uploadReviewUID = await supabase.from('foodReviews')
   .insert({
-    'puid': earlyPuid,
+    'puid': puid,
     'darelRate': darelRating,
     'inesRate': inesRating
   })
   .select();
+  print(uploadReviewUID[0]);
   return uploadReviewUID[0]['ruid'];
 }

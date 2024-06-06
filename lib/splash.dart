@@ -23,9 +23,10 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   bool nowLoading = false;
+  String error = '';
 
   Future<void> _redirect() async {
-    await Future.delayed(Duration(milliseconds: 1500));
+    await Future.delayed(Duration(milliseconds: 750));
     setState(() {
       nowLoading = true;
     });
@@ -36,6 +37,25 @@ class _SplashPageState extends State<SplashPage> {
     final session = supabase.auth.currentSession;
     final userMetadata = session?.user.userMetadata;
     if (session != null) {
+      try {
+          await supabase
+          .from('users')
+          .upsert({
+            'uuid': userMetadata!['provider_id'],
+            'name': userMetadata['name'],
+            'email': userMetadata['email'], 
+            'avatar_url': userMetadata['avatar_url'],
+          });
+      } catch (e) {
+        setState(() {
+          error = e.toString();
+          nowLoading = false;       
+        });
+      } finally {
+        setState(() {
+          nowLoading = false;
+        });
+        context.pushReplacement('/');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             // ignore: prefer_interpolation_to_compose_strings
@@ -43,22 +63,11 @@ class _SplashPageState extends State<SplashPage> {
             elevation: 20.0,
           ),
         );
-        await supabase
-          .from('users')
-          .upsert({
-            'uuid': userMetadata['provider_id'],
-            'name': userMetadata['name'],
-            'email': userMetadata['email'], 
-            'avatar_url': userMetadata['avatar_url'],
-          });
-        setState(() {
-          nowLoading = false;
-        });
-      context.pushReplacement('/');
+      }
+
     } 
     else {
       context.pushReplacement('/login');
-      // print("no account!");
     }
   }
 
@@ -96,6 +105,7 @@ class _SplashPageState extends State<SplashPage> {
                 ],
               ),
               if(nowLoading) CircularProgressIndicator(),
+              if(!nowLoading && error != '')Text('Error while we try to log you in. Error: $error')
             ],
         ),
       ));
