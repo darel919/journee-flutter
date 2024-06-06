@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.6.2
+version: 1.6.3
 
 environment:
   sdk: '>=3.1.3 <4.0.0'
@@ -98,8 +98,9 @@ flutter:
   # https://flutter.dev/assets-and-images/#from-packages
 
 flutter_native_splash:
-  background_image: assets/journee_load.gif
-  # color: 001238
+  # background_image: assets/journee_load.gif
+  color: 001238
+  image: assets/journee_load.gif
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a

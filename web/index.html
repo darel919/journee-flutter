@@ -16,20 +16,25 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Journee Web Client">
   <meta name="google-signin-client_id" content="66265382086-3i1563662hg6df436gbudqghpbhrl5de.apps.googleusercontent.com">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="journee">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="apple-mobile-web-app-title" content="Journee">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/Icon-192.png">
+
 
   <title>journee_flutter</title>
   <link rel="manifest" href="manifest.json">
+  
+  
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
   <style id="splash-screen-style">
     html {
       height: 100%
@@ -38,9 +43,8 @@
     body {
       margin: 0;
       min-height: 100%;
-      background-color: #ffffff;
-      background-image: url("splash/img/light-background.gif");
-      background-size: 100% 100%;
+      background-color: #001238;
+          background-size: 100% 100%;
     }
 
     .center {
@@ -96,9 +100,13 @@
       document.body.style.background = "transparent";
     }
   </script>
-  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 </head>
 <body>
+  <picture id="splash">
+      <source srcset="splash/img/light-1x.gif 1x, splash/img/light-2x.gif 2x, splash/img/light-3x.gif 3x, splash/img/light-4x.gif 4x" media="(prefers-color-scheme: light)">
+      <source srcset="splash/img/dark-1x.gif 1x, splash/img/dark-2x.gif 2x, splash/img/dark-3x.gif 3x, splash/img/dark-4x.gif 4x" media="(prefers-color-scheme: dark)">
+      <img class="center" aria-hidden="true" src="splash/img/light-1x.gif" alt="">
+  </picture>
   <script src="flutter_bootstrap.js" async=""></script>
 
 

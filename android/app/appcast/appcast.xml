@@ -3,10 +3,10 @@
     <channel>
         <title>Journee - Appcast</title>
         <item>
-            <title>Version 1.6.2</title>
+            <title>Version 1.6.3</title>
             <description>New Journee Version contains updates and improvements.</description>
-            <pubDate>Thu, 06 Jun 2024 15:34:04 +0000</pubDate>
-            <enclosure url="https://github.com/darel919/journee-flutter/releases" sparkle:version="1.6.2" sparkle:os="android" />
+            <pubDate>Thu, 06 Jun 2024 17:14:15 +0000</pubDate>
+            <enclosure url="https://github.com/darel919/journee-flutter/releases" sparkle:version="1.6.3" sparkle:os="android" />
         </item>
     </channel>
 </rss>
