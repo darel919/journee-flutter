@@ -985,13 +985,14 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
         .eq('full_address', await endpointData!['address']['label']);
 
         // IF FOUND, ATTACH EXISTING LOCATION LUID INSTEAD OF INSERTING NEW LUID
-        if(_data[0]['full_address'] == await endpointData['address']['label']) {
-          print('found loc address on db, attaching instead');
-          return _data[0]['luid'];
-        } 
-        // IF NOT FOUND, INSERT NEW LUID TO DB
-        else {
-          print("Uploading new LUID");
+        try {
+          if(_data[0]['full_address'] == await endpointData['address']['label']) {
+            print('found loc address on db, attaching instead');
+            return _data[0]['luid'];
+          } 
+        } catch (e) {
+          // IF NOT FOUND, INSERT NEW LUID TO DB
+          print(e);
           final List<Map<String, dynamic>> uploadLocUIDGen = await supabase.from('locations')
           .insert({
             'lat': globalLat, 
@@ -1002,6 +1003,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
           .select();
           return uploadLocUIDGen[0]['luid'];
         }
+        
       } else {
         print("Returned choosen LUID");
         return preferredLoc!['luid'];
@@ -1016,6 +1018,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       print(e);
       rethrow;
     }
+    return null;
   }
 
   // IMAGE PICKER AND PREVIEW 

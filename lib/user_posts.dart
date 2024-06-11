@@ -89,7 +89,7 @@ Widget userPostUI() {
           );
 
         }
-        return Text('User has no post!');
+        return Center(child: Text('User has no post!'));
       }
       return Center(child: CircularProgressIndicator());
     },
