@@ -979,20 +979,26 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);  
     try {
       if(preferredLoc!.isEmpty) {
+        String currentUserAddress = await endpointData!['address']['label'];
+        
         // CHECKS THE DB FOR LOCATION ADDRESS
         final _data = await supabase.from('locations')
-        .select('*')
-        .eq('full_address', await endpointData!['address']['label']);
-
+        .select()
+        .eq('full_address', currentUserAddress)
+        .limit(1);
+        
         // IF FOUND, ATTACH EXISTING LOCATION LUID INSTEAD OF INSERTING NEW LUID
         try {
-          if(_data[0]['full_address'] == await endpointData['address']['label']) {
+          if(_data[0]['full_address'] == currentUserAddress) {
             print('found loc address on db, attaching instead');
             return _data[0]['luid'];
           } 
         } catch (e) {
+          print(_data.toString());
+          print(currentUserAddress);
           // IF NOT FOUND, INSERT NEW LUID TO DB
           print(e);
+          print('loc not found on db, now creating new one');
           final List<Map<String, dynamic>> uploadLocUIDGen = await supabase.from('locations')
           .insert({
             'lat': globalLat, 
@@ -1003,7 +1009,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
           .select();
           return uploadLocUIDGen[0]['luid'];
         }
-        
       } else {
         print("Returned choosen LUID");
         return preferredLoc!['luid'];
@@ -1016,7 +1021,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
         ),
       );
       print(e);
-      rethrow;
+      // rethrow;
     }
     return null;
   }
