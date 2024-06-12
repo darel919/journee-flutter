@@ -127421,7 +127421,6 @@ A.aj(A.hT(J.f(A.hR(g.e).c.a,"charset")).bB(0,g.w))
 g=n
 m=B.a6.ps(0,A.hT(J.f(A.hR(g.e).c.a,"charset")).bB(0,g.w),null)
 l=J.f(J.f(J.f(J.f(m,"choices"),0),"message"),"content")
-J.f(l,"food_prices")
 h=o.c.aa(h)
 h.toString
 h.f.dw(A.dd(null,null,null,null,null,B.m,null,A.Z("AI Rewrite success!",null,null,null,null,null,null,null,null),null,B.a9,20,null,null,null,null,null,null,null,null))

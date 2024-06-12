@@ -1075,7 +1075,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               print(response.body);
               Map<String, dynamic> aiSortedResponse = jsonDecode(response.body);
               Map<String, dynamic> aiSortedData = aiSortedResponse['choices'][0]['message']['content'];
-              foodPrices = aiSortedData['food_prices'];
+              // foodPrices = aiSortedData['food_prices'];
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -1130,7 +1130,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               }
             );
             Map<String, dynamic> aiSortedData = jsonDecode(response.data['choices'][0]['message']['content']);
-            foodPrices = aiSortedData['food_prices'];
+            // foodPrices = aiSortedData['food_prices'];
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
