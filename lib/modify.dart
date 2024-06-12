@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_const_constructors, use_build_context_synchronously, avoid_print, unused_local_variable, prefer_interpolation_to_compose_strings, prefer_typing_uninitialized_variables, no_leading_underscores_for_local_identifiers, non_constant_identifier_names, unnecessary_new, no_logic_in_create_state, unused_field, prefer_const_literals_to_create_immutables
 
+import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
@@ -16,6 +17,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_compression_flutter/image_compression_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_pannable_rating_bar/flutter_pannable_rating_bar.dart';
+import 'package:dio/dio.dart';
 
 class CreateDiaryPage extends StatefulWidget {
   const CreateDiaryPage({super.key});
@@ -28,12 +30,13 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final myController = TextEditingController();
-  final textController = TextEditingController();
+  final AITextControls = TextEditingController();
   final supabase = Supabase.instance.client;
   late final User? user = supabase.auth.currentUser;
   late final userData = user?.userMetadata!;
   late List<Map<String, dynamic>> categories = [];
   late List<Map<String, dynamic>> foodLocations = [];
+  late List<Map<String, dynamic>> foodPrices = [];
   ValueNotifier<String?> selectedCategory = ValueNotifier<String?>(null);
   String? selectedCatName;
   bool mediaUploadMode = false;
@@ -63,6 +66,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     fetchCategory();
     checkDeviceLocation();
     fetchAllLocation();
+    // sendToAI();
   }
 
   void showCategoryCreateDialog(BuildContext context, Function callback) {
@@ -296,6 +300,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     return false;
   }
 
+  // UPLOADER
   Future<void> upload() async {  
     try {
       if(!uploading) {
@@ -934,7 +939,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       );
     }
   }
-
   Future<String?> earlyUploader() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     String version = packageInfo.version;
@@ -974,7 +978,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       return earlyUploadPost[0]['puid'];
       }
   }
-
   Future<String?> locationsUploader() async {
     final Map<String, dynamic>? endpointData = await fetchEndpointData(globalLat, globalLong);  
     try {
@@ -1026,6 +1029,106 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
     return null;
   }
 
+  // AI Rewrite
+  bool isAILoading = false;
+  bool isAIPreferred = false;
+  bool isAIDone = false;
+  String viewTextMode = 'user';
+  Future<void> sendToAI() async {
+    final dio = Dio();
+    if (AITextControls.value.text != '') {
+      setState(() {
+        viewTextMode = 'ai';
+        isAIDone = true;
+      });
+    } else {
+      if (myController.value.text != '') {
+        try {
+          setState(() {
+            isAILoading = true;
+          });
+          var response = await dio.post(
+            dotenv.env['supabaseSelfHostUrl']!+':2024/v1/chat/completions', 
+            options: Options(
+              contentType: 'application/json',
+            ),
+            data: {
+              "model": "gpt-3.5-turbo",
+              "messages": [
+                {
+                  "role": "system",
+                  "content": 'You are an AI Assistant, your task is to organize all the text inputs to separate lists. These are about food reviews. I want you to separate the reviews and the food prices aside. The text prompt for example would be something like this: "Bakmi PG, Alkid, Yogyakarta Ini adalah salah satu Bakmi Jawa Goreng terenak, beda tipis sama yang di Rama Shinta. Kita sengaja kebawah buat cobain ini. Lokasinya ditengah kota, tepatnya deket Alkid. Parkirnya agak susah karena tempatnya kecil tapi parkir gratis. Buat Bakmi Jawa Gorengnya harganya 28k. Agak pricey sih tapi untung rasanya enak banget.Kalo buat minumnya pesen Es Teh Manis, harganya 7k. Tehnya wangi banget, enak juga rasanya. Menurutku, ini recommended kalo lagi kebawah (dan lagi banyak uang)" From this text prompt, you should return two prompts. The first one is rewrite all the text prompt you receive so it sounds like it was written by a food reviewer.The second one is like this: "Bakmi Jawa Goreng: Rp28.000 Es Teh Manis: Rp7.000" k means thousand, so 10k is 10000. But since we are talking about prices in Indonesian currency (Rupiah), so you should translate it to that. Please provide the following information as a JSON object: - food_prices: - Item: Bakmi Jawa Goreng - Price: Rp28.000 - ai_caption: "Ini adalah salah satu Bakmi Jawa Goreng terenak yang ditemukan di Yogyakarta. Lokasinya di tengah kota, dekat Alkid, dan parkiran gratis. Bakmi Jawa Gorengnya dihargai sekitar Rp28.000, sedangkan Es Teh Manis sekitar Rp7.000. Rasanya enak banget, kalo lagi kebawah." DO NOT return anymore word like Here is the response in JSON format. JUST RETURN THE JSON.'
+                },
+                {
+                  "role": "user",
+                  "content": myController.value.toString()
+                }
+              ]
+            });
+          Map<String, dynamic> aiSortedData = jsonDecode(response.data['choices'][0]['message']['content']);
+          foodPrices = aiSortedData['food_prices'];
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('AI Rewrite success!'),
+              elevation: 20.0,
+            ),
+          );
+          setState(() {
+            AITextControls.value = TextEditingValue(
+              text: aiSortedData['ai_caption'],
+              selection: TextSelection.fromPosition(TextPosition(offset: aiSortedData['ai_caption'].length)),
+            );
+            isAILoading = false;
+            isAIDone = true;
+            viewTextMode = 'ai';
+          });
+        } on DioException catch (e) {
+          setState(() {
+            isAILoading = false;
+            isAIDone = false;
+            viewTextMode = 'user';
+          });
+          if (e.response != null) {
+            print(e.response!.data);
+            print(e.response!.headers);
+            print(e.response!.requestOptions);
+            String error = e.response!.data['error']['message'];
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Unfortunately, AI is currently not available. $error'),
+                elevation: 20.0,
+              ),
+            );
+          } else {
+            print(e.requestOptions);
+            print(e.message);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Unfortunately, AI is currently not available. Please try again later.'),
+                elevation: 20.0,
+              ),
+            );
+          }
+        }
+      }
+    else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please input some text before using AI Rewrite!'),
+          elevation: 20.0,
+        ),
+      );
+    }
+    }
+  }
+  Future<void> undoAIText() async {
+    setState(() {
+      viewTextMode = 'user';
+      isAIDone = false;
+    });
+  }
+  
   // IMAGE PICKER AND PREVIEW 
   Future<void> pickPicture() async {
     await dotenv.load(fileName: 'lib/.env');
@@ -1223,7 +1326,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       if(isFoodReviewMode() && !uploading) showFoodReviewUI(),
                       if(!uploading)Padding(
                         padding: const EdgeInsets.fromLTRB(0,16,0,0),
-                        child: TextField(
+                        child: viewTextMode == 'user' ? TextField(
                           autocorrect: false,
                           readOnly: uploading,
                           minLines: 5,
@@ -1236,6 +1339,19 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                             border: InputBorder.none,
                             hintText: 'Whats on your mind today?',
                           ),
+                        ) : TextField(
+                          autocorrect: false,
+                          readOnly: uploading,
+                          minLines: 5,
+                          autofocus: false,
+                          canRequestFocus: true,
+                          controller: AITextControls,
+                          keyboardType: TextInputType.multiline,
+                          maxLines: null,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'This should be filled by AI.',
+                          ),
                         ),
                       ),
                       Divider(),
@@ -1244,6 +1360,59 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       if(!uploading) SingleChildScrollView(
                         child: Column(
                           children: [ 
+                            // REWRITE WITH AI BUTTON
+                            if(isFoodReviewMode() && isAIDone == false) TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                splashFactory: NoSplash.splashFactory,
+                              ),
+                              onPressed: () => {
+                                if(isAILoading == false && myController.text.isNotEmpty) sendToAI(),
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [ 
+                                  Row(
+                                    children: [
+                                      Icon(Icons.api_rounded),
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(8,0,0,0),
+                                        child: isAILoading ? Text("Now rewriting with AI...") : Text("Rewrite with AI")
+                                      ),
+                                    ],
+                                  ), 
+                                  isAILoading ? CircularProgressIndicator() : Icon(Icons.keyboard_arrow_right)
+                                ],
+                              ),
+                            ),
+                            if(isFoodReviewMode() && isAIDone == true) TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                splashFactory: NoSplash.splashFactory,
+                              ),
+                              onPressed: () => {
+                                if(isAILoading == false) undoAIText()
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [ 
+                                  Row(
+                                    children: [
+                                      Icon(Icons.warning),
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(8,0,0,0),
+                                        child: isAILoading ? Text("Now rewriting with AI...") : Text("Undo AI Text")
+                                      ),
+                                    ],
+                                  ), 
+                                  isAILoading ? CircularProgressIndicator() : Icon(Icons.undo_sharp)
+                                ],
+                              ),
+                            ),
+                            if(isFoodReviewMode()) Divider(),
+
                             // Category field select
                             TextButton(
                               style: TextButton.styleFrom(

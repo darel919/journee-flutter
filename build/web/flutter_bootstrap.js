@@ -9,8 +9,14 @@ if (!window._flutter) {
 _flutter.buildConfig = {"engineRevision":"edd8546116457bdf1c5bdfb13ecb9463d2bb5ed4","builds":[{"compileTarget":"dart2js","renderer":"auto","mainJsPath":"main.dart.js"}]};
 
 
+const searchParams = new URLSearchParams(window.location.search);
+// const forceCanvaskit = searchParams.get('force_canvaskit') === 'true';
+// const userConfig = forceCanvaskit ? {'renderer': 'canvaskit'} : {};
 _flutter.loader.load({
+  config: {
+    'renderer': 'html'
+  },
   serviceWorkerSettings: {
-    serviceWorkerVersion: "1970813733"
-  }
+    serviceWorkerVersion: "1987229932",
+  },
 });
