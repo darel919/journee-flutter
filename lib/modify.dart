@@ -1047,10 +1047,10 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
           setState(() {
             isAILoading = true;
           });
-          if(kIsWeb) {
+          // if(kIsWeb) {
 
-          } else {
-            var response = await dio.post(
+          // } else {
+            var response = await dio.request(
             dotenv.env['supabaseSelfHostUrl']!+':2024/v1/chat/completions', 
             options: Options(
               method: 'POST',
@@ -1088,7 +1088,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             isAIDone = true;
             viewTextMode = 'ai';
           });
-          }
+          // }
         } on DioException catch (e) {
           setState(() {
             isAILoading = false;
