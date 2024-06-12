@@ -1053,7 +1053,7 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               Uri.parse(dotenv.env['supabaseSelfHostUrl']!+':2024/v1/chat/completions'),
               headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*', // Set to your domain or '*'
+                'Access-Control-Allow-Origin': dotenv.env['supabaseSelfHostUrl']!,
               },
               body: jsonEncode({
                 "model": "gpt-3.5-turbo",
@@ -1107,46 +1107,46 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               ),
             );
             }
-
           } else {
             var response = await dio.request(
-            dotenv.env['supabaseSelfHostUrl']!+':2024/v1/chat/completions', 
-            options: Options(
-              method: 'POST',
-              receiveTimeout: Duration(seconds: 15),
-              contentType: 'application/json',
-            ),
-            data: {
-              "model": "gpt-3.5-turbo",
-              "messages": [
-                {
-                  "role": "system",
-                  "content": 'You are an AI Assistant, your task is to organize all the text inputs to separate lists. These are about food reviews. I want you to separate the reviews and the food prices aside. The text prompt for example would be something like this: "Bakmi PG, Alkid, Yogyakarta Ini adalah salah satu Bakmi Jawa Goreng terenak, beda tipis sama yang di Rama Shinta. Kita sengaja kebawah buat cobain ini. Lokasinya ditengah kota, tepatnya deket Alkid. Parkirnya agak susah karena tempatnya kecil tapi parkir gratis. Buat Bakmi Jawa Gorengnya harganya 28k. Agak pricey sih tapi untung rasanya enak banget.Kalo buat minumnya pesen Es Teh Manis, harganya 7k. Tehnya wangi banget, enak juga rasanya. Menurutku, ini recommended kalo lagi kebawah (dan lagi banyak uang)" From this text prompt, you should return two prompts. The first one is rewrite all the text prompt you receive so it sounds like it was written by a food reviewer.The second one is like this: "Bakmi Jawa Goreng: Rp28.000 Es Teh Manis: Rp7.000" k means thousand, so 10k is 10000. But since we are talking about prices in Indonesian currency (Rupiah), so you should translate it to that. Please provide the following information as a JSON object: - food_prices: - Item: Bakmi Jawa Goreng - Price: Rp28.000 - ai_caption: "Ini adalah salah satu Bakmi Jawa Goreng terenak yang ditemukan di Yogyakarta. Lokasinya di tengah kota, dekat Alkid, dan parkiran gratis. Bakmi Jawa Gorengnya dihargai sekitar Rp28.000, sedangkan Es Teh Manis sekitar Rp7.000. Rasanya enak banget, kalo lagi kebawah." DO NOT return anymore word like Here is the response in JSON format. JUST RETURN THE JSON.'
-                },
-                {
-                  "role": "user",
-                  "content": myController.text
-                }
-              ]
-            });
-          Map<String, dynamic> aiSortedData = jsonDecode(response.data['choices'][0]['message']['content']);
-          foodPrices = aiSortedData['food_prices'];
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('AI Rewrite success!'),
-              elevation: 20.0,
-            ),
-          );
-          setState(() {
-            AITextControls.value = TextEditingValue(
-              text: aiSortedData['ai_caption'],
-              selection: TextSelection.fromPosition(TextPosition(offset: aiSortedData['ai_caption'].length)),
+              dotenv.env['supabaseSelfHostUrl']!+':2024/v1/chat/completions', 
+              options: Options(
+                method: 'POST',
+                receiveTimeout: Duration(seconds: 15),
+                contentType: 'application/json',
+              ),
+              data: {
+                "model": "gpt-3.5-turbo",
+                "messages": [
+                  {
+                    "role": "system",
+                    "content": 'You are an AI Assistant, your task is to organize all the text inputs to separate lists. These are about food reviews. I want you to separate the reviews and the food prices aside. The text prompt for example would be something like this: "Bakmi PG, Alkid, Yogyakarta Ini adalah salah satu Bakmi Jawa Goreng terenak, beda tipis sama yang di Rama Shinta. Kita sengaja kebawah buat cobain ini. Lokasinya ditengah kota, tepatnya deket Alkid. Parkirnya agak susah karena tempatnya kecil tapi parkir gratis. Buat Bakmi Jawa Gorengnya harganya 28k. Agak pricey sih tapi untung rasanya enak banget.Kalo buat minumnya pesen Es Teh Manis, harganya 7k. Tehnya wangi banget, enak juga rasanya. Menurutku, ini recommended kalo lagi kebawah (dan lagi banyak uang)" From this text prompt, you should return two prompts. The first one is rewrite all the text prompt you receive so it sounds like it was written by a food reviewer.The second one is like this: "Bakmi Jawa Goreng: Rp28.000 Es Teh Manis: Rp7.000" k means thousand, so 10k is 10000. But since we are talking about prices in Indonesian currency (Rupiah), so you should translate it to that. Please provide the following information as a JSON object: - food_prices: - Item: Bakmi Jawa Goreng - Price: Rp28.000 - ai_caption: "Ini adalah salah satu Bakmi Jawa Goreng terenak yang ditemukan di Yogyakarta. Lokasinya di tengah kota, dekat Alkid, dan parkiran gratis. Bakmi Jawa Gorengnya dihargai sekitar Rp28.000, sedangkan Es Teh Manis sekitar Rp7.000. Rasanya enak banget, kalo lagi kebawah." DO NOT return anymore word like Here is the response in JSON format. JUST RETURN THE JSON.'
+                  },
+                  {
+                    "role": "user",
+                    "content": myController.text
+                  }
+                ]
+              }
             );
-            isAILoading = false;
-            isAIDone = true;
-            viewTextMode = 'ai';
-          });
+            Map<String, dynamic> aiSortedData = jsonDecode(response.data['choices'][0]['message']['content']);
+            foodPrices = aiSortedData['food_prices'];
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('AI Rewrite success!'),
+                elevation: 20.0,
+              ),
+            );
+            setState(() {
+              AITextControls.value = TextEditingValue(
+                text: aiSortedData['ai_caption'],
+                selection: TextSelection.fromPosition(TextPosition(offset: aiSortedData['ai_caption'].length)),
+              );
+              isAILoading = false;
+              isAIDone = true;
+              viewTextMode = 'ai';
+            });
           }
         } on DioException catch (e) {
           setState(() {
