@@ -1034,9 +1034,15 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
   bool isAILoading = false;
   bool isAIPreferred = false;
   bool isAIDone = false;
+  bool doesFoodPricesExist() {
+    if(foodPrices.isEmpty) {
+      return false;
+    } else {
+      return true;
+    }
+  }
   String viewTextMode = 'user';
   Future<void> sendToAI() async {
-    final dio = Dio();
     if (AITextControls.value.text != '') {
       setState(() {
         viewTextMode = 'ai';
@@ -1044,6 +1050,10 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       });
     } else {
       if (myController.value.text != '') {
+        FocusManager.instance.primaryFocus?.unfocus();
+        const String systemModel = 'gpt-3.5-turbo';
+        const String systemProvider = 'Koala';
+        const String systemPrompt = 'You are an Journee AI Chatbot, your task is to organize all the text inputs to separate lists. These are about food reviews. I want you to separate the reviews and the food prices aside. From the original text, you should return two object. The first one is to REWRITE all the original text you receive so it sounds like it was written by a pro food reviewer. DO NOT BE LAZY. YOU SHOULD WRITE A MINIMUM OF OVER 100 WORDS. If the original text had spacings, you should also try to copy it too. For the second one, Separate and lists all the food name written with the price. For example: "Bakmi Jawa Goreng: Rp28.000 Es Teh Manis: Rp7.000" Whenever you see "k" it means thousand, so 10k is 10000. But since we are talking about prices in Indonesian currency (Rupiah), so you should translate it to that. Please provide the following information as a JSON object: - food_prices: - name: Bakmi Jawa Goreng - price: Rp28.000 - ai_caption: "". RETURN THE RESULT IN THE "ai_caption" JSON OBJECT. ALWAYS RETURN TEXT IN INDONESIAN. DO NOT return anymore word like "Here is the response in JSON format." JUST RETURN THE JSON.';
         try {
           setState(() {
             isAILoading = true;
@@ -1056,11 +1066,12 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                 'Access-Control-Allow-Origin': dotenv.env['supabaseSelfHostUrl']!,
               },
               body: jsonEncode({
-                "model": "gpt-3.5-turbo",
+                "model": systemModel,
+                "provider": systemProvider,
                 "messages": [
                   {
                     "role": "system",
-                    "content": 'You are an AI Assistant, your task is to organize all the text inputs to separate lists. These are about food reviews. I want you to separate the reviews and the food prices aside. The text prompt for example would be something like this: "Bakmi PG, Alkid, Yogyakarta Ini adalah salah satu Bakmi Jawa Goreng terenak, beda tipis sama yang di Rama Shinta. Kita sengaja kebawah buat cobain ini. Lokasinya ditengah kota, tepatnya deket Alkid. Parkirnya agak susah karena tempatnya kecil tapi parkir gratis. Buat Bakmi Jawa Gorengnya harganya 28k. Agak pricey sih tapi untung rasanya enak banget.Kalo buat minumnya pesen Es Teh Manis, harganya 7k. Tehnya wangi banget, enak juga rasanya. Menurutku, ini recommended kalo lagi kebawah (dan lagi banyak uang)" From this text prompt, you should return two prompts. The first one is rewrite all the text prompt you receive so it sounds like it was written by a food reviewer.The second one is like this: "Bakmi Jawa Goreng: Rp28.000 Es Teh Manis: Rp7.000" k means thousand, so 10k is 10000. But since we are talking about prices in Indonesian currency (Rupiah), so you should translate it to that. Please provide the following information as a JSON object: - food_prices: - Item: Bakmi Jawa Goreng - Price: Rp28.000 - ai_caption: "Ini adalah salah satu Bakmi Jawa Goreng terenak yang ditemukan di Yogyakarta. Lokasinya di tengah kota, dekat Alkid, dan parkiran gratis. Bakmi Jawa Gorengnya dihargai sekitar Rp28.000, sedangkan Es Teh Manis sekitar Rp7.000. Rasanya enak banget, kalo lagi kebawah." DO NOT return anymore word like Here is the response in JSON format. JUST RETURN THE JSON."',
+                    "content": systemPrompt,
                   },
                   {
                     "role": "user",
@@ -1071,7 +1082,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             );
 
             if (response.statusCode == 200) {
-              // Handle success
               print(response.body);
               Map<String, dynamic> aiSortedResponse = jsonDecode(response.body);
               Map<String, dynamic> aiSortedData = aiSortedResponse['choices'][0]['message']['content'];
@@ -1093,7 +1103,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                 viewTextMode = 'ai';
               });
             } else {
-              // Handle error
               setState(() {
                 isAILoading = false;
                 isAIDone = false;
@@ -1108,7 +1117,8 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             );
             }
           } else {
-            var response = await dio.request(
+            final dio = Dio();
+            final response = await dio.request(
               dotenv.env['supabaseSelfHostUrl']!+':2024/v1/chat/completions', 
               options: Options(
                 method: 'POST',
@@ -1116,11 +1126,19 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                 contentType: 'application/json',
               ),
               data: {
-                "model": "gpt-3.5-turbo",
+                "model": systemModel,
+                "provider": systemProvider,
+                "response_format": {
+                  "ai_caption": "", 
+                  "food_prices": [
+                    {"name": "Bakmi Jawa Goreng", "price": "Rp28.000"},
+                    {"name": "Es Teh Manis", "price": "Rp7.000"}
+                  ]
+                },
                 "messages": [
                   {
                     "role": "system",
-                    "content": 'You are an AI Assistant, your task is to organize all the text inputs to separate lists. These are about food reviews. I want you to separate the reviews and the food prices aside. The text prompt for example would be something like this: "Bakmi PG, Alkid, Yogyakarta Ini adalah salah satu Bakmi Jawa Goreng terenak, beda tipis sama yang di Rama Shinta. Kita sengaja kebawah buat cobain ini. Lokasinya ditengah kota, tepatnya deket Alkid. Parkirnya agak susah karena tempatnya kecil tapi parkir gratis. Buat Bakmi Jawa Gorengnya harganya 28k. Agak pricey sih tapi untung rasanya enak banget.Kalo buat minumnya pesen Es Teh Manis, harganya 7k. Tehnya wangi banget, enak juga rasanya. Menurutku, ini recommended kalo lagi kebawah (dan lagi banyak uang)" From this text prompt, you should return two prompts. The first one is rewrite all the text prompt you receive so it sounds like it was written by a food reviewer.The second one is like this: "Bakmi Jawa Goreng: Rp28.000 Es Teh Manis: Rp7.000" k means thousand, so 10k is 10000. But since we are talking about prices in Indonesian currency (Rupiah), so you should translate it to that. Please provide the following information as a JSON object: - food_prices: - Item: Bakmi Jawa Goreng - Price: Rp28.000 - ai_caption: "Ini adalah salah satu Bakmi Jawa Goreng terenak yang ditemukan di Yogyakarta. Lokasinya di tengah kota, dekat Alkid, dan parkiran gratis. Bakmi Jawa Gorengnya dihargai sekitar Rp28.000, sedangkan Es Teh Manis sekitar Rp7.000. Rasanya enak banget, kalo lagi kebawah." DO NOT return anymore word like Here is the response in JSON format. JUST RETURN THE JSON.'
+                    "content": systemPrompt
                   },
                   {
                     "role": "user",
@@ -1130,7 +1148,6 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
               }
             );
             Map<String, dynamic> aiSortedData = jsonDecode(response.data['choices'][0]['message']['content']);
-            // foodPrices = aiSortedData['food_prices'];
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -1143,6 +1160,11 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                 text: aiSortedData['ai_caption'],
                 selection: TextSelection.fromPosition(TextPosition(offset: aiSortedData['ai_caption'].length)),
               );
+              List<Map<String, dynamic>> foodPricesRaw = aiSortedData['food_prices'];
+              // print(foodPricesRaw);
+              // foodPrices = foodPricesRaw;
+              // List<Map<String, dynamic>> foodPrices = foodPricesRaw.cast<Map<String, dynamic>>();
+              // print(foodPrices);
               isAILoading = false;
               isAIDone = true;
               viewTextMode = 'ai';
@@ -1159,21 +1181,23 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
             print(e.response!.headers);
             print(e.response!.requestOptions);
             String error = e.response!.data['error']['message'];
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Unfortunately, AI is currently not available. $error'),
-                elevation: 20.0,
-              ),
-            );
+            // ScaffoldMessenger.of(context).showSnackBar(
+            //   SnackBar(
+            //     content: Text('AI Rewrite currently is not available. $error'),
+            //     elevation: 20.0,
+            //   ),
+            // );
+            showAlertDialog(context, 'AI Rewrite is currently unavailable', error);
           } else {
             print(e.requestOptions);
             print(e.message);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Unfortunately, AI is currently not available. Please try again later.'),
-                elevation: 20.0,
-              ),
-            );
+            // ScaffoldMessenger.of(context).showSnackBar(
+            //   SnackBar(
+            //     content: Text('Unfortunately, AI is currently not available. Please try again later.'),
+            //     elevation: 20.0,
+            //   ),
+            // );
+            showAlertDialog(context, 'AI Rewrite is currently unavailable', "Please try again later");
           }
         }
       }
@@ -1186,6 +1210,43 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
       );
     }
     }
+  }
+  Widget showFoodPriceListUI() {
+    return SizedBox(
+      height: 64,
+      child: ListView.builder(
+        itemCount: foodPrices.length,
+        itemBuilder: ((context, index) {
+          final food = foodPrices[index];
+          bool loading = false;
+      
+          return ListTile(
+            contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 5),
+            title: Text(food['Item']),
+            subtitle: Text(food['Price']),
+          );
+        })
+      ),
+    );
+  }
+  showAlertDialog(BuildContext context, String title, String e) {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(e),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
   Future<void> undoAIText() async {
     setState(() {
@@ -1425,6 +1486,10 @@ class _CreateDiaryPageState extends State<CreateDiaryPage> {
                       if(!uploading) SingleChildScrollView(
                         child: Column(
                           children: [ 
+                            // SHOW FOOD PRICE LIST UI IF EXIST
+                            if(isFoodReviewMode() && doesFoodPricesExist()) showFoodPriceListUI(), 
+                            if(doesFoodPricesExist()) Divider(),
+
                             // REWRITE WITH AI BUTTON
                             if(isFoodReviewMode() && isAIDone == false) TextButton(
                               style: TextButton.styleFrom(
