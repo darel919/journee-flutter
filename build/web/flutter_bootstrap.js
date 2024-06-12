@@ -10,7 +10,7 @@ _flutter.buildConfig = {"engineRevision":"edd8546116457bdf1c5bdfb13ecb9463d2bb5e
 
 
 _flutter.loader.load({
-  config: {
-    'renderer': 'html'
-  },
+  serviceWorkerSettings: {
+    serviceWorkerVersion: "4145500378"
+  }
 });
