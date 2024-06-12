@@ -16,7 +16,4 @@ _flutter.loader.load({
   config: {
     'renderer': 'html'
   },
-  serviceWorkerSettings: {
-    serviceWorkerVersion: "1987229932",
-  },
 });

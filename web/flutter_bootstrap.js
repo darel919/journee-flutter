@@ -8,7 +8,4 @@ _flutter.loader.load({
   config: {
     'renderer': 'html'
   },
-  serviceWorkerSettings: {
-    serviceWorkerVersion: {{flutter_service_worker_version}},
-  },
 });
